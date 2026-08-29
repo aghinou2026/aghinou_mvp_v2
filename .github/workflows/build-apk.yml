@@ -27,17 +27,17 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Flutter clean
+        run: flutter clean
+
       - name: Flutter pub get
         run: flutter pub get
 
       - name: Flutter analyze
         run: flutter analyze || true
 
-      - name: Clean previous build state
-        run: flutter clean
-
       - name: Build release APK
-        run: flutter build apk --release --no-pub
+        run: flutter build apk --release
 
       - name: Verify APK
         run: test -f build/app/outputs/flutter-apk/app-release.apk
