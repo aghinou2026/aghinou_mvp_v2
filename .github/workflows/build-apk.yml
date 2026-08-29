@@ -9,6 +9,8 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: -Dorg.gradle.vfs.watch=false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,14 +33,18 @@ jobs:
       - name: Flutter analyze
         run: flutter analyze || true
 
+      - name: Clean previous build state
+        run: flutter clean
+
       - name: Build release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-pub
+
+      - name: Verify APK
+        run: test -f build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: aghinou-release-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-
-# Trigger a fresh build using the corrected workflow.
