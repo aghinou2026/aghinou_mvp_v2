@@ -1,0 +1,1 @@
+Buildable baseline restored from commit b98c0dd. The workflow changes from b98c0dd are preserved; lib/main.dart is restored to the known buildable version to remove the syntax regression introduced afterward.
