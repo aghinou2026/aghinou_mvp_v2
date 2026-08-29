@@ -36,16 +36,21 @@ jobs:
       - name: Flutter analyze
         run: flutter analyze || true
 
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14'
+
       - name: Build release APK with Gradle
         working-directory: android
-        run: ./gradlew app:assembleRelease --no-daemon --stacktrace
+        run: gradle app:assembleRelease --no-daemon --stacktrace
 
       - name: Locate APK
         shell: bash
         run: |
           echo "Searching for generated APK files..."
           find . -type f -name '*.apk' -print
-          APK="$(find android -type f -name '*.apk' | head -n 1)"
+          APK="$(find android/app/build/outputs -type f -name '*.apk' | head -n 1)"
           test -n "$APK"
           echo "APK_PATH=$APK" >> "$GITHUB_ENV"
           echo "Using APK: $APK"
