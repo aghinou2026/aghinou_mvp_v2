@@ -36,20 +36,15 @@ jobs:
       - name: Flutter analyze
         run: flutter analyze || true
 
-      - name: Build release APK with verbose diagnostics
+      - name: Build release APK
         shell: bash
         run: |
-          set +e
           flutter build apk --release --verbose
-          BUILD_EXIT=$?
-          echo "flutter build exit code: $BUILD_EXIT"
-          echo "APK files found in build directory:"
-          find build -type f -name '*.apk' -print 2>/dev/null || true
-          echo "All Android output files:"
-          find build/app/outputs -maxdepth 5 -type f -print 2>/dev/null || true
-          exit $BUILD_EXIT
+          echo "APK files found:"
+          find build -type f -name '*.apk' -print
 
       - name: Verify APK
+        shell: bash
         run: |
           APK="$(find build -type f -name '*.apk' | head -n 1)"
           test -n "$APK"
