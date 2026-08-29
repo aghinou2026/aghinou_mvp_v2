@@ -40,3 +40,5 @@ jobs:
           name: aghinou-release-apk
           path: build/app/outputs/flutter-apk/*.apk
           if-no-files-found: error
+
+# Trigger a fresh build using the corrected workflow.
