@@ -10,7 +10,7 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
     env:
-      GRADLE_OPTS: -Dorg.gradle.vfs.watch=false
+      GRADLE_OPTS: -Dorg.gradle.vfs.watch=false -Dorg.gradle.daemon=false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,15 +36,28 @@ jobs:
       - name: Flutter analyze
         run: flutter analyze || true
 
-      - name: Build release APK
-        run: flutter build apk --release
+      - name: Build release APK with verbose diagnostics
+        shell: bash
+        run: |
+          set +e
+          flutter build apk --release --verbose
+          BUILD_EXIT=$?
+          echo "flutter build exit code: $BUILD_EXIT"
+          echo "APK files found in build directory:"
+          find build -type f -name '*.apk' -print 2>/dev/null || true
+          echo "All Android output files:"
+          find build/app/outputs -maxdepth 5 -type f -print 2>/dev/null || true
+          exit $BUILD_EXIT
 
       - name: Verify APK
-        run: test -f build/app/outputs/flutter-apk/app-release.apk
+        run: |
+          APK="$(find build -type f -name '*.apk' | head -n 1)"
+          test -n "$APK"
+          echo "Using APK: $APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: aghinou-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/**/*.apk
           if-no-files-found: error
