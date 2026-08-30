@@ -33,30 +33,18 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Generate missing Gradle wrapper
-        shell: bash
-        run: |
-          set -e
-          cd android
-          if command -v gradle >/dev/null 2>&1; then
-            gradle wrapper --gradle-version 8.14 --distribution-type bin
-          else
-            echo "System Gradle is unavailable; using Flutter's generated Android tooling."
-            cd ..
-            flutter build apk --debug --no-pub || true
-            exit 1
-          fi
-          chmod +x gradlew
-          test -f gradle/wrapper/gradle-wrapper.jar
-          test -f gradle/wrapper/gradle-wrapper.properties
-          test -x gradlew
+      - name: Set up Gradle 8.14
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14'
 
-      - name: Build Android debug APK with Gradle
+      - name: Build Android debug APK with Gradle 8.14
         shell: bash
         run: |
           set -e
           cd android
-          ./gradlew --no-daemon --stacktrace :app:assembleDebug
+          gradle --version
+          gradle --no-daemon --stacktrace :app:assembleDebug
           cd ..
           echo '--- APK candidates ---'
           find . -type f -name '*.apk' -print
