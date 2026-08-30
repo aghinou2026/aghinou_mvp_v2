@@ -36,28 +36,21 @@ jobs:
       - name: Flutter analyze
         run: flutter analyze || true
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.14'
+      - name: Build signed debug APK
+        run: flutter build apk --debug
 
-      - name: Build release APK with Gradle
-        working-directory: android
-        run: gradle app:assembleRelease --no-daemon --stacktrace
-
-      - name: Locate APK
+      - name: Verify installable APK
         shell: bash
         run: |
-          echo "Searching for generated APK files..."
-          find . -type f -name '*.apk' -print
-          APK="$(find android/app/build/outputs -type f -name '*.apk' | head -n 1)"
-          test -n "$APK"
-          echo "APK_PATH=$APK" >> "$GITHUB_ENV"
-          echo "Using APK: $APK"
+          APK="build/app/outputs/flutter-apk/app-debug.apk"
+          test -f "$APK"
+          echo "APK_PATH=$APK"
+          ls -lh "$APK"
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -n 1)/apksigner" verify --verbose "$APK"
 
-      - name: Upload APK
+      - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: aghinou-release-apk
-          path: ${{ env.APK_PATH }}
+          name: aghinou-installable-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error
