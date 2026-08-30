@@ -1,7 +1,7 @@
 name: aghinou
 description: Aghinou marketplace MVP v2
 publish_to: "none"
-version: 0.2.0+2
+version: 0.2.0+3
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -12,6 +12,7 @@ dependencies:
   supabase_flutter: ^2.14.2
   image_picker: ^1.1.2
   url_launcher: ^6.3.2
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:
