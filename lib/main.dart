@@ -2,6 +2,8 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'iran_locations.dart';
 
 const supabaseUrl = 'https://acfawprpdkzjpyblseay.supabase.co';
 const supabasePublishableKey = 'sb_publishable_uHov32wG1uTxNIkbQbaQmQ_6W5mCwKf';
@@ -17,547 +19,98 @@ Future<void> main() async {
 class AghinouApp extends StatelessWidget {
   const AghinouApp({super.key});
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'آگهینو',
-      theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6C3FE8))),
-      home: const LoginPage(),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    title: 'آگهینو',
+    theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6C3FE8)), inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder())),
+    home: const LoginPage(),
+  );
 }
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
-  @override
-  State<LoginPage> createState() => _LoginPageState();
+  @override State<LoginPage> createState() => _LoginPageState();
 }
-
 class _LoginPageState extends State<LoginPage> {
-  final phone = TextEditingController();
-  bool loading = false;
-  @override
-  void dispose() { phone.dispose(); super.dispose(); }
-
+  final phone = TextEditingController(); bool loading = false;
+  @override void dispose(){phone.dispose();super.dispose();}
   Future<void> login() async {
-    final value = phone.text.trim();
-    if (value.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('شماره موبایل را کامل وارد کنید.')));
-      return;
-    }
-    setState(() => loading = true);
-    try {
-      if (supabase.auth.currentUser == null) await supabase.auth.signInAnonymously();
-      final user = supabase.auth.currentUser;
-      if (user == null) throw Exception('کاربر ساخته نشد.');
-      await supabase.from('profiles').upsert({'iidd': user.id, 'cphone': value, 'name': 'کاربر آگهینو'}, onConflict: 'iidd');
-      if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: $e')));
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
+    final value=phone.text.trim();
+    if(value.length<10){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره موبایل را کامل وارد کنید.')));return;}
+    setState(()=>loading=true);
+    try{
+      if(supabase.auth.currentUser==null) await supabase.auth.signInAnonymously();
+      final u=supabase.auth.currentUser; if(u==null) throw Exception('کاربر ساخته نشد');
+      await supabase.from('profiles').upsert({'iidd':u.id,'cphone':value,'name':'کاربر آگهینو'},onConflict:'iidd');
+      if(mounted) Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const HomePage()));
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('خطا در ورود: $e')));}
+    finally{if(mounted)setState(()=>loading=false);}
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.storefront, size: 70),
-                const SizedBox(height: 12),
-                const Text('آگهینو', style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                const Text('خرید و فروش آسان و مطمئن'),
-                const SizedBox(height: 35),
-                TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره موبایل', border: OutlineInputBorder())),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: loading ? null : login,
-                    child: loading ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('ادامه'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  @override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:SafeArea(child:Padding(padding:const EdgeInsets.all(24),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
+    const Icon(Icons.storefront,size:76),const SizedBox(height:12),const Text('آگهینو',style:TextStyle(fontSize:34,fontWeight:FontWeight.bold)),const SizedBox(height:8),const Text('خرید و فروش آسان و مطمئن'),const SizedBox(height:32),
+    TextField(controller:phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'شماره موبایل',prefixIcon:Icon(Icons.phone))),const SizedBox(height:16),
+    SizedBox(width:double.infinity,child:FilledButton(onPressed:loading?null:login,child:loading?const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2)):const Text('ورود / ادامه'))),
+  ]))));
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
-  @override
-  State<HomePage> createState() => _HomePageState();
+class HomePage extends StatefulWidget { const HomePage({super.key}); @override State<HomePage> createState()=>_HomePageState(); }
+class _HomePageState extends State<HomePage>{
+  int tab=0; bool loading=true; String category='همه',city='همه شهرها',search=''; final searchController=TextEditingController(); List<Map<String,dynamic>> ads=[]; final favorites=<String>{};
+  final categories=const ['همه','خودرو','املاک','موبایل','لوازم خانه','کالای دیجیتال','پوشاک','خدمات'];
+  final subcategories=<String,List<String>>{
+    'خودرو':['همه','سواری','وانت','کامیون و کامیونت','ماشین سنگین','کلاسیک','موتورسیکلت','قطعات و لوازم'],
+    'املاک':['همه','فروش آپارتمان','اجاره آپارتمان','خانه و ویلا','زمین','مغازه و تجاری','اداری'],
+    'موبایل':['همه','گوشی موبایل','تبلت','ساعت هوشمند','لوازم جانبی'],
+    'لوازم خانه':['همه','مبلمان','لوازم آشپزخانه','لوازم برقی','دکوراسیون'],
+    'کالای دیجیتال':['همه','لپ‌تاپ','کامپیوتر','کنسول بازی','دوربین','صوتی و تصویری'],
+    'پوشاک':['همه','مردانه','زنانه','بچگانه','کفش و کیف'],
+    'خدمات':['همه','فنی و تعمیرات','آموزشی','حمل و نقل','نظافت','سایر'],
+  };
+  String subcategory='همه';
+  @override void initState(){super.initState();loadAds();}
+  @override void dispose(){searchController.dispose();super.dispose();}
+  Future<void> loadAds() async{try{final r=await supabase.from('ads').select().order('created_at',ascending:false);if(mounted)setState(()=>ads=List<Map<String,dynamic>>.from(r));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت آگهی‌ها انجام نشد: $e')));}finally{if(mounted)setState(()=>loading=false);}}
+  List<Map<String,dynamic>> get filtered=>ads.where((a){final c='${a['category']??''}',t='${a['title']??''} ${a['edescription']??''} ${a['city']??''}'.toLowerCase();return(category=='همه'||c==category)&&(subcategory=='همه'||c==subcategory||'${a['subcategory']??''}'==subcategory)&&(city=='همه شهرها'||'${a['city']??''}'==city)&&(search.isEmpty||t.contains(search.toLowerCase()));}).toList();
+  int get myAds=>ads.where((a)=>a['seller_id']==supabase.auth.currentUser?.id).length;
+  Future<List<String>> imageUrls(String id)async{try{final r=await supabase.from('ad_images').select('image_url').eq('ad_id',id);return r.map<String>((x)=>'${x['image_url']??''}').where((x)=>x.isNotEmpty).toList();}catch(_){return[];}}
+  void openAdd(){if(myAds>=9){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('سهمیه ۹ آگهی تکمیل شده است.')));return;}Navigator.push(context,MaterialPageRoute(builder:(_)=>AddAdPage(onPublished:loadAds)));}
+  Future<void> chooseCategory()async{final picked=await showModalBottomSheet<String>(context:context,showDragHandle:true,builder:(ctx)=>SafeArea(child:ListView(padding:const EdgeInsets.all(16),children:[const Text('انتخاب دسته‌بندی',style:TextStyle(fontSize:20,fontWeight:FontWeight.bold)),const SizedBox(height:12),for(final c in categories)ListTile(leading:Icon(c=='همه'?Icons.grid_view:Icons.category_outlined),title:Text(c),trailing:category==c?const Icon(Icons.check):null,onTap:()=>Navigator.pop(ctx,c))])));if(picked!=null)setState(()=>{category=picked;subcategory='همه';});}
+  Future<void> chooseCity()async{final picked=await showModalBottomSheet<String>(context:context,isScrollControlled:true,showDragHandle:true,builder:(ctx)=>const CityPicker());if(picked!=null)setState(()=>city=picked);}
+  void openDetails(Map<String,dynamic> ad,List<String> imgs){final id='${ad['idd']??''}';Navigator.push(context,MaterialPageRoute(builder:(_)=>AdDetailsPage(ad:ad,images:imgs,liked:favorites.contains(id),onLike:(v)=>setState(()=>v?favorites.add(id):favorites.remove(id)))));}
+  Widget card(Map<String,dynamic> ad){final id='${ad['idd']??''}';return FutureBuilder<List<String>>(future:imageUrls(id),builder:(context,s){final imgs=s.data??const<String>[];final liked=favorites.contains(id);return Card(clipBehavior:Clip.antiAlias,margin:const EdgeInsets.only(bottom:10),child:InkWell(onTap:()=>openDetails(ad,imgs),child:Row(children:[SizedBox(width:115,height:115,child:imgs.isEmpty?const ColoredBox(color:Color(0xFFEDEDED),child:Icon(Icons.image_outlined,size:40)):Image.network(imgs.first,fit:BoxFit.cover,errorBuilder:(_,__,___)=>const Icon(Icons.broken_image))),Expanded(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${ad['title']??'بدون عنوان'}',maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.bold,fontSize:16)),const SizedBox(height:7),Text('${ad['price']??'توافقی'} تومان'),const SizedBox(height:4),Text('${ad['city']??''}',style:Theme.of(context).textTheme.bodySmall)]))),IconButton(onPressed:()=>setState(()=>liked?favorites.remove(id):favorites.add(id)),icon:Icon(liked?Icons.favorite:Icons.favorite_border))])));});}
+  Widget home(){if(loading)return const Center(child:CircularProgressIndicator());return RefreshIndicator(onRefresh:loadAds,child:ListView(padding:const EdgeInsets.fromLTRB(16,12,16,100),children:[
+    Card(color:Theme.of(context).colorScheme.primaryContainer,child:ListTile(leading:const Icon(Icons.location_on),title:Text(city=='همه شهرها'?'همه شهرها':city,style:const TextStyle(fontWeight:FontWeight.bold)),subtitle:const Text('انتخاب شهر یا استفاده از موقعیت فعلی'),trailing:const Icon(Icons.chevron_left),onTap:chooseCity)),
+    TextField(controller:searchController,onChanged:(v)=>setState(()=>search=v),decoration:InputDecoration(hintText:'چی می‌خوای پیدا کنی؟',prefixIcon:const Icon(Icons.search),suffixIcon:search.isEmpty?null:IconButton(onPressed:(){searchController.clear();setState(()=>search='');},icon:const Icon(Icons.clear)),border:OutlineInputBorder(borderRadius:BorderRadius.circular(18)))),const SizedBox(height:18),
+    Row(mainAxisAlignment:MainAxisAlignment.spaceBetween,children:[const Text('دسته‌بندی‌ها',style:TextStyle(fontSize:19,fontWeight:FontWeight.bold)),TextButton(onPressed:chooseCategory,child:const Text('همه'))]),
+    Wrap(spacing:8,runSpacing:8,children:categories.map((x)=>ActionChip(label:Text(x),avatar:Icon(x=='خودرو'?Icons.directions_car:x=='املاک'?Icons.home_work_outlined:Icons.category_outlined,size:18),onPressed:(){setState(()=>{category=x;subcategory='همه';});if(x!='همه')showSubcategories(x);})).toList()),
+    if(category!='همه'&&subcategories.containsKey(category))... [const SizedBox(height:12),Card(child:Padding(padding:const EdgeInsets.all(10),child:Wrap(spacing:7,runSpacing:7,children:subcategories[category]!.map((x)=>ChoiceChip(label:Text(x),selected:subcategory==x,onSelected:(_)=>setState(()=>subcategory=x))).toList())))],
+    const SizedBox(height:20),const Text('جدیدترین آگهی‌ها',style:TextStyle(fontSize:19,fontWeight:FontWeight.bold)),const SizedBox(height:8),if(filtered.isEmpty)const Card(child:Padding(padding:EdgeInsets.all(20),child:Text('آگهی‌ای برای نمایش پیدا نشد.'))),for(final ad in filtered)card(ad),
+  ]));}
+  Future<void> showSubcategories(String c)async{if(!subcategories.containsKey(c))return;await showModalBottomSheet(context:context,showDragHandle:true,builder:(ctx)=>SafeArea(child:ListView(padding:const EdgeInsets.all(16),children:[Text('زیر‌دسته‌های $c',style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold)),const SizedBox(height:10),for(final x in subcategories[c]!)ListTile(title:Text(x),trailing:subcategory==x?const Icon(Icons.check):null,onTap:(){setState(()=>subcategory=x);Navigator.pop(ctx);})])));}
+  Widget favoritesView(){final list=ads.where((a)=>favorites.contains('${a['idd']??''}')).toList();return list.isEmpty?const Center(child:Text('هنوز آگهی‌ای به علاقه‌مندی‌ها اضافه نشده است.')):ListView(padding:const EdgeInsets.fromLTRB(16,16,16,100),children:[const Text('علاقه‌مندی‌ها',style:TextStyle(fontSize:21,fontWeight:FontWeight.bold)),const SizedBox(height:10),for(final a in list)card(a)]);}
+  Widget messages()=>const Center(child:Text('پیام‌های شما اینجا نمایش داده می‌شود.'));
+  Widget account(){final u=supabase.auth.currentUser;return ListView(padding:const EdgeInsets.fromLTRB(16,16,16,100),children:[const CircleAvatar(radius:42,child:Icon(Icons.person,size:48)),const SizedBox(height:10),Center(child:Text('پروفایل من',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold))),const SizedBox(height:18),Card(child:ListTile(leading:const Icon(Icons.phone),title:const Text('شماره موبایل'),subtitle:Text(u==null?'ثبت نشده':'شماره ثبت‌شده'))),Card(child:ListTile(leading:const Icon(Icons.campaign_outlined),title:const Text('آگهی‌های من'),subtitle:Text('$myAds آگهی فعال'),onTap:()=>setState(()=>tab=0))),Card(child:ListTile(leading:const Icon(Icons.favorite),title:const Text('علاقه‌مندی‌ها'),subtitle:Text('${favorites.length} آگهی'),onTap:()=>setState(()=>tab=1))),const SizedBox(height:8),OutlinedButton.icon(onPressed:()async{await supabase.auth.signOut();if(mounted)Navigator.pushAndRemoveUntil(context,MaterialPageRoute(builder:(_)=>const LoginPage()),(_)=>false);},icon:const Icon(Icons.logout),label:const Text('خروج'))]);}
+  @override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('آگهینو'),actions:[IconButton(onPressed:loadAds,icon:const Icon(Icons.refresh)),IconButton(onPressed:()=>ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('اعلان جدیدی ندارید.'))),icon:const Icon(Icons.notifications_none))]),body:IndexedStack(index:tab,children:[home(),favoritesView(),messages(),account()]),floatingActionButton:tab==0?FloatingActionButton.extended(onPressed:openAdd,icon:const Icon(Icons.add),label:const Text('ثبت آگهی')):null,bottomNavigationBar:NavigationBar(selectedIndex:tab,onDestinationSelected:(v)=>setState(()=>tab=v),destinations:const[NavigationDestination(icon:Icon(Icons.home_outlined),selectedIcon:Icon(Icons.home),label:'خانه'),NavigationDestination(icon:Icon(Icons.favorite_border),selectedIcon:Icon(Icons.favorite),label:'علاقه‌مندی'),NavigationDestination(icon:Icon(Icons.chat_bubble_outline),selectedIcon:Icon(Icons.chat),label:'پیام‌ها'),NavigationDestination(icon:Icon(Icons.person_outline),selectedIcon:Icon(Icons.person),label:'حساب')]));
 }
 
-class _HomePageState extends State<HomePage> {
-  int tab = 0;
-  bool loading = true;
-  String category = 'همه';
-  String search = '';
-  final searchController = TextEditingController();
-  List<Map<String, dynamic>> ads = [];
-  final favorites = <String>{};
-  final categories = const ['همه', 'خودرو', 'املاک', 'موبایل', 'لوازم خانه', 'کالای دیجیتال', 'پوشاک', 'خدمات'];
-
-  @override
-  void initState() { super.initState(); loadAds(); }
-  @override
-  void dispose() { searchController.dispose(); super.dispose(); }
-
-  Future<void> loadAds() async {
-    try {
-      final r = await supabase.from('ads').select().order('created_at', ascending: false);
-      if (mounted) setState(() => ads = List<Map<String, dynamic>>.from(r));
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('دریافت آگهی‌ها انجام نشد: $e')));
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
-
-  List<Map<String, dynamic>> get filtered => ads.where((a) {
-    final c = '${a['category'] ?? ''}';
-    final t = '${a['title'] ?? ''} ${a['edescription'] ?? ''} ${a['city'] ?? ''}'.toLowerCase();
-    return (category == 'همه' || c == category) && (search.isEmpty || t.contains(search.toLowerCase()));
-  }).toList();
-
-  int get myAds => ads.where((a) => a['seller_id'] == supabase.auth.currentUser?.id).length;
-
-  Future<List<String>> imageUrls(String id) async {
-    try {
-      final r = await supabase.from('ad_images').select('image_url').eq('ad_id', id);
-      return r.map<String>((x) => '${x['image_url'] ?? ''}').where((x) => x.isNotEmpty).toList();
-    } catch (_) { return []; }
-  }
-
-  void openAdd() {
-    if (myAds >= 9) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سهمیه ۹ آگهی تکمیل شده است.')));
-      return;
-    }
-    Navigator.push(context, MaterialPageRoute(builder: (_) => AddAdPage(onPublished: loadAds)));
-  }
-
-  void openDetails(Map<String, dynamic> ad, List<String> images) {
-    final id = '${ad['idd'] ?? ''}';
-    Navigator.push(context, MaterialPageRoute(builder: (_) => AdDetailsPage(
-      ad: ad,
-      images: images,
-      liked: favorites.contains(id),
-      onLike: (value) => setState(() {
-        if (value) { favorites.add(id); } else { favorites.remove(id); }
-      }),
-    )));
-  }
-
-  Widget adCard(Map<String, dynamic> ad) {
-    final id = '${ad['idd'] ?? ''}';
-    return FutureBuilder<List<String>>(
-      future: imageUrls(id),
-      builder: (context, snap) {
-        final images = snap.data ?? const <String>[];
-        final liked = favorites.contains(id);
-        return Card(
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => openDetails(ad, images),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 110,
-                  height: 110,
-                  child: images.isEmpty
-                      ? const ColoredBox(color: Color(0xFFEDEDED), child: Icon(Icons.image_outlined, size: 40))
-                      : Image.network(images.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined, size: 40)),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${ad['title'] ?? 'بدون عنوان'}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        const SizedBox(height: 7),
-                        Text('${ad['price'] ?? 'توافقی'} تومان'),
-                        const SizedBox(height: 4),
-                        Text('${ad['city'] ?? ''}', style: Theme.of(context).textTheme.bodySmall),
-                      ],
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => setState(() {
-                    if (liked) { favorites.remove(id); } else { favorites.add(id); }
-                  }),
-                  icon: Icon(liked ? Icons.favorite : Icons.favorite_border),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget home() {
-    if (loading) return const Center(child: CircularProgressIndicator());
-    return RefreshIndicator(
-      onRefresh: loadAds,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-        children: [
-          TextField(
-            controller: searchController,
-            onChanged: (v) => setState(() => search = v),
-            decoration: InputDecoration(
-              hintText: 'چی می‌خوای پیدا کنی؟',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: search.isEmpty ? null : IconButton(onPressed: () { searchController.clear(); setState(() => search = ''); }, icon: const Icon(Icons.clear)),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text('دسته‌بندی‌ها', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Wrap(spacing: 8, runSpacing: 8, children: categories.map((x) => ChoiceChip(label: Text(x), selected: category == x, onSelected: (_) => setState(() => category = x))).toList()),
-          const SizedBox(height: 22),
-          const Text('جدیدترین آگهی‌ها', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          if (filtered.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('آگهی‌ای برای نمایش پیدا نشد.'))),
-          for (final ad in filtered) adCard(ad),
-        ],
-      ),
-    );
-  }
-
-  Widget favoritesView() {
-    final list = ads.where((a) => favorites.contains('${a['idd'] ?? ''}')).toList();
-    if (list.isEmpty) return const Center(child: Text('هنوز آگهی‌ای به علاقه‌مندی‌ها اضافه نشده است.'));
-    return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), children: [
-      const Text('علاقه‌مندی‌ها', style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
-      const SizedBox(height: 10),
-      for (final ad in list) adCard(ad),
-    ]);
-  }
-
-  Widget account() {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-      children: [
-        const CircleAvatar(radius: 38, child: Icon(Icons.person, size: 42)),
-        const SizedBox(height: 10),
-        const Center(child: Text('کاربر آگهینو', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
-        const SizedBox(height: 18),
-        Card(child: ListTile(leading: const Icon(Icons.campaign_outlined), title: const Text('آگهی‌های من'), subtitle: Text('$myAds از ۹ آگهی استفاده شده'), onTap: () => setState(() => tab = 0))),
-        Card(child: ListTile(leading: const Icon(Icons.phone), title: const Text('شماره موبایل'), subtitle: const Text('شماره ثبت‌شده در حساب'))),
-        OutlinedButton.icon(
-          onPressed: () async {
-            await supabase.auth.signOut();
-            if (!mounted) return;
-            Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (_) => false);
-          },
-          icon: const Icon(Icons.logout),
-          label: const Text('خروج'),
-        ),
-      ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('آگهینو'),
-          actions: [
-            IconButton(onPressed: loadAds, icon: const Icon(Icons.refresh)),
-            IconButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اعلان جدیدی ندارید.'))), icon: const Icon(Icons.notifications_none)),
-          ],
-        ),
-        body: IndexedStack(index: tab, children: [home(), favoritesView(), const Center(child: Text('پیام‌های شما اینجا نمایش داده می‌شود.')), account()]),
-        floatingActionButton: tab == 0 ? FloatingActionButton.extended(onPressed: openAdd, icon: const Icon(Icons.add), label: const Text('ثبت آگهی')) : null,
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: tab,
-          onDestinationSelected: (v) => setState(() => tab = v),
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'خانه'),
-            NavigationDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: 'علاقه‌مندی'),
-            NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat), label: 'پیام‌ها'),
-            NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حساب'),
-          ],
-        ),
-      ),
-    );
-  }
+class CityPicker extends StatefulWidget{const CityPicker({super.key});@override State<CityPicker> createState()=>_CityPickerState();}
+class _CityPickerState extends State<CityPicker>{String q='';String? province;final c=TextEditingController();Future<void> locate()async{try{if(!await Geolocator.isLocationServiceEnabled())throw Exception('مکان‌یابی گوشی خاموش است.');var p=await Geolocator.checkPermission();if(p==LocationPermission.denied)p=await Geolocator.requestPermission();if(p==LocationPermission.denied||p==LocationPermission.deniedForever)throw Exception('اجازه مکان‌یابی داده نشد.');final pos=await Geolocator.getCurrentPosition();if(mounted)showDialog(context:context,builder:(_)=>AlertDialog(title:const Text('موقعیت فعلی'),content:Text('مختصات دریافت شد:\n${pos.latitude.toStringAsFixed(5)} , ${pos.longitude.toStringAsFixed(5)}\n\nشهر را برای فیلتر آگهی‌ها از فهرست انتخاب کنید.'),actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('باشه'))]));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('$e')));}}
+@override void dispose(){c.dispose();super.dispose();}
+@override Widget build(BuildContext context){final cities=province==null?const<String>[]:iranProvinces.firstWhere((p)=>p.name==province).cities;final shown=cities.where((x)=>x.contains(q)).toList();return SafeArea(child:Padding(padding:const EdgeInsets.fromLTRB(16,4,16,16),child:Column(children:[Row(children:[const Expanded(child:Text('انتخاب شهر',style:TextStyle(fontSize:21,fontWeight:FontWeight.bold))),IconButton(onPressed:locate,icon:const Icon(Icons.my_location))]),TextField(controller:c,onChanged:(v)=>setState(()=>q=v),decoration:const InputDecoration(hintText:'جستجوی شهر',prefixIcon:Icon(Icons.search))),const SizedBox(height:10),if(province==null)Expanded(child:ListView(children:[ListTile(leading:const Icon(Icons.public),title:const Text('همه شهرها'),onTap:()=>Navigator.pop(context,'همه شهرها')),for(final p in iranProvinces)ListTile(title:Text(p.name),subtitle:Text('${p.cities.length} شهر'),trailing:const Icon(Icons.chevron_left),onTap:()=>setState(()=>province=p.name))]))else Expanded(child:ListView(children:[ListTile(leading:const Icon(Icons.arrow_forward),title:Text('استان $province'),onTap:()=>setState(()=>province=null)),for(final x in shown)ListTile(title:Text(x),onTap:()=>Navigator.pop(context,x))]))])));}
 }
 
-class AdDetailsPage extends StatefulWidget {
-  final Map<String, dynamic> ad;
-  final List<String> images;
-  final bool liked;
-  final ValueChanged<bool> onLike;
-  const AdDetailsPage({super.key, required this.ad, required this.images, required this.liked, required this.onLike});
-  @override
-  State<AdDetailsPage> createState() => _AdDetailsPageState();
+class AdDetailsPage extends StatefulWidget{final Map<String,dynamic> ad;final List<String> images;final bool liked;final ValueChanged<bool> onLike;const AdDetailsPage({super.key,required this.ad,required this.images,required this.liked,required this.onLike});@override State<AdDetailsPage> createState()=>_AdDetailsPageState();}
+class _AdDetailsPageState extends State<AdDetailsPage>{late bool liked;@override void initState(){super.initState();liked=widget.liked;}@override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('جزئیات آگهی'),actions:[IconButton(onPressed:(){setState(()=>liked=!liked);widget.onLike(liked);},icon:Icon(liked?Icons.favorite:Icons.favorite_border))]),body:ListView(padding:const EdgeInsets.only(bottom:30),children:[if(widget.images.isEmpty)const SizedBox(height:240,child:Center(child:Icon(Icons.image_outlined,size:90)))else SizedBox(height:280,child:PageView.builder(itemCount:widget.images.length,itemBuilder:(_,i)=>Image.network(widget.images[i],fit:BoxFit.cover,errorBuilder:(_,__,___)=>const Center(child:Icon(Icons.broken_image,size:60))))),Padding(padding:const EdgeInsets.all(18),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text('${widget.ad['title']??'بدون عنوان'}',style:const TextStyle(fontSize:24,fontWeight:FontWeight.bold)),const SizedBox(height:12),Text('${widget.ad['price']??'توافقی'} تومان',style:const TextStyle(fontSize:19,fontWeight:FontWeight.w600)),const SizedBox(height:8),Text('${widget.ad['city']??''} • ${widget.ad['category']??''}'),const Divider(height:30),const Text('توضیحات',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),Text('${widget.ad['edescription']??'توضیحی ثبت نشده است.'}',style:const TextStyle(fontSize:16,height:1.7)),const SizedBox(height:24),SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:()=>ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('گفتگو به‌زودی فعال می‌شود.'))),icon:const Icon(Icons.chat_bubble_outline),label:const Text('پیام به فروشنده'))]))])));
 }
 
-class _AdDetailsPageState extends State<AdDetailsPage> {
-  late bool liked;
-  @override
-  void initState() { super.initState(); liked = widget.liked; }
-
-  @override
-  Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('جزئیات آگهی'),
-          actions: [
-            IconButton(onPressed: () { setState(() => liked = !liked); widget.onLike(liked); }, icon: Icon(liked ? Icons.favorite : Icons.favorite_border)),
-          ],
-        ),
-        body: ListView(
-          padding: const EdgeInsets.only(bottom: 30),
-          children: [
-            if (widget.images.isEmpty)
-              const SizedBox(height: 240, child: Center(child: Icon(Icons.image_outlined, size: 90)))
-            else
-              SizedBox(
-                height: 280,
-                child: PageView.builder(
-                  itemCount: widget.images.length,
-                  itemBuilder: (_, i) => Image.network(widget.images[i], fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 60))),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${widget.ad['title'] ?? 'بدون عنوان'}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  Text('${widget.ad['price'] ?? 'توافقی'} تومان', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  Text('${widget.ad['city'] ?? ''} • ${widget.ad['category'] ?? ''}'),
-                  const Divider(height: 30),
-                  const Text('توضیحات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text('${widget.ad['edescription'] ?? 'توضیحی ثبت نشده است.'}', style: const TextStyle(fontSize: 16, height: 1.7)),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('گفتگو به‌زودی فعال می‌شود.'))),
-                      icon: const Icon(Icons.chat_bubble_outline),
-                      label: const Text('پیام به فروشنده'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class AddAdPage extends StatefulWidget {
-  final Future<void> Function() onPublished;
-  const AddAdPage({super.key, required this.onPublished});
-  @override
-  State<AddAdPage> createState() => _AddAdPageState();
-}
-
-class _AddAdPageState extends State<AddAdPage> {
-  final title = TextEditingController();
-  final desc = TextEditingController();
-  final price = TextEditingController();
-  final picker = ImagePicker();
-  final images = <XFile>[];
-  String category = 'کالای دیجیتال';
-  String city = 'تهران';
-  bool publishing = false;
-
-  @override
-  void dispose() { title.dispose(); desc.dispose(); price.dispose(); super.dispose(); }
-
-  Future<void> pickImages() async {
-    try {
-      final picked = await picker.pickMultiImage(imageQuality: 90);
-      if (!mounted || picked.isEmpty) return;
-      setState(() => images.addAll(picked.take(10 - images.length)));
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('انتخاب عکس انجام نشد: $e')));
-    }
-  }
-
-  Future<void> uploadImages(String adId, String userId) async {
-    final paths = <String>[];
-    try {
-      for (var i = 0; i < images.length; i++) {
-        final im = images[i];
-        final bytes = await im.readAsBytes();
-        final name = im.name.toLowerCase();
-        final ext = name.endsWith('.png') ? 'png' : name.endsWith('.webp') ? 'webp' : 'jpg';
-        final type = ext == 'png' ? 'image/png' : ext == 'webp' ? 'image/webp' : 'image/jpeg';
-        final path = 'public/$userId/$adId/${DateTime.now().microsecondsSinceEpoch}_$i.$ext';
-        await supabase.storage.from(adImagesBucket).uploadBinary(path, bytes, fileOptions: FileOptions(contentType: type, upsert: false));
-        paths.add(path);
-        final url = supabase.storage.from(adImagesBucket).getPublicUrl(path);
-        await supabase.from('ad_images').insert({'ad_id': adId, 'image_url': url});
-      }
-    } catch (e) {
-      if (paths.isNotEmpty) { try { await supabase.storage.from(adImagesBucket).remove(paths); } catch (_) {} }
-      rethrow;
-    }
-  }
-
-  Future<void> cleanup(String? id) async {
-    if (id == null) return;
-    try { await supabase.from('ad_images').delete().eq('ad_id', id); } catch (_) {}
-    try { await supabase.from('ads').delete().eq('idd', id); } catch (_) {}
-  }
-
-  Future<void> publish() async {
-    if (title.text.trim().isEmpty || desc.text.trim().isEmpty || price.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('عنوان، توضیحات و قیمت را کامل کنید.')));
-      return;
-    }
-    final user = supabase.auth.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ابتدا وارد حساب شوید.')));
-      return;
-    }
-    final p = int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'), ''));
-    if (p == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('قیمت را به صورت عدد وارد کنید.')));
-      return;
-    }
-    setState(() => publishing = true);
-    String? id;
-    try {
-      final row = await supabase.from('ads').insert({'seller_id': user.id, 'title': title.text.trim(), 'edescription': desc.text.trim(), 'price': p, 'city': city, 'category': category}).select('idd').single();
-      id = row['idd']?.toString();
-      if (id == null || id!.isEmpty) throw Exception('شناسه آگهی دریافت نشد.');
-      await uploadImages(id!, user.id);
-      await widget.onPublished();
-      if (!mounted) return;
-      await showDialog<void>(context: context, builder: (ctx) => AlertDialog(title: const Text('آگهی ثبت شد ✅'), content: const Text('آگهی با موفقیت ثبت شد.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('باشه'))]));
-      if (mounted) Navigator.pop(context);
-    } on StorageException catch (e) {
-      await cleanup(id);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای آپلود عکس: ${e.message}')));
-    } on PostgrestException catch (e) {
-      await cleanup(id);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای Supabase: ${e.message}')));
-    } catch (e) {
-      await cleanup(id);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در ثبت آگهی: $e')));
-    } finally {
-      if (mounted) setState(() => publishing = false);
-    }
-  }
-
-  Widget field(TextEditingController c, String label, {int lines = 1}) {
-    return TextField(controller: c, maxLines: lines, decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const cats = ['کالای دیجیتال', 'خودرو', 'املاک', 'لوازم خانه', 'پوشاک', 'خدمات'];
-    const cities = ['تهران', 'کرج', 'مشهد', 'اصفهان', 'شیراز'];
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(title: const Text('ثبت آگهی جدید')),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            DropdownButtonFormField<String>(
-              value: category,
-              decoration: const InputDecoration(labelText: 'دسته‌بندی', border: OutlineInputBorder()),
-              items: cats.map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(),
-              onChanged: publishing ? null : (v) { if (v != null) setState(() => category = v); },
-            ),
-            const SizedBox(height: 12),
-            field(title, 'عنوان آگهی'),
-            const SizedBox(height: 12),
-            field(desc, 'توضیحات', lines: 5),
-            const SizedBox(height: 12),
-            field(price, 'قیمت'),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: city,
-              decoration: const InputDecoration(labelText: 'شهر', border: OutlineInputBorder()),
-              items: cities.map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(),
-              onChanged: publishing ? null : (v) { if (v != null) setState(() => city = v); },
-            ),
-            const SizedBox(height: 14),
-            OutlinedButton.icon(
-              onPressed: publishing || images.length >= 10 ? null : pickImages,
-              icon: const Icon(Icons.add_a_photo_outlined),
-              label: Text('افزودن عکس (${images.length}/۱۰)'),
-            ),
-            if (images.isNotEmpty)
-              SizedBox(
-                height: 105,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: images.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, i) {
-                    return FutureBuilder<Uint8List>(
-                      future: images[i].readAsBytes(),
-                      builder: (context, snap) {
-                        if (!snap.hasData) return const SizedBox(width: 105, child: Center(child: CircularProgressIndicator()));
-                        return Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.memory(snap.data!, width: 105, height: 105, fit: BoxFit.cover),
-                            ),
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: IconButton(
-                                onPressed: publishing ? null : () => setState(() => images.removeAt(i)),
-                                icon: const Icon(Icons.cancel),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            const SizedBox(height: 18),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: publishing ? null : publish,
-                icon: publishing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.publish),
-                label: Text(publishing ? 'در حال ثبت...' : 'ثبت آگهی'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+class AddAdPage extends StatefulWidget{final Future<void> Function() onPublished;const AddAdPage({super.key,required this.onPublished});@override State<AddAdPage> createState()=>_AddAdPageState();}
+class _AddAdPageState extends State<AddAdPage>{final title=TextEditingController(),desc=TextEditingController(),price=TextEditingController();final picker=ImagePicker();final images=<XFile>[];String category='کالای دیجیتال',subcategory='همه',city='تهران';bool publishing=false;double? lat,lon;
+final subs=<String,List<String>>{'خودرو':['همه','سواری','وانت','کامیون و کامیونت','ماشین سنگین','کلاسیک','موتورسیکلت','قطعات و لوازم'],'املاک':['همه','فروش آپارتمان','اجاره آپارتمان','خانه و ویلا','زمین','مغازه و تجاری','اداری'],'موبایل':['همه','گوشی موبایل','تبلت','ساعت هوشمند','لوازم جانبی'],'لوازم خانه':['همه','مبلمان','لوازم آشپزخانه','لوازم برقی','دکوراسیون'],'کالای دیجیتال':['همه','لپ‌تاپ','کامپیوتر','کنسول بازی','دوربین','صوتی و تصویری'],'پوشاک':['همه','مردانه','زنانه','بچگانه','کفش و کیف'],'خدمات':['همه','فنی و تعمیرات','آموزشی','حمل و نقل','نظافت','سایر']};
+@override void dispose(){title.dispose();desc.dispose();price.dispose();super.dispose();}
+Future<void> pickImages()async{try{final p=await picker.pickMultiImage(imageQuality:85);if(mounted&&p.isNotEmpty)setState(()=>images.addAll(p.take(10-images.length)));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('انتخاب عکس انجام نشد: $e')));}}
+Future<void> getLocation()async{try{if(!await Geolocator.isLocationServiceEnabled())throw Exception('مکان‌یابی گوشی خاموش است.');var p=await Geolocator.checkPermission();if(p==LocationPermission.denied)p=await Geolocator.requestPermission();if(p==LocationPermission.denied||p==LocationPermission.deniedForever)throw Exception('اجازه مکان‌یابی داده نشد.');final pos=await Geolocator.getCurrentPosition();if(mounted)setState((){lat=pos.latitude;lon=pos.longitude;});}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('$e')));}}
+Future<void> uploadImages(String adId,String uid)async{for(var i=0;i<images.length;i++){final bytes=await images[i].readAsBytes();final n=images[i].name.toLowerCase();final ext=n.endsWith('.png')?'png':n.endsWith('.webp')?'webp':'jpg';final type=ext=='png'?'image/png':ext=='webp'?'image/webp':'image/jpeg';final path='public/$uid/$adId/${DateTime.now().microsecondsSinceEpoch}_$i.$ext';await supabase.storage.from(adImagesBucket).uploadBinary(path,bytes,fileOptions:FileOptions(contentType:type,upsert:false));final url=supabase.storage.from(adImagesBucket).getPublicUrl(path);await supabase.from('ad_images').insert({'ad_id':adId,'image_url':url});}}
+Future<void> publish()async{if(title.text.trim().isEmpty||desc.text.trim().isEmpty||price.text.trim().isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('عنوان، توضیحات و قیمت را کامل کنید.')));return;}final u=supabase.auth.currentUser;if(u==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ابتدا وارد حساب شوید.')));return;}final p=double.tryParse(price.text.replaceAll(RegExp(r'[^0-9.]'),''));if(p==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('قیمت را به صورت عدد وارد کنید.')));return;}setState(()=>publishing=true);String? id;String? imageError;try{final row=await supabase.from('ads').insert({'seller_id':u.id,'title':title.text.trim(),'edescription':desc.text.trim(),'price':p,'city':city,'category':category,'subcategory':subcategory,'latitude':lat,'longitude':lon}).select('idd').single();id='${row['idd']}';if(id==null||id!.isEmpty)throw Exception('شناسه آگهی دریافت نشد.');try{await uploadImages(id!,u.id);}catch(e){imageError='$e';}await widget.onPublished();if(!mounted)return;await showDialog(context:context,builder:(ctx)=>AlertDialog(title:const Text('آگهی ثبت شد ✅'),content:Text(imageError==null?'آگهی با موفقیت ثبت شد.':'آگهی ثبت شد، اما عکس‌ها آپلود نشدند.\n$imageError'),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('باشه'))]));if(mounted)Navigator.pop(context);}on PostgrestException catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('خطای ثبت آگهی: ${e.message}')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('خطا در ثبت آگهی: $e')));}finally{if(mounted)setState(()=>publishing=false);}}
+Widget field(TextEditingController c,String l,{int lines=1})=>TextField(controller:c,maxLines:lines,decoration:InputDecoration(labelText:l));
+@override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('ثبت آگهی جدید')),body:ListView(padding:const EdgeInsets.all(16),children:[DropdownButtonFormField<String>(value:category,decoration:const InputDecoration(labelText:'دسته‌بندی'),items:subs.keys.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:publishing?null:(v)=>setState(()=>{if(v!=null){category=v;subcategory='همه';}})),if(subs.containsKey(category))Padding(padding:const EdgeInsets.only(top:10),child:Wrap(spacing:7,runSpacing:7,children:subs[category]!.map((x)=>ChoiceChip(label:Text(x),selected:subcategory==x,onSelected:(_)=>setState(()=>subcategory=x))).toList())),const SizedBox(height:12),field(title,'عنوان آگهی'),const SizedBox(height:12),field(desc,'توضیحات',lines:5),const SizedBox(height:12),field(price,'قیمت'),const SizedBox(height:12),Row(children:[Expanded(child:DropdownButtonFormField<String>(value:city,decoration:const InputDecoration(labelText:'شهر'),items:allIranCities().map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:publishing?null:(v)=>setState(()=>{if(v!=null)city=v;}))),IconButton(onPressed:publishing?null:getLocation,tooltip:'مکان فعلی',icon:Icon(lat==null?Icons.my_location:Icons.location_on,color:lat==null?null:Colors.green))]),if(lat!=null)Padding(padding:const EdgeInsets.only(top:5),child:Text('موقعیت ثبت شد: ${lat!.toStringAsFixed(5)}, ${lon!.toStringAsFixed(5)}')),const SizedBox(height:14),OutlinedButton.icon(onPressed:publishing||images.length>=10?null:pickImages,icon:const Icon(Icons.add_a_photo_outlined),label:Text('افزودن عکس (${images.length}/۱۰)')),if(images.isNotEmpty)SizedBox(height:105,child:ListView.separated(scrollDirection:Axis.horizontal,itemCount:images.length,separatorBuilder:(_,__)=>const SizedBox(width:8),itemBuilder:(context,i)=>FutureBuilder<Uint8List>(future:images[i].readAsBytes(),builder:(context,s)=>!s.hasData?const SizedBox(width:105,child:Center(child:CircularProgressIndicator())):Stack(children:[ClipRRect(borderRadius:BorderRadius.circular(12),child:Image.memory(s.data!,width:105,height:105,fit:BoxFit.cover)),Positioned(top:0,right:0,child:IconButton(onPressed:publishing?null:()=>setState(()=>images.removeAt(i)),icon:const Icon(Icons.cancel)))])))),const SizedBox(height:18),SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:publishing?null:publish,icon:publishing?const SizedBox(width:18,height:18,child:CircularProgressIndicator(strokeWidth:2)):const Icon(Icons.publish),label:Text(publishing?'در حال ثبت...':'ثبت آگهی')))]));}
 }
