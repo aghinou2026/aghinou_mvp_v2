@@ -1,0 +1,45 @@
+name: Apply Aghinou UX upgrade
+on:
+  workflow_dispatch:
+  push:
+    branches: [github-actions-apk]
+permissions:
+  contents: write
+jobs:
+  upgrade:
+    if: ${{ !contains(github.event.head_commit.message, '[ux-applied]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Connect upgraded UI
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('lib/main.dart')
+          s=p.read_text()
+          if "import 'ux_upgrade.dart';" not in s:
+              s=s.replace("import 'iran_locations.dart';", "import 'iran_locations.dart';\nimport 'ux_upgrade.dart';")
+          s=s.replace('AdDetailsPage(', 'EnhancedAdDetailsPage(')
+          anchor="          const Text('جدیدترین آگهی‌ها', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),"
+          block="""          HomeSections(onCategory: (c) async {\n            final p = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => CategoryPage(initialCategory: c, initialSubcategory: 'همه')));\n            if (p != null && mounted) { final parts = p.split('|||'); setState(() { category = parts[0]; subcategory = parts.length > 1 ? parts[1] : 'همه'; }); }\n          }),\n          const Text('جدیدترین آگهی‌ها', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),"""
+          if anchor in s and 'HomeSections(onCategory:' not in s:
+              s=s.replace(anchor,block,1)
+          pat=r"  Widget account\(\) \{.*?\n  \}\n\n  Widget showMyAds"
+          rep="""  Widget account() {\n    return ProfileHubPage(city: city, myAds: myAds, onMyAds: showMyAds, onFavorites: () => setState(() => tab = 1), onCity: chooseCity);\n  }\n\n  Widget showMyAds"""
+          s,n=re.subn(pat,rep,s,flags=re.S)
+          old="inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),"
+          new="""inputDecorationTheme: InputDecorationTheme(filled: true, fillColor: const Color(0xFFF7F5FC), border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)), enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16))),\n        cardTheme: CardThemeData(elevation: 1.5, margin: const EdgeInsets.symmetric(vertical: 5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),"""
+          if old in s: s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'Aghinou Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add lib/main.dart lib/ux_upgrade.dart pubspec.yaml
+          git diff --cached --quiet || git commit -m 'Upgrade gallery maps profile and home [ux-applied]'
+          git push
