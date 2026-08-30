@@ -33,26 +33,39 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Flutter analyze
-        run: flutter analyze || true
-
-      - name: Build Android APK with Gradle
+      - name: Generate missing Gradle wrapper
         shell: bash
         run: |
           set -e
           cd android
+          if command -v gradle >/dev/null 2>&1; then
+            gradle wrapper --gradle-version 8.14 --distribution-type bin
+          else
+            echo "System Gradle is unavailable; using Flutter's generated Android tooling."
+            cd ..
+            flutter build apk --debug --no-pub || true
+            exit 1
+          fi
           chmod +x gradlew
+          test -f gradle/wrapper/gradle-wrapper.jar
+          test -f gradle/wrapper/gradle-wrapper.properties
+          test -x gradlew
+
+      - name: Build Android debug APK with Gradle
+        shell: bash
+        run: |
+          set -e
+          cd android
           ./gradlew --no-daemon --stacktrace :app:assembleDebug
           cd ..
           echo '--- APK candidates ---'
           find . -type f -name '*.apk' -print
-          APK="$(find build android -type f -name '*.apk' -print 2>/dev/null | head -n 1)"
+          APK="$(find . -type f -name '*.apk' -print | grep -E '/app-debug\.apk$' | head -n 1)"
           test -n "$APK"
-          echo "APK=$APK"
           mkdir -p dist
           cp "$APK" dist/aghinou-installable.apk
 
-      - name: Verify APK signature
+      - name: Verify APK signature and package
         shell: bash
         run: |
           set -e
