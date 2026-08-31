@@ -1,5 +1,6 @@
 name: Build Android APK
 
+# Trigger verification from the clean v50-based baseline.
 on:
   workflow_dispatch:
   push:
