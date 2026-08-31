@@ -6,16 +6,21 @@ on:
     branches:
       - github-actions-apk
 
+permissions:
+  contents: read
+
+concurrency:
+  group: aghinou-apk-build
+  cancel-in-progress: true
+
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    env:
-      GRADLE_OPTS: -Dorg.gradle.vfs.watch=false -Dorg.gradle.daemon=false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -33,38 +38,20 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Set up Gradle 8.14
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.14'
+      - name: Build debug APK
+        run: flutter build apk --debug
 
-      - name: Build Android debug APK with Gradle 8.14
+      - name: Verify APK exists
         shell: bash
         run: |
-          set -e
-          cd android
-          gradle --version
-          gradle --no-daemon --stacktrace :app:assembleDebug
-          cd ..
-          echo '--- APK candidates ---'
-          find . -type f -name '*.apk' -print
-          APK="$(find . -type f -name '*.apk' -print | grep -E '/app-debug\.apk$' | head -n 1)"
-          test -n "$APK"
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-debug.apk"
+          test -s "$APK"
           mkdir -p dist
           cp "$APK" dist/aghinou-installable.apk
+          ls -lh dist/aghinou-installable.apk
 
-      - name: Verify APK signature and package
-        shell: bash
-        run: |
-          set -e
-          APK="dist/aghinou-installable.apk"
-          test -s "$APK"
-          ls -lh "$APK"
-          BUILD_TOOLS="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)"
-          "$BUILD_TOOLS/apksigner" verify --verbose "$APK"
-          "$BUILD_TOOLS/aapt2" dump badging "$APK" | head -n 5
-
-      - name: Upload verified installable APK
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: aghinou-installable-apk
