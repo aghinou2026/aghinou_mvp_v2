@@ -1,30 +1,23 @@
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:geolocator/geolocator.dart';
+import 'iran_locations.dart';
 
-const String supabaseUrl = 'https://acfawprpdkzjpyblseay.supabase.co';
-const String supabasePublishableKey =
-    'sb_publishable_uHov32wG1uTxNIkbQbaQmQ_6W5mCwKf';
+const supabaseUrl = 'https://acfawprpdkzjpyblseay.supabase.co';
+const supabasePublishableKey = 'sb_publishable_uHov32wG1uTxNIkbQbaQmQ_6W5mCwKf';
+const adImagesBucket = 'ad-images';
+final supabase = Supabase.instance.client;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await Supabase.initialize(
-    url: supabaseUrl,
-    publishableKey: supabasePublishableKey,
-  );
-
+  await Supabase.initialize(url: supabaseUrl, publishableKey: supabasePublishableKey);
   runApp(const AghinouApp());
 }
 
-final supabase = Supabase.instance.client;
-
 class AghinouApp extends StatelessWidget {
   const AghinouApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -32,9 +25,8 @@ class AghinouApp extends StatelessWidget {
       title: 'آگهینو',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C3FE8),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6C3FE8)),
+        inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
       ),
       home: const LoginPage(),
     );
@@ -43,82 +35,28 @@ class AghinouApp extends StatelessWidget {
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
-
-  @override
-  State<LoginPage> createState() => _LoginPageState();
+  @override State<LoginPage> createState() => _LoginPageState();
 }
-
 class _LoginPageState extends State<LoginPage> {
   final phone = TextEditingController();
   bool loading = false;
-
-  @override
-  void dispose() {
-    phone.dispose();
-    super.dispose();
-  }
+  @override void dispose() { phone.dispose(); super.dispose(); }
 
   Future<void> login() async {
     final value = phone.text.trim();
-
     if (value.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('شماره موبایل را کامل وارد کنید.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('شماره موبایل را کامل وارد کنید.')));
       return;
     }
-
     setState(() => loading = true);
-
     try {
-      // MVP: ورود بدون OTP واقعی.
-      // یک کاربر Anonymous در Supabase ساخته می‌شود تا seller_id واقعی داشته باشیم.
-      if (supabase.auth.currentUser == null) {
-        await supabase.auth.signInAnonymously();
-      }
-
-      final user = supabase.auth.currentUser;
-      if (user == null) {
-        throw Exception('کاربر Supabase ساخته نشد.');
-      }
-
-      // ساخت/به‌روزرسانی پروفایل موجود در جدول profiles.
-      // iidd همان UUID کاربر Auth است.
-      await supabase.from('profiles').upsert(
-        {
-          'iidd': user.id,
-          'cphone': value,
-          'name': 'کاربر آگهینو',
-        },
-        onConflict: 'iidd',
-      );
-
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomePage()),
-      );
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'ورود انجام نشد: ${e.message}\n'
-            'ممکن است Anonymous Sign-Ins در Supabase خاموش باشد.',
-          ),
-        ),
-      );
-    } on PostgrestException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطای پروفایل: ${e.message}')),
-      );
+      if (supabase.auth.currentUser == null) await supabase.auth.signInAnonymously();
+      final u = supabase.auth.currentUser;
+      if (u == null) throw Exception('کاربر ساخته نشد');
+      await supabase.from('profiles').upsert({'iidd': u.id, 'cphone': value, 'name': 'کاربر آگهینو'}, onConflict: 'iidd');
+      if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطا: $e')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در ورود: $e')));
     } finally {
       if (mounted) setState(() => loading = false);
     }
@@ -135,53 +73,20 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.storefront, size: 70),
+                const Icon(Icons.storefront, size: 76),
                 const SizedBox(height: 12),
-                const Text(
-                  'آگهینو',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                const Text('آگهینو', style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 const Text('خرید و فروش آسان و مطمئن'),
-                const SizedBox(height: 35),
-                TextField(
-                  controller: phone,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'شماره موبایل',
-                    hintText: 'مثلاً 09121234567',
-                    prefixIcon: const Icon(Icons.phone),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 32),
+                TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره موبایل', prefixIcon: Icon(Icons.phone))),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: loading ? null : login,
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: loading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text('ادامه'),
-                    ),
+                    child: loading ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('ورود / ادامه'),
                   ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'نسخه MVP: ورود شماره موبایل بدون OTP واقعی.',
-                  style: TextStyle(fontSize: 12),
                 ),
               ],
             ),
@@ -192,296 +97,355 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+const categoryNames = ['همه', 'خودرو', 'املاک', 'موبایل', 'لوازم خانه', 'کالای دیجیتال', 'پوشاک', 'خدمات'];
+const categorySubs = <String, List<String>>{
+  'خودرو': ['همه', 'سواری', 'وانت', 'کامیون و کامیونت', 'ماشین سنگین', 'کلاسیک', 'موتورسیکلت', 'قطعات و لوازم'],
+  'املاک': ['همه', 'فروش آپارتمان', 'اجاره آپارتمان', 'خانه و ویلا', 'زمین', 'مغازه و تجاری', 'اداری'],
+  'موبایل': ['همه', 'گوشی موبایل', 'تبلت', 'ساعت هوشمند', 'لوازم جانبی'],
+  'لوازم خانه': ['همه', 'مبلمان', 'لوازم آشپزخانه', 'لوازم برقی', 'دکوراسیون'],
+  'کالای دیجیتال': ['همه', 'لپ‌تاپ', 'کامپیوتر', 'کنسول بازی', 'دوربین', 'صوتی و تصویری'],
+  'پوشاک': ['همه', 'مردانه', 'زنانه', 'بچگانه', 'کفش و کیف'],
+  'خدمات': ['همه', 'فنی و تعمیرات', 'آموزشی', 'حمل و نقل', 'نظافت', 'سایر'],
+};
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
+  @override State<HomePage> createState() => _HomePageState();
 }
-
 class _HomePageState extends State<HomePage> {
   int tab = 0;
-  bool loadingAds = true;
+  bool loading = true;
+  String category = 'همه', subcategory = 'همه', city = 'همه شهرها', search = '';
+  final searchController = TextEditingController();
   List<Map<String, dynamic>> ads = [];
+  final favorites = <String>{};
 
-  @override
-  void initState() {
-    super.initState();
-    loadAds();
-  }
+  @override void initState() { super.initState(); loadAds(); }
+  @override void dispose() { searchController.dispose(); super.dispose(); }
 
   Future<void> loadAds() async {
     try {
-      final rows = await supabase
-          .from('ads')
-          .select()
-          .order('created_at', ascending: false);
-
-      if (!mounted) return;
-
-      setState(() {
-        ads = List<Map<String, dynamic>>.from(rows);
-        loadingAds = false;
-      });
+      final r = await supabase.from('ads').select().order('created_at', ascending: false);
+      if (mounted) setState(() => ads = List<Map<String, dynamic>>.from(r));
     } catch (e) {
-      if (!mounted) return;
-      setState(() => loadingAds = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('دریافت آگهی‌ها انجام نشد: $e')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('دریافت آگهی‌ها انجام نشد: $e')));
+    } finally {
+      if (mounted) setState(() => loading = false);
     }
   }
 
-  int get myAdsCount {
-    final uid = supabase.auth.currentUser?.id;
-    if (uid == null) return 0;
-    return ads.where((ad) => ad['seller_id'] == uid).length;
+  List<Map<String, dynamic>> get filtered => ads.where((a) {
+    final cat = '${a['category'] ?? ''}';
+    final sub = '${a['subcategory'] ?? ''}';
+    final txt = '${a['title'] ?? ''} ${a['edescription'] ?? ''} ${a['city'] ?? ''} ${a['vehicle_brand'] ?? ''} ${a['vehicle_model'] ?? ''}'.toLowerCase();
+    return (category == 'همه' || cat == category) &&
+        (subcategory == 'همه' || sub == subcategory) &&
+        (city == 'همه شهرها' || '${a['city'] ?? ''}' == city) &&
+        (search.isEmpty || txt.contains(search.toLowerCase()));
+  }).toList();
+
+  int get myAds => ads.where((a) => a['seller_id'] == supabase.auth.currentUser?.id).length;
+
+  Future<List<String>> imageUrls(String id) async {
+    try {
+      final r = await supabase.from('ad_images').select('image_url').eq('ad_id', id);
+      return r.map<String>((x) => '${x['image_url'] ?? ''}').where((x) => x.isNotEmpty).toList();
+    } catch (_) { return []; }
   }
+
+  void openAdd() {
+    if (myAds >= 9) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سهمیه ۹ آگهی تکمیل شده است.')));
+      return;
+    }
+    Navigator.push(context, MaterialPageRoute(builder: (_) => AddAdPage(onPublished: loadAds)));
+  }
+
+  Future<void> chooseCity() async {
+    final p = await showModalBottomSheet<String>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => const CityPicker());
+    if (p != null && mounted) setState(() => city = p);
+  }
+
+  Future<void> chooseCategory() async {
+    final p = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => CategoryPage(initialCategory: category, initialSubcategory: subcategory)));
+    if (p != null && mounted) {
+      final parts = p.split('|||');
+      setState(() { category = parts[0]; subcategory = parts.length > 1 ? parts[1] : 'همه'; });
+    }
+  }
+
+  void openDetails(Map<String, dynamic> ad, List<String> imgs) {
+    final id = '${ad['idd'] ?? ''}';
+    Navigator.push(context, MaterialPageRoute(builder: (_) => AdDetailsPage(
+      ad: ad,
+      images: imgs,
+      liked: favorites.contains(id),
+      onLike: (v) => setState(() { if (v) { favorites.add(id); } else { favorites.remove(id); } }),
+    )));
+  }
+
+  Widget card(Map<String, dynamic> ad) {
+    final id = '${ad['idd'] ?? ''}';
+    return FutureBuilder<List<String>>(
+      future: imageUrls(id),
+      builder: (context, s) {
+        final imgs = s.data ?? const <String>[];
+        final liked = favorites.contains(id);
+        return Card(
+          clipBehavior: Clip.antiAlias,
+          margin: const EdgeInsets.only(bottom: 10),
+          child: InkWell(
+            onTap: () => openDetails(ad, imgs),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 118,
+                  height: 118,
+                  child: imgs.isEmpty
+                      ? const ColoredBox(color: Color(0xFFEDEDED), child: Icon(Icons.image_outlined, size: 42))
+                      : Image.network(imgs.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
+                ),
+                Expanded(child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('${ad['title'] ?? 'بدون عنوان'}', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(height: 7),
+                    Text('${ad['price'] ?? 'توافقی'} تومان'),
+                    const SizedBox(height: 4),
+                    Text('${ad['city'] ?? ''}', style: Theme.of(context).textTheme.bodySmall),
+                    if ('${ad['subcategory'] ?? ''}' != 'همه' && '${ad['subcategory'] ?? ''}'.isNotEmpty) Text('${ad['subcategory']}', style: Theme.of(context).textTheme.bodySmall),
+                  ]),
+                )),
+                IconButton(onPressed: () => setState(() { if (liked) { favorites.remove(id); } else { favorites.add(id); } }), icon: Icon(liked ? Icons.favorite : Icons.favorite_border)),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget home() {
+    if (loading) return const Center(child: CircularProgressIndicator());
+    return RefreshIndicator(
+      onRefresh: loadAds,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+        children: [
+          Card(color: Theme.of(context).colorScheme.primaryContainer, child: ListTile(leading: const Icon(Icons.location_on), title: Text(city, style: const TextStyle(fontWeight: FontWeight.bold)), subtitle: const Text('انتخاب شهر یا استفاده از موقعیت فعلی'), trailing: const Icon(Icons.chevron_left), onTap: chooseCity)),
+          const SizedBox(height: 10),
+          TextField(controller: searchController, onChanged: (v) => setState(() => search = v), decoration: InputDecoration(hintText: 'چی می‌خوای پیدا کنی؟', prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)))),
+          const SizedBox(height: 16),
+          Card(child: ListTile(leading: const Icon(Icons.category_outlined), title: Text(category == 'همه' ? 'انتخاب دسته‌بندی' : '$category${subcategory != 'همه' ? ' • $subcategory' : ''}'), subtitle: const Text('برای مشاهده زیر‌دسته‌ها لمس کنید'), trailing: const Icon(Icons.chevron_left), onTap: chooseCategory)),
+          const SizedBox(height: 20),
+          const Text('جدیدترین آگهی‌ها', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          if (filtered.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(20), child: Text('آگهی‌ای برای نمایش پیدا نشد.'))),
+          for (final ad in filtered) card(ad),
+        ],
+      ),
+    );
+  }
+
+  Widget favoritesView() {
+    final list = ads.where((a) => favorites.contains('${a['idd'] ?? ''}')).toList();
+    if (list.isEmpty) return const Center(child: Text('هنوز آگهی‌ای به علاقه‌مندی‌ها اضافه نشده است.'));
+    return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), children: [const Text('علاقه‌مندی‌ها', style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold)), const SizedBox(height: 10), for (final a in list) card(a)]);
+  }
+
+  Widget account() {
+    final u = supabase.auth.currentUser;
+    return ListView(padding: const EdgeInsets.fromLTRB(16, 16, 16, 100), children: [
+      const CircleAvatar(radius: 46, child: Icon(Icons.person, size: 52)),
+      const SizedBox(height: 10),
+      const Center(child: Text('پروفایل من', style: TextStyle(fontSize: 23, fontWeight: FontWeight.bold))),
+      const SizedBox(height: 18),
+      Card(child: ListTile(leading: const Icon(Icons.phone), title: const Text('شماره موبایل'), subtitle: Text(u == null ? 'ثبت نشده' : 'حساب فعال است'))),
+      Card(child: ListTile(leading: const Icon(Icons.campaign_outlined), title: const Text('آگهی‌های من'), subtitle: Text('$myAds آگهی'), onTap: showMyAds)),
+      Card(child: ListTile(leading: const Icon(Icons.favorite), title: const Text('علاقه‌مندی‌ها'), subtitle: Text('${favorites.length} آگهی'), onTap: () => setState(() => tab = 1))),
+      Card(child: ListTile(leading: const Icon(Icons.location_on_outlined), title: const Text('شهر انتخابی'), subtitle: Text(city), onTap: chooseCity)),
+      const SizedBox(height: 8),
+      OutlinedButton.icon(onPressed: () async { await supabase.auth.signOut(); if (mounted) Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const LoginPage()), (_) => false); }, icon: const Icon(Icons.logout), label: const Text('خروج')),
+    ]);
+  }
+
+  void showMyAds() {
+    final list = ads.where((a) => a['seller_id'] == supabase.auth.currentUser?.id).toList();
+    Navigator.push(context, MaterialPageRoute(builder: (_) => MyAdsPage(ads: list, imageUrls: imageUrls, onOpen: openDetails)));
+  }
+
+  Widget messages() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.chat_bubble_outline, size: 60), const SizedBox(height: 10), const Text('هنوز پیامی ندارید.'), const SizedBox(height: 14), OutlinedButton(onPressed: () => setState(() => tab = 0), child: const Text('بازگشت به خانه'))]));
 
   @override
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'آگهینو',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          actions: [
-            IconButton(
-              onPressed: loadAds,
-              icon: const Icon(Icons.refresh),
-            ),
-            IconButton(
-              onPressed: () {},
-              icon: const Icon(Icons.notifications_none),
-            ),
-          ],
-        ),
-        body: tab == 0
-            ? home()
-            : tab == 1
-                ? const Center(child: Text('علاقه‌مندی‌ها'))
-                : tab == 2
-                    ? const Center(child: Text('پیام‌ها'))
-                    : account(),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: openAdd,
-          icon: const Icon(Icons.add),
-          label: const Text('ثبت آگهی'),
-        ),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: tab,
-          onDestinationSelected: (v) => setState(() => tab = v),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'خانه',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.favorite_border),
-              selectedIcon: Icon(Icons.favorite),
-              label: 'علاقه‌مندی',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble),
-              label: 'پیام‌ها',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'حساب',
-            ),
+        appBar: AppBar(title: const Text('آگهینو'), actions: [IconButton(onPressed: loadAds, icon: const Icon(Icons.refresh)), IconButton(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('اعلان جدیدی ندارید.'))), icon: const Icon(Icons.notifications_none))]),
+        body: IndexedStack(index: tab, children: [home(), favoritesView(), messages(), account()]),
+        floatingActionButton: tab == 0 ? FloatingActionButton.extended(onPressed: openAdd, icon: const Icon(Icons.add), label: const Text('ثبت آگهی')) : null,
+        bottomNavigationBar: NavigationBar(selectedIndex: tab, onDestinationSelected: (v) => setState(() => tab = v), destinations: const [
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'خانه'),
+          NavigationDestination(icon: Icon(Icons.favorite_border), selectedIcon: Icon(Icons.favorite), label: 'علاقه‌مندی'),
+          NavigationDestination(icon: Icon(Icons.chat_bubble_outline), selectedIcon: Icon(Icons.chat), label: 'پیام‌ها'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'حساب'),
+        ]),
+      ),
+    );
+  }
+}
+
+class CategoryPage extends StatefulWidget {
+  final String initialCategory, initialSubcategory;
+  const CategoryPage({super.key, required this.initialCategory, required this.initialSubcategory});
+  @override State<CategoryPage> createState() => _CategoryPageState();
+}
+class _CategoryPageState extends State<CategoryPage> {
+  late String category, sub;
+  @override void initState() { super.initState(); category = widget.initialCategory; sub = widget.initialSubcategory; }
+  @override
+  Widget build(BuildContext context) {
+    final list = categorySubs[category] ?? const <String>[];
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('دسته‌بندی‌ها')),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const Text('یک دسته انتخاب کنید', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            for (final c in categoryNames)
+              Card(child: ListTile(
+                leading: Icon(c == 'خودرو' ? Icons.directions_car : c == 'املاک' ? Icons.home_work_outlined : c == 'موبایل' ? Icons.phone_android : Icons.category_outlined),
+                title: Text(c),
+                trailing: category == c ? const Icon(Icons.check) : const Icon(Icons.chevron_left),
+                onTap: () {
+                  if (c == 'همه') { Navigator.pop(context, 'همه|||همه'); return; }
+                  setState(() { category = c; sub = 'همه'; });
+                },
+              )),
+            if (category != 'همه' && list.isNotEmpty)
+              Card(
+                margin: const EdgeInsets.only(top: 8),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('زیر‌دسته‌های $category', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    for (final s in list)
+                      ListTile(title: Text(s), leading: Icon(s == sub ? Icons.radio_button_checked : Icons.radio_button_off), onTap: () => Navigator.pop(context, '$category|||$s')),
+                  ]),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget home() {
-    if (loadingAds) {
-      return const Center(child: CircularProgressIndicator());
+class CityPicker extends StatefulWidget {
+  const CityPicker({super.key});
+  @override State<CityPicker> createState() => _CityPickerState();
+}
+class _CityPickerState extends State<CityPicker> {
+  String q = '';
+  String? province;
+  final controller = TextEditingController();
+
+  Future<void> locate() async {
+    try {
+      if (!await Geolocator.isLocationServiceEnabled()) throw Exception('مکان‌یابی گوشی خاموش است.');
+      var p = await Geolocator.checkPermission();
+      if (p == LocationPermission.denied) p = await Geolocator.requestPermission();
+      if (p == LocationPermission.denied || p == LocationPermission.deniedForever) throw Exception('اجازه مکان‌یابی داده نشد.');
+      final pos = await Geolocator.getCurrentPosition();
+      if (mounted) {
+        showDialog(context: context, builder: (_) => AlertDialog(title: const Text('موقعیت فعلی'), content: Text('مختصات: ${pos.latitude.toStringAsFixed(5)} , ${pos.longitude.toStringAsFixed(5)}'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('باشه'))]));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
+  }
 
-    return RefreshIndicator(
-      onRefresh: loadAds,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          TextField(
-            decoration: InputDecoration(
-              hintText: 'چی می‌خوای پیدا کنی؟',
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'دسته‌بندی‌ها',
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-          ),
+  @override void dispose() { controller.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    final cities = province == null ? const <String>[] : iranProvinces.firstWhere((p) => p.name == province).cities;
+    final shown = cities.where((x) => x.contains(q)).toList();
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        child: Column(children: [
+          Row(children: [Expanded(child: Text('انتخاب شهر', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold))), IconButton(onPressed: locate, icon: const Icon(Icons.my_location))]),
+          TextField(controller: controller, onChanged: (v) => setState(() => q = v), decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'جستجوی شهر')),
           const SizedBox(height: 10),
-          const Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Chip(label: Text('🚗 خودرو')),
-              Chip(label: Text('🏠 املاک')),
-              Chip(label: Text('📱 موبایل')),
-              Chip(label: Text('🪑 لوازم خانه')),
-              Chip(label: Text('💻 کالای دیجیتال')),
-              Chip(label: Text('👕 پوشاک')),
-            ],
+          Expanded(
+            child: province == null
+                ? ListView(children: [ListTile(leading: const Icon(Icons.public), title: const Text('همه شهرها'), onTap: () => Navigator.pop(context, 'همه شهرها')), for (final p in iranProvinces) ListTile(title: Text(p.name), subtitle: Text('${p.cities.length} شهر'), trailing: const Icon(Icons.chevron_left), onTap: () => setState(() { province = p.name; q = ''; controller.clear(); }))])
+                : ListView(children: [ListTile(leading: const Icon(Icons.arrow_back), title: Text('استان $province'), onTap: () => setState(() { province = null; q = ''; controller.clear(); })), for (final c in shown) ListTile(title: Text(c), onTap: () => Navigator.pop(context, c))]),
           ),
-          const SizedBox(height: 22),
-          const Text(
-            'جدیدترین آگهی‌ها',
-            style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          if (ads.isEmpty)
-            const Card(
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: Text('هنوز آگهی‌ای ثبت نشده است.'),
-              ),
-            )
-          else
-            ...ads.map((ad) => Card(
-                  child: ListTile(
-                    leading: Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.image_outlined),
-                    ),
-                    title: Text(
-                      '${ad['title'] ?? 'بدون عنوان'}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      '${ad['price'] ?? 'توافقی'} تومان\n'
-                      '${ad['city'] ?? ''}',
-                    ),
-                    isThreeLine: true,
-                  ),
-                )),
-        ],
+        ]),
       ),
     );
   }
+}
 
-  Widget account() {
-    final count = myAdsCount;
-    final remaining = (9 - count).clamp(0, 9);
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const CircleAvatar(
-          radius: 38,
-          child: Icon(Icons.person, size: 42),
-        ),
-        const SizedBox(height: 10),
-        const Center(
-          child: Text(
-            'کاربر آگهینو',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        ),
-        const SizedBox(height: 18),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.workspace_premium),
-            title: const Text('اشتراک پایه'),
-            subtitle: const Text(
-              '۳۵,۰۰۰ تومان / ماه • حداکثر ۹ آگهی',
+class AdDetailsPage extends StatefulWidget {
+  final Map<String, dynamic> ad;
+  final List<String> images;
+  final bool liked;
+  final ValueChanged<bool> onLike;
+  const AdDetailsPage({super.key, required this.ad, required this.images, required this.liked, required this.onLike});
+  @override State<AdDetailsPage> createState() => _AdDetailsPageState();
+}
+class _AdDetailsPageState extends State<AdDetailsPage> {
+  late bool liked;
+  @override void initState() { super.initState(); liked = widget.liked; }
+  @override
+  Widget build(BuildContext context) {
+    final a = widget.ad;
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('جزئیات آگهی'), actions: [IconButton(onPressed: () { setState(() => liked = !liked); widget.onLike(liked); }, icon: Icon(liked ? Icons.favorite : Icons.favorite_border))]),
+        body: ListView(
+          padding: const EdgeInsets.only(bottom: 30),
+          children: [
+            if (widget.images.isEmpty) const SizedBox(height: 240, child: Center(child: Icon(Icons.image_outlined, size: 90)))
+            else SizedBox(height: 280, child: PageView.builder(itemCount: widget.images.length, itemBuilder: (_, i) => Image.network(widget.images[i], fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 60))))),
+            Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('${a['title'] ?? 'بدون عنوان'}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                Text('${a['price'] ?? 'توافقی'} تومان', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text('${a['city'] ?? ''} • ${a['category'] ?? ''} • ${a['subcategory'] ?? ''}'),
+                if ('${a['vehicle_brand'] ?? ''}'.isNotEmpty) ...[
+                  const Divider(height: 28),
+                  const Text('مشخصات خودرو', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('برند: ${a['vehicle_brand'] ?? '-'}'),
+                  Text('مدل: ${a['vehicle_model'] ?? '-'}'),
+                  Text('سال: ${a['vehicle_year'] ?? '-'}'),
+                  Text('کارکرد: ${a['vehicle_mileage'] ?? '-'} کیلومتر'),
+                  Text('رنگ: ${a['vehicle_color'] ?? '-'}'),
+                  Text('گیربکس: ${a['vehicle_transmission'] ?? '-'}'),
+                  Text('سوخت: ${a['vehicle_fuel'] ?? '-'}'),
+                  Text('وضعیت بدنه: ${a['vehicle_body_condition'] ?? '-'}'),
+                  Text('معاوضه: ${a['vehicle_exchange'] == true ? 'دارد' : 'ندارد'}'),
+                ],
+                const Divider(height: 28),
+                const Text('توضیحات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text('${a['edescription'] ?? 'توضیحی ثبت نشده است.'}', style: const TextStyle(fontSize: 16, height: 1.7)),
+                const SizedBox(height: 22),
+                SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('گفتگو به‌زودی فعال می‌شود.'))), icon: const Icon(Icons.chat_bubble_outline), label: const Text('پیام به فروشنده'))),
+              ]),
             ),
-            trailing: FilledButton(
-              onPressed: () async {
-                try {
-                  final response = await supabase.functions.invoke(
-                    'zarinpal-payment',
-                    body: const {'action': 'create'},
-                  );
-                  final data = Map<String, dynamic>.from(response.data as Map);
-                  final paymentUrl = data['payment_url']?.toString();
-                  if (paymentUrl == null || paymentUrl.isEmpty) {
-                    throw Exception('لینک پرداخت از سرور دریافت نشد.');
-                  }
-                  final opened = await launchUrl(
-                    Uri.parse(paymentUrl),
-                    mode: LaunchMode.externalApplication,
-                  );
-                  if (!opened) throw Exception('باز کردن صفحه پرداخت انجام نشد.');
-                } on FunctionException catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('خطای ایجاد پرداخت: ${e.details ?? e.reasonPhrase}')),
-                  );
-                } catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('خطای پرداخت: $e')),
-                  );
-                }
-              },
-              child: const Text('خرید'),
-            ),
-          ),
-        ),
-        Card(
-          child: ListTile(
-            leading: const Icon(Icons.campaign_outlined),
-            title: const Text('سهمیه ثبت آگهی'),
-            subtitle: Text(
-              '$count از ۹ آگهی استفاده شده • $remaining باقی‌مانده',
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () async {
-            await supabase.auth.signOut();
-            if (!mounted) return;
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const LoginPage()),
-              (_) => false,
-            );
-          },
-          icon: const Icon(Icons.logout),
-          label: const Text('خروج'),
-        ),
-      ],
-    );
-  }
-
-  void openAdd() {
-    if (myAdsCount >= 9) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('سهمیه ۹ آگهی این ماه تکمیل شده است.'),
-        ),
-      );
-      return;
-    }
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AddAdPage(
-          onPublished: loadAds,
+          ],
         ),
       ),
     );
@@ -490,243 +454,133 @@ class _HomePageState extends State<HomePage> {
 
 class AddAdPage extends StatefulWidget {
   final Future<void> Function() onPublished;
-
-  const AddAdPage({
-    super.key,
-    required this.onPublished,
-  });
-
-  @override
-  State<AddAdPage> createState() => _AddAdPageState();
+  const AddAdPage({super.key, required this.onPublished});
+  @override State<AddAdPage> createState() => _AddAdPageState();
 }
-
 class _AddAdPageState extends State<AddAdPage> {
-  final title = TextEditingController();
-  final desc = TextEditingController();
-  final price = TextEditingController();
+  final title = TextEditingController(), desc = TextEditingController(), price = TextEditingController(), brand = TextEditingController(), model = TextEditingController(), year = TextEditingController(), mileage = TextEditingController(), color = TextEditingController();
+  final picker = ImagePicker();
+  final images = <XFile>[];
+  String category = 'کالای دیجیتال', subcategory = 'همه', city = 'تهران', transmission = 'دستی', fuel = 'بنزین', body = 'سالم';
+  bool exchange = false, publishing = false;
+  double? lat, lon;
 
-  String category = 'کالای دیجیتال';
-  String city = 'تهران';
-  bool publishing = false;
-  final ImagePicker _picker = ImagePicker();
-  final List<XFile> selectedImages = [];
-
-  static const int maxImages = 10;
-
-  @override
-  void dispose() {
-    title.dispose();
-    desc.dispose();
-    price.dispose();
-    super.dispose();
-  }
+  @override void dispose() { title.dispose(); desc.dispose(); price.dispose(); brand.dispose(); model.dispose(); year.dispose(); mileage.dispose(); color.dispose(); super.dispose(); }
 
   Future<void> pickImages() async {
-    if (selectedImages.length >= maxImages) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('حداکثر ۱۰ عکس می‌توانید انتخاب کنید.')),
-      );
-      return;
-    }
-
     try {
-      final images = await _picker.pickMultiImage(imageQuality: 90);
-      if (images.isEmpty || !mounted) return;
-
-      final remaining = maxImages - selectedImages.length;
-      setState(() {
-        selectedImages.addAll(images.take(remaining));
-      });
-
-      if (images.length > remaining && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('فقط ۱۰ عکس اول انتخاب می‌شوند.')),
-        );
-      }
+      final p = await picker.pickMultiImage(imageQuality: 85);
+      if (mounted && p.isNotEmpty) setState(() => images.addAll(p.take(10 - images.length)));
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('انتخاب عکس انجام نشد: $e')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('انتخاب عکس انجام نشد: $e')));
     }
   }
 
-  void removeImage(int index) {
-    setState(() => selectedImages.removeAt(index));
-  }
-
-  Future<List<String>> _uploadImages({
-    required String adId,
-    required String userId,
-  }) async {
-    final uploadedPaths = <String>[];
-
+  Future<void> getLocation() async {
     try {
-      for (var i = 0; i < selectedImages.length; i++) {
-        final image = selectedImages[i];
-        final Uint8List bytes = await image.readAsBytes();
-
-        final originalExtension = image.name.contains('.')
-            ? image.name.split('.').last.toLowerCase()
-            : 'jpg';
-
-        final extension =
-            <String>{'jpg', 'jpeg', 'png', 'webp'}.contains(originalExtension)
-                ? originalExtension
-                : 'jpg';
-
-        final contentType = switch (extension) {
-          'png' => 'image/png',
-          'webp' => 'image/webp',
-          _ => 'image/jpeg',
-        };
-
-        final path =
-            'public/$userId/$adId/${DateTime.now().microsecondsSinceEpoch}_$i.$extension';
-
-        await supabase.storage.from('AD-IMAGES').uploadBinary(
-              path,
-              bytes,
-              fileOptions: FileOptions(
-                contentType: contentType,
-                upsert: false,
-              ),
-            );
-
-        uploadedPaths.add(path);
-
-        final imageUrl =
-            supabase.storage.from('AD-IMAGES').getPublicUrl(path);
-
-        await supabase.from('ad_images').insert({
-          'ad_id': adId,
-          'image_url': imageUrl,
-        });
-      }
-
-      return uploadedPaths;
-    } catch (_) {
-      if (uploadedPaths.isNotEmpty) {
-        try {
-          await supabase.storage
-              .from('AD-IMAGES')
-              .remove(uploadedPaths);
-        } catch (_) {
-          // Storage cleanup is best-effort.
-        }
-      }
-      rethrow;
+      if (!await Geolocator.isLocationServiceEnabled()) throw Exception('مکان‌یابی گوشی خاموش است.');
+      var p = await Geolocator.checkPermission();
+      if (p == LocationPermission.denied) p = await Geolocator.requestPermission();
+      if (p == LocationPermission.denied || p == LocationPermission.deniedForever) throw Exception('اجازه مکان‌یابی داده نشد.');
+      final pos = await Geolocator.getCurrentPosition();
+      if (mounted) setState(() { lat = pos.latitude; lon = pos.longitude; });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     }
+  }
+
+  Future<void> uploadImages(String adId, String uid) async {
+    for (var i = 0; i < images.length; i++) {
+      final bytes = await images[i].readAsBytes();
+      final n = images[i].name.toLowerCase();
+      final ext = n.endsWith('.png') ? 'png' : n.endsWith('.webp') ? 'webp' : 'jpg';
+      final type = ext == 'png' ? 'image/png' : ext == 'webp' ? 'image/webp' : 'image/jpeg';
+      final path = 'public/$uid/$adId/${DateTime.now().microsecondsSinceEpoch}_$i.$ext';
+      await supabase.storage.from(adImagesBucket).uploadBinary(path, bytes, fileOptions: FileOptions(contentType: type, upsert: false));
+      final url = supabase.storage.from(adImagesBucket).getPublicUrl(path);
+      await supabase.from('ad_images').insert({'ad_id': adId, 'image_url': url});
+    }
+  }
+
+  Future<void> chooseCategory() async {
+    final p = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => CategoryPage(initialCategory: category, initialSubcategory: subcategory)));
+    if (p != null && mounted) {
+      final parts = p.split('|||');
+      setState(() { category = parts[0]; subcategory = parts.length > 1 ? parts[1] : 'همه'; });
+    }
+  }
+
+  Widget textField(TextEditingController c, String label, {int maxLines = 1, TextInputType? keyboard}) {
+    return TextField(controller: c, maxLines: maxLines, keyboardType: keyboard, decoration: InputDecoration(labelText: label));
   }
 
   Future<void> publish() async {
-    if (title.text.trim().isEmpty ||
-        desc.text.trim().isEmpty ||
-        price.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('عنوان، توضیحات و قیمت را کامل کنید.'),
-        ),
-      );
+    if (title.text.trim().isEmpty || desc.text.trim().isEmpty || price.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('عنوان، توضیحات و قیمت را کامل کنید.')));
       return;
     }
-
-    final user = supabase.auth.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ابتدا وارد حساب شوید.')),
-      );
+    final u = supabase.auth.currentUser;
+    if (u == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ابتدا وارد حساب شوید.'))); return; }
+    final p = double.tryParse(price.text.replaceAll(RegExp(r'[^0-9.]'), ''));
+    if (p == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('قیمت را به صورت عدد وارد کنید.'))); return; }
+    if (category == 'خودرو' && (brand.text.trim().isEmpty || model.text.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('برای خودرو برند و مدل را وارد کنید.')));
       return;
     }
-
-    final parsedPrice =
-        int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'), ''));
-
-    if (parsedPrice == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('قیمت را به صورت عدد وارد کنید.')),
-      );
-      return;
-    }
-
     setState(() => publishing = true);
-
     try {
-      final ad = await supabase.from('ads').insert({
-        'seller_id': user.id,
+      final row = await supabase.from('ads').insert({
+        'seller_id': u.id,
         'title': title.text.trim(),
         'edescription': desc.text.trim(),
-        'price': parsedPrice,
+        'price': p,
         'city': city,
         'category': category,
+        'subcategory': subcategory,
+        'latitude': lat,
+        'longitude': lon,
+        'vehicle_brand': category == 'خودرو' ? brand.text.trim() : null,
+        'vehicle_model': category == 'خودرو' ? model.text.trim() : null,
+        'vehicle_year': category == 'خودرو' ? int.tryParse(year.text.trim()) : null,
+        'vehicle_mileage': category == 'خودرو' ? int.tryParse(mileage.text.trim()) : null,
+        'vehicle_color': category == 'خودرو' ? color.text.trim() : null,
+        'vehicle_transmission': category == 'خودرو' ? transmission : null,
+        'vehicle_fuel': category == 'خودرو' ? fuel : null,
+        'vehicle_body_condition': category == 'خودرو' ? body : null,
+        'vehicle_exchange': category == 'خودرو' ? exchange : null,
       }).select('idd').single();
-
-      final adId = ad['idd']?.toString();
-      if (adId == null || adId.isEmpty) {
-        throw Exception('شناسه آگهی دریافت نشد.');
-      }
-
-      try {
-        await _uploadImages(adId: adId, userId: user.id);
-      } catch (e) {
-        // Do not leave a half-published ad if image upload fails.
-        try {
-          await supabase.from('ad_images').delete().eq('ad_id', adId);
-        } catch (_) {
-          // Best-effort cleanup.
-        }
-        try {
-          await supabase.from('ads').delete().eq('idd', adId);
-        } catch (_) {
-          // Best-effort cleanup.
-        }
-        rethrow;
-      }
-
+      final id = '${row['idd']}';
+      String? imageError;
+      try { await uploadImages(id, u.id); } catch (e) { imageError = '$e'; }
       await widget.onPublished();
-
-      if (!mounted) return;
-
-      await showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('آگهی ثبت شد ✅'),
-          content: const Text(
-            'آگهی با موفقیت در Supabase ذخیره شد.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('باشه'),
-            ),
-          ],
-        ),
-      );
-
-      if (mounted) Navigator.pop(context);
-    } on StorageException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'خطای آپلود عکس: ${e.message}\\n'
-            'اگر این خطا ادامه داشت، Bucket و Storage Policies را در Supabase بررسی می‌کنیم.',
-          ),
-        ),
-      );
+      if (mounted) {
+        await showDialog(context: context, builder: (ctx) => AlertDialog(title: const Text('آگهی ثبت شد ✅'), content: Text(imageError == null ? 'آگهی با موفقیت ثبت شد.' : 'آگهی ثبت شد، اما بعضی عکس‌ها آپلود نشدند.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('باشه'))]));
+        if (mounted) Navigator.pop(context);
+      }
     } on PostgrestException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطای Supabase: ${e.message}')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای ثبت آگهی: ${e.message}')));
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('خطا در ثبت آگهی: $e')),
-      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در ثبت آگهی: $e')));
     } finally {
       if (mounted) setState(() => publishing = false);
     }
+  }
+
+  Widget vehicleFields() {
+    return Column(children: [
+      _section('مشخصات خودرو'),
+      textField(brand, 'برند خودرو'), const SizedBox(height: 10),
+      textField(model, 'مدل'), const SizedBox(height: 10),
+      textField(year, 'سال ساخت', keyboard: TextInputType.number), const SizedBox(height: 10),
+      textField(mileage, 'کارکرد (کیلومتر)', keyboard: TextInputType.number), const SizedBox(height: 10),
+      textField(color, 'رنگ'), const SizedBox(height: 10),
+      DropdownButtonFormField<String>(value: transmission, decoration: const InputDecoration(labelText: 'گیربکس'), items: ['دستی', 'اتومات', 'نیمه‌اتومات'].map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(), onChanged: publishing ? null : (v) { if (v != null) setState(() => transmission = v); }),
+      const SizedBox(height: 10),
+      DropdownButtonFormField<String>(value: fuel, decoration: const InputDecoration(labelText: 'نوع سوخت'), items: ['بنزین', 'گاز', 'دوگانه‌سوز', 'دیزل', 'برقی', 'هیبریدی'].map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(), onChanged: publishing ? null : (v) { if (v != null) setState(() => fuel = v); }),
+      const SizedBox(height: 10),
+      DropdownButtonFormField<String>(value: body, decoration: const InputDecoration(labelText: 'وضعیت بدنه'), items: ['سالم', 'یک لکه', 'چند لکه', 'رنگ‌شده', 'تصادفی'].map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(), onChanged: publishing ? null : (v) { if (v != null) setState(() => body = v); }),
+      SwitchListTile(value: exchange, onChanged: publishing ? null : (v) => setState(() => exchange = v), title: const Text('معاوضه می‌کنم'), subtitle: const Text('امکان معاوضه با کالای دیگر')),
+    ]);
   }
 
   @override
@@ -738,159 +592,56 @@ class _AddAdPageState extends State<AddAdPage> {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.workspace_premium),
-                title: const Text('اشتراک پایه'),
-                subtitle: const Text(
-                  '۳۵,۰۰۰ تومان / ماه • سهمیه این ماه: حداکثر ۹ آگهی',
-                ),
-              ),
-            ),
+            Card(child: ListTile(leading: const Icon(Icons.category), title: Text(category), subtitle: Text(subcategory == 'همه' ? 'زیر‌دسته انتخاب نشده' : 'زیر‌دسته: $subcategory'), trailing: const Icon(Icons.chevron_left), onTap: publishing ? null : chooseCategory)),
             const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: category,
-              decoration: const InputDecoration(
-                labelText: 'دسته‌بندی',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                'کالای دیجیتال',
-                'خودرو',
-                'املاک',
-                'لوازم خانه',
-                'پوشاک',
-                'خدمات',
-              ]
-                  .map((x) => DropdownMenuItem(
-                        value: x,
-                        child: Text(x),
-                      ))
-                  .toList(),
-              onChanged: (v) => setState(() => category = v!),
-            ),
+            if (category == 'خودرو') vehicleFields(),
+            const SizedBox(height: 10),
+            textField(title, 'عنوان آگهی'), const SizedBox(height: 12),
+            textField(desc, 'توضیحات', maxLines: 5), const SizedBox(height: 12),
+            textField(price, 'قیمت (تومان)', keyboard: TextInputType.number), const SizedBox(height: 12),
+            Row(children: [
+              Expanded(child: DropdownButtonFormField<String>(value: city, decoration: const InputDecoration(labelText: 'شهر'), items: allIranCities().map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(), onChanged: publishing ? null : (v) { if (v != null) setState(() => city = v); })),
+              IconButton(onPressed: publishing ? null : getLocation, icon: Icon(lat == null ? Icons.my_location : Icons.location_on)),
+            ]),
+            if (lat != null) Text('موقعیت ثبت شد: ${lat!.toStringAsFixed(5)}, ${lon!.toStringAsFixed(5)}'),
             const SizedBox(height: 12),
-            _field(title, 'عنوان آگهی'),
-            const SizedBox(height: 12),
-            _field(desc, 'توضیحات', maxLines: 5),
-            const SizedBox(height: 12),
-            _field(price, 'قیمت'),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: city,
-              decoration: const InputDecoration(
-                labelText: 'شهر',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                'تهران',
-                'کرج',
-                'مشهد',
-                'اصفهان',
-                'شیراز',
-              ]
-                  .map((x) => DropdownMenuItem(
-                        value: x,
-                        child: Text(x),
-                      ))
-                  .toList(),
-              onChanged: (v) => setState(() => city = v!),
-            ),
-            const SizedBox(height: 14),
-            OutlinedButton.icon(
-              onPressed: publishing ? null : pickImages,
-              icon: const Icon(Icons.add_a_photo_outlined),
-              label: Text(
-                selectedImages.isEmpty
-                    ? 'افزودن عکس (حداکثر ۱۰ عکس)'
-                    : 'افزودن عکس (${selectedImages.length}/۱۰)',
-              ),
-            ),
-            if (selectedImages.isNotEmpty) ...[
-              const SizedBox(height: 12),
+            OutlinedButton.icon(onPressed: publishing || images.length >= 10 ? null : pickImages, icon: const Icon(Icons.add_a_photo_outlined), label: Text('افزودن عکس (${images.length}/۱۰)')),
+            if (images.isNotEmpty)
               SizedBox(
                 height: 105,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  itemCount: selectedImages.length,
+                  itemCount: images.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    return Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: FutureBuilder<Uint8List>(
-                            future: selectedImages[index].readAsBytes(),
-                            builder: (context, snapshot) {
-                              if (!snapshot.hasData) {
-                                return Container(
-                                  width: 105,
-                                  height: 105,
-                                  color: Colors.grey.shade200,
-                                  alignment: Alignment.center,
-                                  child: const CircularProgressIndicator(),
-                                );
-                              }
-                              return Image.memory(
-                                snapshot.data!,
-                                width: 105,
-                                height: 105,
-                                fit: BoxFit.cover,
-                              );
-                            },
-                          ),
-                        ),
-                        Positioned(
-                          top: -6,
-                          right: -6,
-                          child: IconButton(
-                            onPressed: publishing ? null : () => removeImage(index),
-                            style: IconButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.red,
-                            ),
-                            icon: const Icon(Icons.close, size: 18),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
+                  itemBuilder: (context, i) => FutureBuilder<Uint8List>(
+                    future: images[i].readAsBytes(),
+                    builder: (context, s) {
+                      if (!s.hasData) return const SizedBox(width: 105, child: Center(child: CircularProgressIndicator()));
+                      return Stack(children: [
+                        ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.memory(s.data!, width: 105, height: 105, fit: BoxFit.cover)),
+                        Positioned(top: 0, right: 0, child: IconButton(onPressed: publishing ? null : () => setState(() => images.removeAt(i)), icon: const Icon(Icons.cancel))),
+                      ]);
+                    },
+                  ),
                 ),
               ),
-            ],
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: publishing ? null : publish,
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: publishing
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('ثبت و انتشار آگهی'),
-              ),
-            ),
+            const SizedBox(height: 18),
+            SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: publishing ? null : publish, icon: publishing ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.publish), label: Text(publishing ? 'در حال ثبت...' : 'ثبت آگهی'))),
           ],
         ),
       ),
     );
   }
+  Widget _section(String t) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Text(t, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)));
+}
 
-  Widget _field(
-    TextEditingController c,
-    String label, {
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: c,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
-    );
+class MyAdsPage extends StatelessWidget {
+  final List<Map<String, dynamic>> ads;
+  final Future<List<String>> Function(String) imageUrls;
+  final void Function(Map<String, dynamic>, List<String>) onOpen;
+  const MyAdsPage({super.key, required this.ads, required this.imageUrls, required this.onOpen});
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(textDirection: TextDirection.rtl, child: Scaffold(appBar: AppBar(title: const Text('آگهی‌های من')), body: ads.isEmpty ? const Center(child: Text('آگهی‌ای ثبت نکرده‌اید.')) : ListView(padding: const EdgeInsets.all(16), children: [for (final ad in ads) FutureBuilder<List<String>>(future: imageUrls('${ad['idd']}'), builder: (c, s) => Card(child: ListTile(leading: s.hasData && s.data!.isNotEmpty ? Image.network(s.data!.first, width: 65, height: 65, fit: BoxFit.cover) : const Icon(Icons.image_outlined), title: Text('${ad['title'] ?? ''}'), subtitle: Text('${ad['city'] ?? ''} • ${ad['price'] ?? ''} تومان'), trailing: const Icon(Icons.chevron_left), onTap: () => onOpen(ad, s.data ?? const <String>[]))))])));
   }
 }
