@@ -1,6 +1,5 @@
 name: Build Android APK
 
-# Trigger verification from the clean v50-based baseline.
 on:
   workflow_dispatch:
   push:
@@ -40,14 +39,27 @@ jobs:
         run: flutter pub get
 
       - name: Build debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug
+        shell: bash
+        run: |
+          set +e
+          flutter build apk --debug -v
+          BUILD_STATUS=$?
+          echo "flutter build exit code: $BUILD_STATUS"
+          echo "APK files found after build:"
+          find build -type f -name '*.apk' -print 2>/dev/null || true
+          APK="build/app/outputs/flutter-apk/app-debug.apk"
+          if [ -s "$APK" ]; then
+            echo "APK found: $APK"
+            exit 0
+          fi
+          echo "ERROR: expected APK was not produced."
+          exit "$BUILD_STATUS"
 
       - name: Verify APK exists
         shell: bash
         run: |
           set -euo pipefail
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          APK="build/app/outputs/flutter-apk/app-debug.apk"
           test -s "$APK"
           mkdir -p dist
           cp "$APK" dist/aghinou-installable.apk
