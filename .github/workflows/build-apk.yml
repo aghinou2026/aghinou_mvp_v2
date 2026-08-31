@@ -32,18 +32,27 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
+      - name: Prepare release signing
+        shell: bash
+        env:
+          AGHINOU_KEYSTORE_BASE64: ${{ secrets.AGHINOU_KEYSTORE_BASE64 }}
+        run: |
+          set -e
+          test -n "$AGHINOU_KEYSTORE_BASE64"
+          printf '%s' "$AGHINOU_KEYSTORE_BASE64" | base64 --decode > android/app/aghinou-release.jks
+          chmod 600 android/app/aghinou-release.jks
+          test -s android/app/aghinou-release.jks
+
       - name: Build release APK
         shell: bash
+        env:
+          AGHINOU_KEYSTORE_PATH: ${{ github.workspace }}/android/app/aghinou-release.jks
+          AGHINOU_KEY_ALIAS: ${{ secrets.AGHINOU_KEY_ALIAS }}
+          AGHINOU_KEY_PASSWORD: ${{ secrets.AGHINOU_KEY_PASSWORD }}
         run: |
-          set +e
+          set -e
           flutter clean
           flutter build apk --release --verbose
-          BUILD_STATUS=$?
-          set -e
-
-          echo "Flutter build exit code: $BUILD_STATUS"
-          echo "=== APK files produced ==="
-          find . -type f -name "*.apk" -print || true
 
           APK="android/app/build/outputs/flutter-apk/app-release.apk"
           if [ -f "$APK" ]; then
@@ -55,7 +64,8 @@ jobs:
           fi
 
           echo "ERROR: No release APK was produced."
-          exit "$BUILD_STATUS"
+          find . -type f -name "*.apk" -print || true
+          exit 1
 
       - name: Verify APK
         run: |
