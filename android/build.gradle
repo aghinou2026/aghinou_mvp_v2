@@ -1,10 +1,2 @@
-// Project-level Gradle configuration.
-// Keep the legacy AGP classpath so Flutter's Android build tooling can
-// detect the AGP version when the project uses the modern plugin DSL.
-buildscript {
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.11.1'
-    }
-}
-
-// Plugin versions remain declared in android/settings.gradle.
+// Project-level Gradle configuration is managed by android/settings.gradle.
+// Plugin versions are declared there to avoid duplicate classpath/version conflicts.
