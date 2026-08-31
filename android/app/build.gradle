@@ -28,15 +28,14 @@ android {
     signingConfigs {
         release {
             def keystorePath = System.getenv("AGHINOU_KEYSTORE_PATH")
-            def keystorePassword = System.getenv("AGHINOU_KEYSTORE_PASSWORD")
+            def keystorePassword = System.getenv("AGHINOU_KEY_PASSWORD")
             def keyAliasValue = System.getenv("AGHINOU_KEY_ALIAS")
-            def keyPasswordValue = System.getenv("AGHINOU_KEY_PASSWORD")
 
-            if (keystorePath && keystorePassword && keyAliasValue && keyPasswordValue) {
+            if (keystorePath && keystorePassword && keyAliasValue) {
                 storeFile = file(keystorePath)
                 storePassword = keystorePassword
                 keyAlias = keyAliasValue
-                keyPassword = keyPasswordValue
+                keyPassword = keystorePassword
             } else {
                 throw new GradleException("Aghinou release signing credentials are not configured.")
             }
