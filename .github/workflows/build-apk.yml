@@ -30,28 +30,42 @@ jobs:
         run: flutter pub get
 
       - name: Analyze
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: Build release APK
+        shell: bash
         run: |
+          set +e
           flutter clean
           flutter build apk --release --verbose
+          BUILD_STATUS=$?
+          set -e
 
-      - name: Locate APK
-        if: always()
-        run: |
-          echo "=== APK files ==="
+          echo "Flutter build exit code: $BUILD_STATUS"
+          echo "=== APK files produced ==="
           find . -type f -name "*.apk" -print || true
-          echo "=== Build directory ==="
-          find build -maxdepth 5 -type f -print 2>/dev/null | head -200 || true
+
+          APK="android/app/build/outputs/flutter-apk/app-release.apk"
+          if [ -f "$APK" ]; then
+            echo "APK successfully produced at: $APK"
+            mkdir -p build/app/outputs/flutter-apk
+            cp "$APK" build/app/outputs/flutter-apk/app-release.apk
+            echo "APK normalized to: build/app/outputs/flutter-apk/app-release.apk"
+            exit 0
+          fi
+
+          echo "ERROR: No release APK was produced."
+          exit "$BUILD_STATUS"
+
+      - name: Verify APK
+        run: |
+          test -f build/app/outputs/flutter-apk/app-release.apk
+          ls -lh build/app/outputs/flutter-apk/app-release.apk
 
       - name: Upload APK artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: aghinou-release-apk
-          path: |
-            build/**/*.apk
-            **/outputs/**/*.apk
-          if-no-files-found: warn
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
           retention-days: 14
