@@ -7,7 +7,7 @@ import 'iran_locations.dart';
 import 'ad_image_uploader.dart';
 
 const supabaseUrl = 'https://acfawprpdkzjpyblseay.supabase.co';
-const supabasePublishableKey = 'sb_publishable_uHov32wG1uTxNIkbQmQ_6W5mCwKf';
+const supabasePublishableKey = 'sb_publishable_uHov32wG1uTxNIkbQbaQmQ_6W5mCwKf';
 const adImagesBucket = 'ad-images';
 final supabase = Supabase.instance.client;
 
