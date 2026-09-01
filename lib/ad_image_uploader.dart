@@ -51,7 +51,7 @@ class AdImageUploader {
       for (var i = 0; i < bytesList.length; i++) {
         final ext = _normalizeExtension(extensions[i]);
         final contentType = _contentType(ext);
-        final path = '$userId/$adId/${DateTime.now().microsecondsSinceEpoch}_$i.$ext';
+        final path = 'public/$userId/$adId/${DateTime.now().microsecondsSinceEpoch}_$i.$ext';
 
         await storage.uploadBinary(
           path,
