@@ -2,6 +2,9 @@ name: Build unified Aghinou UI and auth stabilization
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - aghinou-fixes-2026-09-01
 
 permissions:
   contents: write
@@ -68,7 +71,6 @@ jobs:
             s = s.replace(marker, zoom + marker, 1)
 
           p.write_text(s)
-
           pub = Path('pubspec.yaml')
           ps = pub.read_text().replace('version: 0.3.0+4', 'version: 0.4.0+5')
           pub.write_text(ps)
@@ -82,5 +84,5 @@ jobs:
           git config user.name "aghinou2026"
           git config user.email "aghinou2026@users.noreply.github.com"
           git add lib/main.dart pubspec.yaml
-          git commit -m "Aghinou unified visual refresh auth hardening and zoomable images"
+          git commit -m "Aghinou unified visual refresh auth hardening and zoomable images" || exit 0
           git push origin aghinou-fixes-2026-09-01
