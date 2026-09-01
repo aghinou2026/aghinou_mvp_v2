@@ -3,7 +3,9 @@ name: Build Aghinou APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+      - aghinou-fixes-2026-09-01
 
 permissions:
   contents: read
@@ -41,19 +43,10 @@ jobs:
           set -euo pipefail
           test -n "$AGHINOU_KEYSTORE_BASE64"
           test -n "$AGHINOU_KEY_PASSWORD"
-
-          printf '%s' "$AGHINOU_KEYSTORE_BASE64" \
-            | tr -d '[:space:]' \
-            | base64 --decode > android/app/aghinou-release.jks
-
+          printf '%s' "$AGHINOU_KEYSTORE_BASE64" | tr -d '[:space:]' | base64 --decode > android/app/aghinou-release.jks
           chmod 600 android/app/aghinou-release.jks
           test -s android/app/aghinou-release.jks
-
-          # Java 21 creates PKCS12 keystores by default. Validate the real
-          # keystore instead of assuming the legacy JKS magic bytes.
-          keytool -list -keystore android/app/aghinou-release.jks \
-            -storepass "$AGHINOU_KEY_PASSWORD" >/dev/null
-
+          keytool -list -keystore android/app/aghinou-release.jks -storepass "$AGHINOU_KEY_PASSWORD" >/dev/null
           echo "Release keystore decoded and validated successfully."
 
       - name: Install Gradle 8.14
@@ -76,24 +69,16 @@ jobs:
           set -euo pipefail
           test -n "$AGHINOU_KEY_ALIAS"
           test -n "$AGHINOU_KEY_PASSWORD"
-
           flutter clean
           flutter pub get
-
           cd android
           gradle assembleRelease --no-daemon --stacktrace
           cd ..
-
           APK="android/app/build/outputs/apk/release/app-release.apk"
-          if [ ! -f "$APK" ]; then
-            echo "ERROR: No release APK was produced."
-            find . -type f -name "*.apk" -print || true
-            exit 1
-          fi
-
-          echo "APK successfully produced at: $APK"
+          test -f "$APK"
           mkdir -p build/app/outputs/flutter-apk
           cp "$APK" build/app/outputs/flutter-apk/app-release.apk
+          echo "APK successfully produced at: $APK"
 
       - name: Verify APK
         shell: bash
@@ -102,7 +87,6 @@ jobs:
           APK="build/app/outputs/flutter-apk/app-release.apk"
           test -f "$APK"
           ls -lh "$APK"
-
           APKSIGNER="${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner"
           test -x "$APKSIGNER"
           "$APKSIGNER" verify --verbose "$APK"
