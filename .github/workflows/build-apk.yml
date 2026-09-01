@@ -37,11 +37,23 @@ jobs:
         env:
           AGHINOU_KEYSTORE_BASE64: ${{ secrets.AGHINOU_KEYSTORE_BASE64 }}
         run: |
-          set -e
+          set -euo pipefail
           test -n "$AGHINOU_KEYSTORE_BASE64"
-          printf '%s' "$AGHINOU_KEYSTORE_BASE64" | base64 --decode > android/app/aghinou-release.jks
+
+          # Normalize accidental whitespace/newlines introduced while pasting
+          # the Base64 secret, then decode strictly to the release keystore.
+          printf '%s' "$AGHINOU_KEYSTORE_BASE64" \
+            | tr -d '[:space:]' \
+            | base64 --decode --ignore-garbage > android/app/aghinou-release.jks
+
           chmod 600 android/app/aghinou-release.jks
           test -s android/app/aghinou-release.jks
+
+          # A Java keystore starts with the JKS magic bytes FE ED FE ED.
+          if ! xxd -p -l 4 android/app/aghinou-release.jks | grep -qi '^feedfeed$'; then
+            echo 'ERROR: AGHINOU_KEYSTORE_BASE64 does not decode to a valid JKS keystore.'
+            exit 1
+          fi
 
       - name: Build release APK
         shell: bash
@@ -50,12 +62,13 @@ jobs:
           AGHINOU_KEY_ALIAS: ${{ secrets.AGHINOU_KEY_ALIAS }}
           AGHINOU_KEY_PASSWORD: ${{ secrets.AGHINOU_KEY_PASSWORD }}
         run: |
-          set -e
+          set -euo pipefail
+          test -n "$AGHINOU_KEY_ALIAS"
+          test -n "$AGHINOU_KEY_PASSWORD"
+
           flutter clean
           flutter pub get
 
-          # Build with Gradle directly so Flutter's post-build APK path check
-          # cannot fail after Gradle has already produced the APK.
           cd android
           ./gradlew assembleRelease --no-daemon --stacktrace
           cd ..
@@ -74,7 +87,7 @@ jobs:
 
       - name: Verify APK
         run: |
-          set -e
+          set -euo pipefail
           APK="build/app/outputs/flutter-apk/app-release.apk"
           test -f "$APK"
           ls -lh "$APK"
