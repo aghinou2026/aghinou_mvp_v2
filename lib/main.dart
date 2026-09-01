@@ -4,9 +4,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'iran_locations.dart';
+import 'ad_image_uploader.dart';
 
 const supabaseUrl = 'https://acfawprpdkzjpyblseay.supabase.co';
-const supabasePublishableKey = 'sb_publishable_uHov32wG1uTxNIkbQbaQmQ_6W5mCwKf';
+const supabasePublishableKey = 'sb_publishable_uHov32wG1uTxNIkbQmQ_6W5mCwKf';
 const adImagesBucket = 'ad-images';
 final supabase = Supabase.instance.client;
 
@@ -490,16 +491,8 @@ class _AddAdPageState extends State<AddAdPage> {
   }
 
   Future<void> uploadImages(String adId, String uid) async {
-    for (var i = 0; i < images.length; i++) {
-      final bytes = await images[i].readAsBytes();
-      final n = images[i].name.toLowerCase();
-      final ext = n.endsWith('.png') ? 'png' : n.endsWith('.webp') ? 'webp' : 'jpg';
-      final type = ext == 'png' ? 'image/png' : ext == 'webp' ? 'image/webp' : 'image/jpeg';
-      final path = 'public/$uid/$adId/${DateTime.now().microsecondsSinceEpoch}_$i.$ext';
-      await supabase.storage.from(adImagesBucket).uploadBinary(path, bytes, fileOptions: FileOptions(contentType: type, upsert: false));
-      final url = supabase.storage.from(adImagesBucket).getPublicUrl(path);
-      await supabase.from('ad_images').insert({'ad_id': adId, 'image_url': url});
-    }
+    final uploader = AdImageUploader(client: supabase, bucket: adImagesBucket);
+    await uploader.uploadXFiles(adId: adId, userId: uid, images: images);
   }
 
   Future<void> chooseCategory() async {
