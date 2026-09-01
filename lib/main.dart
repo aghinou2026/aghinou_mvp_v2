@@ -26,8 +26,22 @@ class AghinouApp extends StatelessWidget {
       title: 'آگهینو',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6C3FE8)),
-        inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7C4DFF), brightness: Brightness.light),
+        scaffoldBackgroundColor: const Color(0xFFF5F2FF),
+        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0, backgroundColor: Color(0xFFF5F2FF)),
+        cardTheme: CardThemeData(
+          elevation: 3,
+          margin: const EdgeInsets.only(bottom: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(18))),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(width: 2)),
+        ),
+        navigationBarTheme: const NavigationBarThemeData(height: 70),
       ),
       home: const LoginPage(),
     );
@@ -51,7 +65,16 @@ class _LoginPageState extends State<LoginPage> {
     }
     setState(() => loading = true);
     try {
-      if (supabase.auth.currentUser == null) await supabase.auth.signInAnonymously();
+      if (supabase.auth.currentSession == null) {
+        await supabase.auth.signInAnonymously();
+      } else {
+        try {
+          await supabase.auth.refreshSession();
+        } catch (_) {
+          await supabase.auth.signOut();
+          await supabase.auth.signInAnonymously();
+        }
+      }
       final u = supabase.auth.currentUser;
       if (u == null) throw Exception('کاربر ساخته نشد');
       await supabase.from('profiles').upsert({'iidd': u.id, 'cphone': value, 'name': 'کاربر آگهینو'}, onConflict: 'iidd');
@@ -204,7 +227,7 @@ class _HomePageState extends State<HomePage> {
                   height: 118,
                   child: imgs.isEmpty
                       ? const ColoredBox(color: Color(0xFFEDEDED), child: Icon(Icons.image_outlined, size: 42))
-                      : Image.network(imgs.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),
+                      : Image.network(imgs.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFFE8E0FF), child: Icon(Icons.broken_image))),
                 ),
                 Expanded(child: Padding(
                   padding: const EdgeInsets.all(12),
@@ -296,6 +319,19 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+Color _categoryColor(String c) {
+  switch (c) {
+    case 'خودرو': return const Color(0xFFE45757);
+    case 'املاک': return const Color(0xFF3F7CFF);
+    case 'موبایل': return const Color(0xFF00A896);
+    case 'لوازم خانه': return const Color(0xFFE59F2A);
+    case 'کالای دیجیتال': return const Color(0xFF7C4DFF);
+    case 'پوشاک': return const Color(0xFFD84F9B);
+    case 'خدمات': return const Color(0xFF00897B);
+    default: return const Color(0xFF6C63FF);
+  }
+}
+
 class CategoryPage extends StatefulWidget {
   final String initialCategory, initialSubcategory;
   const CategoryPage({super.key, required this.initialCategory, required this.initialSubcategory});
@@ -318,7 +354,10 @@ class _CategoryPageState extends State<CategoryPage> {
             const SizedBox(height: 12),
             for (final c in categoryNames)
               Card(child: ListTile(
-                leading: Icon(c == 'خودرو' ? Icons.directions_car : c == 'املاک' ? Icons.home_work_outlined : c == 'موبایل' ? Icons.phone_android : Icons.category_outlined),
+                leading: CircleAvatar(
+                  backgroundColor: _categoryColor(c),
+                  child: Icon(c == 'خودرو' ? Icons.directions_car : c == 'املاک' ? Icons.home_work_outlined : c == 'موبایل' ? Icons.phone_android : c == 'لوازم خانه' ? Icons.chair_outlined : c == 'کالای دیجیتال' ? Icons.devices_outlined : c == 'پوشاک' ? Icons.checkroom : c == 'خدمات' ? Icons.handyman_outlined : Icons.category_outlined, color: Colors.white),
+                ),
                 title: Text(c),
                 trailing: category == c ? const Icon(Icons.check) : const Icon(Icons.chevron_left),
                 onTap: () {
@@ -415,7 +454,16 @@ class _AdDetailsPageState extends State<AdDetailsPage> {
           padding: const EdgeInsets.only(bottom: 30),
           children: [
             if (widget.images.isEmpty) const SizedBox(height: 240, child: Center(child: Icon(Icons.image_outlined, size: 90)))
-            else SizedBox(height: 280, child: PageView.builder(itemCount: widget.images.length, itemBuilder: (_, i) => Image.network(widget.images[i], fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 60))))),
+            else SizedBox(
+              height: 300,
+              child: PageView.builder(
+                itemCount: widget.images.length,
+                itemBuilder: (_, i) => GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ZoomImagePage(images: widget.images, initialIndex: i))),
+                  child: Hero(tag: 'ad-image-${widget.ad['idd'] ?? ''}-$i', child: Image.network(widget.images[i], fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 60)))),
+                ),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.all(18),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -447,6 +495,34 @@ class _AdDetailsPageState extends State<AdDetailsPage> {
               ]),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class ZoomImagePage extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+  const ZoomImagePage({super.key, required this.images, required this.initialIndex});
+  @override State<ZoomImagePage> createState() => _ZoomImagePageState();
+}
+
+class _ZoomImagePageState extends State<ZoomImagePage> {
+  late final PageController controller;
+  @override void initState() { super.initState(); controller = PageController(initialPage: widget.initialIndex); }
+  @override void dispose() { controller.dispose(); super.dispose(); }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, title: const Text('نمایش عکس')),
+      body: PageView.builder(
+        controller: controller,
+        itemCount: widget.images.length,
+        itemBuilder: (_, i) => InteractiveViewer(
+          minScale: 1, maxScale: 5, panEnabled: true,
+          child: Center(child: Image.network(widget.images[i], fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white, size: 70))),
         ),
       ),
     );
