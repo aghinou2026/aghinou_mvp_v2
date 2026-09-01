@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Centralized image upload helper for Aghinou ads.
@@ -8,6 +9,28 @@ class AdImageUploader {
 
   final SupabaseClient client;
   final String bucket;
+
+  Future<List<String>> uploadXFiles({
+    required String adId,
+    required String userId,
+    required List<XFile> images,
+  }) async {
+    if (images.isEmpty) return <String>[];
+
+    final bytes = <Uint8List>[];
+    final extensions = <String>[];
+    for (final image in images) {
+      bytes.add(await image.readAsBytes());
+      extensions.add(image.name);
+    }
+
+    return upload(
+      adId: adId,
+      userId: userId,
+      bytesList: bytes,
+      extensions: extensions,
+    );
+  }
 
   Future<List<String>> upload({
     required String adId,
@@ -47,8 +70,6 @@ class AdImageUploader {
 
       return urls;
     } catch (error) {
-      // Best-effort cleanup prevents orphaned Storage objects when a later
-      // image or its database record fails.
       if (uploadedPaths.isNotEmpty) {
         try {
           await storage.remove(uploadedPaths);
@@ -61,7 +82,8 @@ class AdImageUploader {
   }
 
   String _normalizeExtension(String value) {
-    final ext = value.toLowerCase().replaceFirst('.', '');
+    final name = value.toLowerCase();
+    final ext = name.contains('.') ? name.split('.').last : name;
     switch (ext) {
       case 'png':
       case 'webp':
