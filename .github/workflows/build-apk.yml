@@ -42,9 +42,6 @@ jobs:
           test -n "$AGHINOU_KEYSTORE_BASE64"
           test -n "$AGHINOU_KEY_PASSWORD"
 
-          # Decode the release keystore from the repository secret.
-          # The keystore was generated with Java 21, whose default keystore
-          # format is PKCS12 even when the filename ends in .jks.
           printf '%s' "$AGHINOU_KEYSTORE_BASE64" \
             | tr -d '[:space:]' \
             | base64 --decode > android/app/aghinou-release.jks
@@ -52,12 +49,22 @@ jobs:
           chmod 600 android/app/aghinou-release.jks
           test -s android/app/aghinou-release.jks
 
-          # Validate the actual keystore instead of checking JKS magic bytes.
-          # This accepts the PKCS12 keystore produced by Java 21.
+          # Java 21 creates PKCS12 keystores by default. Validate the real
+          # keystore instead of assuming the legacy JKS magic bytes.
           keytool -list -keystore android/app/aghinou-release.jks \
             -storepass "$AGHINOU_KEY_PASSWORD" >/dev/null
 
           echo "Release keystore decoded and validated successfully."
+
+      - name: Install Gradle 8.14
+        shell: bash
+        run: |
+          set -euo pipefail
+          GRADLE_VERSION="8.14"
+          curl -fsSL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /opt
+          echo "/opt/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
+          /opt/gradle-${GRADLE_VERSION}/bin/gradle --version
 
       - name: Build release APK
         shell: bash
@@ -74,7 +81,7 @@ jobs:
           flutter pub get
 
           cd android
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          gradle assembleRelease --no-daemon --stacktrace
           cd ..
 
           APK="android/app/build/outputs/apk/release/app-release.apk"
@@ -87,9 +94,9 @@ jobs:
           echo "APK successfully produced at: $APK"
           mkdir -p build/app/outputs/flutter-apk
           cp "$APK" build/app/outputs/flutter-apk/app-release.apk
-          echo "APK normalized to: build/app/outputs/flutter-apk/app-release.apk"
 
       - name: Verify APK
+        shell: bash
         run: |
           set -euo pipefail
           APK="build/app/outputs/flutter-apk/app-release.apk"
