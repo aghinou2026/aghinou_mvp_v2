@@ -208,6 +208,25 @@ class _HomePageState extends State<HomePage> {
     )));
   }
 
+  Widget photoCountBadge(int count) {
+    if (count <= 0) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.68),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.photo_camera_outlined, color: Colors.white, size: 15),
+          const SizedBox(width: 4),
+          Text('$count', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
   Widget card(Map<String, dynamic> ad) {
     final id = '${ad['idd'] ?? ''}';
     return FutureBuilder<List<String>>(
@@ -225,9 +244,16 @@ class _HomePageState extends State<HomePage> {
                 SizedBox(
                   width: 118,
                   height: 118,
-                  child: imgs.isEmpty
-                      ? const ColoredBox(color: Color(0xFFEDEDED), child: Icon(Icons.image_outlined, size: 42))
-                      : Image.network(imgs.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFFE8E0FF), child: Icon(Icons.broken_image))),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      imgs.isEmpty
+                          ? const ColoredBox(color: Color(0xFFEDEDED), child: Icon(Icons.image_outlined, size: 42))
+                          : Image.network(imgs.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFFE8E0FF), child: Icon(Icons.broken_image))),
+                      if (imgs.isNotEmpty)
+                        Positioned(bottom: 7, right: 7, child: photoCountBadge(imgs.length)),
+                    ],
+                  ),
                 ),
                 Expanded(child: Padding(
                   padding: const EdgeInsets.all(12),
@@ -446,6 +472,8 @@ class _AdDetailsPageState extends State<AdDetailsPage> {
   @override
   Widget build(BuildContext context) {
     final a = widget.ad;
+    const detailText = TextStyle(fontSize: 18, height: 1.55);
+    const detailValue = TextStyle(fontSize: 18, height: 1.55, fontWeight: FontWeight.w500);
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -467,31 +495,31 @@ class _AdDetailsPageState extends State<AdDetailsPage> {
             Padding(
               padding: const EdgeInsets.all(18),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${a['title'] ?? 'بدون عنوان'}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Text('${a['title'] ?? 'بدون عنوان'}', style: const TextStyle(fontSize: 29, fontWeight: FontWeight.bold, height: 1.25)),
+                const SizedBox(height: 12),
+                Text('${a['price'] ?? 'توافقی'} تومان', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 10),
-                Text('${a['price'] ?? 'توافقی'} تومان', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 8),
-                Text('${a['city'] ?? ''} • ${a['category'] ?? ''} • ${a['subcategory'] ?? ''}'),
+                Text('${a['city'] ?? ''} • ${a['category'] ?? ''} • ${a['subcategory'] ?? ''}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.5)),
                 if ('${a['vehicle_brand'] ?? ''}'.isNotEmpty) ...[
-                  const Divider(height: 28),
-                  const Text('مشخصات خودرو', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text('برند: ${a['vehicle_brand'] ?? '-'}'),
-                  Text('مدل: ${a['vehicle_model'] ?? '-'}'),
-                  Text('سال: ${a['vehicle_year'] ?? '-'}'),
-                  Text('کارکرد: ${a['vehicle_mileage'] ?? '-'} کیلومتر'),
-                  Text('رنگ: ${a['vehicle_color'] ?? '-'}'),
-                  Text('گیربکس: ${a['vehicle_transmission'] ?? '-'}'),
-                  Text('سوخت: ${a['vehicle_fuel'] ?? '-'}'),
-                  Text('وضعیت بدنه: ${a['vehicle_body_condition'] ?? '-'}'),
-                  Text('معاوضه: ${a['vehicle_exchange'] == true ? 'دارد' : 'ندارد'}'),
+                  const Divider(height: 30),
+                  const Text('مشخصات خودرو', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  Text('برند: ${a['vehicle_brand'] ?? '-'}', style: detailValue),
+                  Text('مدل: ${a['vehicle_model'] ?? '-'}', style: detailValue),
+                  Text('سال: ${a['vehicle_year'] ?? '-'}', style: detailValue),
+                  Text('کارکرد: ${a['vehicle_mileage'] ?? '-'} کیلومتر', style: detailValue),
+                  Text('رنگ: ${a['vehicle_color'] ?? '-'}', style: detailValue),
+                  Text('گیربکس: ${a['vehicle_transmission'] ?? '-'}', style: detailValue),
+                  Text('سوخت: ${a['vehicle_fuel'] ?? '-'}', style: detailValue),
+                  Text('وضعیت بدنه: ${a['vehicle_body_condition'] ?? '-'}', style: detailValue),
+                  Text('معاوضه: ${a['vehicle_exchange'] == true ? 'دارد' : 'ندارد'}', style: detailValue),
                 ],
-                const Divider(height: 28),
-                const Text('توضیحات', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text('${a['edescription'] ?? 'توضیحی ثبت نشده است.'}', style: const TextStyle(fontSize: 16, height: 1.7)),
-                const SizedBox(height: 22),
-                SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('گفتگو به‌زودی فعال می‌شود.'))), icon: const Icon(Icons.chat_bubble_outline), label: const Text('پیام به فروشنده'))),
+                const Divider(height: 30),
+                const Text('توضیحات', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                Text('${a['edescription'] ?? 'توضیحی ثبت نشده است.'}', style: detailText),
+                const SizedBox(height: 24),
+                SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('گفتگو به‌زودی فعال می‌شود.'))), icon: const Icon(Icons.chat_bubble_outline, size: 22), label: const Text('پیام به فروشنده', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)))),
               ]),
             ),
           ],
