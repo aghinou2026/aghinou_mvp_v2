@@ -29,6 +29,9 @@ jobs:
       - name: Show Flutter version
         run: flutter --version
 
+      - name: Integrate first-run subscription intro
+        run: python3 tool/inject_first_run_intro.py
+
       - name: Get dependencies
         run: flutter pub get
 
