@@ -52,25 +52,36 @@ jobs:
         run: |
           set -e
           flutter clean
-          flutter build apk --release --verbose
+          flutter pub get
 
-          APK="android/app/build/outputs/flutter-apk/app-release.apk"
-          if [ -f "$APK" ]; then
-            echo "APK successfully produced at: $APK"
-            mkdir -p build/app/outputs/flutter-apk
-            cp "$APK" build/app/outputs/flutter-apk/app-release.apk
-            echo "APK normalized to: build/app/outputs/flutter-apk/app-release.apk"
-            exit 0
+          # Build with Gradle directly so Flutter's post-build APK path check
+          # cannot fail after Gradle has already produced the APK.
+          cd android
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cd ..
+
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: No release APK was produced."
+            find . -type f -name "*.apk" -print || true
+            exit 1
           fi
 
-          echo "ERROR: No release APK was produced."
-          find . -type f -name "*.apk" -print || true
-          exit 1
+          echo "APK successfully produced at: $APK"
+          mkdir -p build/app/outputs/flutter-apk
+          cp "$APK" build/app/outputs/flutter-apk/app-release.apk
+          echo "APK normalized to: build/app/outputs/flutter-apk/app-release.apk"
 
       - name: Verify APK
         run: |
-          test -f build/app/outputs/flutter-apk/app-release.apk
-          ls -lh build/app/outputs/flutter-apk/app-release.apk
+          set -e
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          test -f "$APK"
+          ls -lh "$APK"
+
+          APKSIGNER="${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
