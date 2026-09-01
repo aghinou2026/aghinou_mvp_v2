@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - aghinou-fixes-2026-09-01
+      - aghinou-final-integration-2026-09-02
 
 permissions:
   contents: read
