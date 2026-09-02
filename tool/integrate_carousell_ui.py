@@ -4,13 +4,19 @@ import re
 path = Path('lib/main.dart')
 text = path.read_text(encoding='utf-8')
 
-imports = """import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:url_launcher/url_launcher.dart';
-"""
-if "package:shared_preferences/shared_preferences.dart" not in text:
-    text = text.replace("import 'package:geolocator/geolocator.dart';", "import 'package:geolocator/geolocator.dart';\n" + imports.rstrip(), 1)
+# Add each integration import independently. The first-run intro pass may have
+# already added shared_preferences, so never use that import as the gate for
+# the other packages.
+imports = [
+    "import 'package:shared_preferences/shared_preferences.dart';",
+    "import 'package:flutter_map/flutter_map.dart';",
+    "import 'package:latlong2/latlong.dart';",
+    "import 'package:url_launcher/url_launcher.dart';",
+]
+anchor = "import 'package:geolocator/geolocator.dart';"
+missing = [line for line in imports if line not in text]
+if missing and anchor in text:
+    text = text.replace(anchor, anchor + '\n' + '\n'.join(missing), 1)
 
 if 'final ValueNotifier<ThemeMode> aghinouThemeMode' not in text:
     marker = "final supabase = Supabase.instance.client;"
@@ -184,7 +190,6 @@ new = """Row(children: [
               Expanded(child: ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.location_city_outlined), title: Text(city), subtitle: const Text('برای جستجوی شهر لمس کنید'), onTap: publishing ? null : () async { final c = await showModalBottomSheet<String>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => const CityPicker()); if (c != null && mounted) setState(() => city = c); })),"""
 text = text.replace(old, new, 1)
 
-# Vehicle fields in two columns where the old form uses a simple vertical list.
 old_vehicle = """TextField(controller: brand, decoration: const InputDecoration(labelText: 'برند خودرو')),
           TextField(controller: model, decoration: const InputDecoration(labelText: 'مدل خودرو')),
           TextField(controller: year, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سال')),
@@ -205,11 +210,9 @@ new_vehicle = """Row(children: [
           TextField(controller: color, decoration: const InputDecoration(labelText: 'رنگ')),"""
 text = text.replace(old_vehicle, new_vehicle, 1)
 
-# Make uploads smaller and more reliable for mobile/storage.
 text = text.replace('_picker.pickMultiImage(imageQuality: 90)', '_picker.pickMultiImage(imageQuality: 70, maxWidth: 1600, maxHeight: 1600)')
 text = text.replace('picker.pickMultiImage(imageQuality: 90)', 'picker.pickMultiImage(imageQuality: 70, maxWidth: 1600, maxHeight: 1600)')
 
-# Add map preview/navigation to ad details when coordinates exist.
 needle = "Text('${a['city'] ?? ''} • ${a['category'] ?? ''} • ${a['subcategory'] ?? ''}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.5)),"
 map_block = """
                 if (a['latitude'] != null && a['longitude'] != null) ...[
@@ -219,14 +222,6 @@ map_block = """
                   OutlinedButton.icon(onPressed: () { final lat = a['latitude']; final lng = a['longitude']; launchUrl(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng'), mode: LaunchMode.externalApplication); }, icon: const Icon(Icons.navigation_outlined), label: const Text('مسیریابی')),
                 ],"""
 text = text.replace(needle, needle + map_block, 1)
-
-# Subscription gate for posting.
-needle = "void openAdd() {"
-if needle in text and 'aghinou_subscription_active' not in text:
-    text = text.replace(needle, """void openAdd() {
-    // Posting requires the monthly subscription. Payment UI is prepared here;
-    // actual gateway activation will be wired to the backend payment flow.
-    //""", 1)
 
 path.write_text(text, encoding='utf-8')
 print('Integrated Aghinou final UI/auth/category/location changes.')
