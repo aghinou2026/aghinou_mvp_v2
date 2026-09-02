@@ -2,8 +2,10 @@
 
 Android Gradle configuration has been normalized to the modern Flutter plugin-loader layout.
 
-## Remaining requirement
-The Flutter SDK path must be supplied in `android/local.properties` on the machine that builds the app.
-The Gradle wrapper JAR is not bundled here because it is not present in the available source package.
+## Current integrated UI build
+The Carousell-style compact square-card home UI and first-run subscription introduction are configured in the APK workflow.
 
-This package is **build-prepared, not build-verified**. Do not treat it as a tested APK until `flutter pub get` and `flutter build apk` succeed on a machine with Flutter/Android tooling installed.
+The workflow preserves the release signing keystore so the resulting release APK can update the existing signed installation.
+
+## Build verification
+This commit is intentionally used to trigger the release APK workflow. Do not treat an APK as verified until the workflow completes successfully and the generated artifact passes APK signature verification.
