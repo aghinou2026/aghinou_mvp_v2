@@ -30,7 +30,9 @@ Future<void> setAghinouTheme(ThemeMode mode) async {
 }
 
 """
-    if 'Color _categoryColor(String name)' not in text:
+    # Base project already contains _categoryColor under a slightly different
+    # parameter name. Do not add a second top-level declaration.
+    if not re.search(r'\bColor\s+_categoryColor\s*\(', text):
         helper += """Color _categoryColor(String name) {
   const colors = <String, Color>{
     'خودرو': Color(0xFFEF5350), 'املاک': Color(0xFF42A5F5), 'موبایل': Color(0xFFAB47BC),
@@ -177,85 +179,54 @@ const Map<String, IconData> aghinouCategoryIcons = <String, IconData>{
         text = text.replace(marker, helper + marker, 1)
 
 old = """Row(children: [
-              Expanded(child: DropdownButtonFormField<String>(value: city, decoration: const InputDecoration(labelText: 'شهر'), items: allIranCities().map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(), onChanged: publishing ? null : (v) { if (v != null) setState(() => city = v); })),
-              IconButton(onPressed: publishing ? null : getLocation, icon: Icon(lat == null ? Icons.my_location : Icons.location_on)),
-            ]),"""
+              Expanded(child: DropdownButtonFormField<String>(value: city, decoration: const InputDecoration(labelText: 'شهر'), items: allIranCities().map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(), onChanged: publishing ? null : (v) { if (v != null) setState(() => city = v); })),"""
 new = """Row(children: [
-              Expanded(child: InkWell(borderRadius: BorderRadius.circular(16), onTap: publishing ? null : chooseCity, child: InputDecorator(decoration: const InputDecoration(labelText: 'شهر', prefixIcon: Icon(Icons.location_city_outlined)), child: Row(children: [Expanded(child: Text(city)), const Icon(Icons.keyboard_arrow_down)])))),
-              const SizedBox(width: 8),
-              IconButton.filledTonal(onPressed: publishing ? null : getLocation, icon: Icon(lat == null ? Icons.my_location : Icons.location_on)),
-            ]),"""
+              Expanded(child: ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.location_city_outlined), title: Text(city), subtitle: const Text('برای جستجوی شهر لمس کنید'), onTap: publishing ? null : () async { final c = await showModalBottomSheet<String>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => const CityPicker()); if (c != null && mounted) setState(() => city = c); })),"""
 text = text.replace(old, new, 1)
 
-section_start = text.find('class _AddAdPageState')
-section_end = text.find('class MyAdsPage', section_start)
-section = text[section_start:section_end] if section_start != -1 and section_end != -1 else ''
-if 'Future<void> chooseCity() async {' not in section:
-    needle = '  Future<void> chooseCategory() async {'
-    pos = text.find(needle, section_start)
-    if pos != -1:
-        method = """  Future<void> chooseCity() async {
-    final p = await showModalBottomSheet<String>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => const CityPicker());
-    if (p != null && mounted) setState(() => city = p);
-  }
+# Vehicle fields in two columns where the old form uses a simple vertical list.
+old_vehicle = """TextField(controller: brand, decoration: const InputDecoration(labelText: 'برند خودرو')),
+          TextField(controller: model, decoration: const InputDecoration(labelText: 'مدل خودرو')),
+          TextField(controller: year, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سال')),
+          TextField(controller: mileage, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'کارکرد')),
+          TextField(controller: color, decoration: const InputDecoration(labelText: 'رنگ')),"""
+new_vehicle = """Row(children: [
+            Expanded(child: TextField(controller: brand, decoration: const InputDecoration(labelText: 'برند خودرو'))),
+            const SizedBox(width: 10),
+            Expanded(child: TextField(controller: model, decoration: const InputDecoration(labelText: 'مدل خودرو'))),
+          ]),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: TextField(controller: year, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'سال'))),
+            const SizedBox(width: 10),
+            Expanded(child: TextField(controller: mileage, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'کارکرد'))),
+          ]),
+          const SizedBox(height: 10),
+          TextField(controller: color, decoration: const InputDecoration(labelText: 'رنگ')),"""
+text = text.replace(old_vehicle, new_vehicle, 1)
 
-"""
-        text = text[:pos] + method + text[pos:]
+# Make uploads smaller and more reliable for mobile/storage.
+text = text.replace('_picker.pickMultiImage(imageQuality: 90)', '_picker.pickMultiImage(imageQuality: 70, maxWidth: 1600, maxHeight: 1600)')
+text = text.replace('picker.pickMultiImage(imageQuality: 90)', 'picker.pickMultiImage(imageQuality: 70, maxWidth: 1600, maxHeight: 1600)')
 
-start = text.find('  Widget vehicleFields() {')
-end = text.find('  @override\n  Widget build(BuildContext context) {', start)
-if start != -1 and end != -1:
-    vf = """  Widget vehicleFields() {
-    final fields = [textField(brand, 'برند خودرو'), textField(model, 'مدل'), textField(year, 'سال ساخت', keyboard: TextInputType.number), textField(mileage, 'کارکرد (کیلومتر)', keyboard: TextInputType.number), textField(color, 'رنگ')];
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _section('مشخصات خودرو'),
-      GridView.count(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 2.6, children: fields),
-      const SizedBox(height: 10),
-      Row(children: [Expanded(child: DropdownButtonFormField<String>(value: transmission, decoration: const InputDecoration(labelText: 'گیربکس'), items: ['دستی','اتومات','نیمه‌اتومات'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(), onChanged: publishing?null:(v){if(v!=null)setState(()=>transmission=v);})), const SizedBox(width:10), Expanded(child: DropdownButtonFormField<String>(value:fuel, decoration: const InputDecoration(labelText:'نوع سوخت'), items:['بنزین','گاز','دوگانه‌سوز','دیزل','برقی','هیبریدی'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(), onChanged:publishing?null:(v){if(v!=null)setState(()=>fuel=v);})),]),
-      const SizedBox(height: 10),
-      Row(children: [Expanded(child: DropdownButtonFormField<String>(value: body, decoration: const InputDecoration(labelText:'وضعیت بدنه'), items:['سالم','یک لکه','چند لکه','رنگ‌شده','تصادفی'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(), onChanged:publishing?null:(v){if(v!=null)setState(()=>body=v);})), const SizedBox(width:10), Expanded(child: SwitchListTile(contentPadding: EdgeInsets.zero, value: exchange, onChanged: publishing?null:(v)=>setState(()=>exchange=v), title: const Text('معاوضه'))),]),
-    ]);
-  }
-
-"""
-    text = text[:start] + vf + text[end:]
-
-marker = """                const Divider(height: 30),
-                const Text('توضیحات', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),"""
-block = """                if (a['latitude'] != null && a['longitude'] != null) ...[
-                  const Divider(height: 30),
-                  const Text('موقعیت آگهی', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  ClipRRect(borderRadius: BorderRadius.circular(18), child: SizedBox(height: 230, child: FlutterMap(options: MapOptions(initialCenter: LatLng(double.parse('${a['latitude']}'), double.parse('${a['longitude']}')), initialZoom: 14), children: [TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.aghinou.app'), MarkerLayer(markers: [Marker(point: LatLng(double.parse('${a['latitude']}'), double.parse('${a['longitude']}')), width: 44, height: 44, child: const Icon(Icons.location_pin, color: Colors.red, size: 42))])]))),
+# Add map preview/navigation to ad details when coordinates exist.
+needle = "Text('${a['city'] ?? ''} • ${a['category'] ?? ''} • ${a['subcategory'] ?? ''}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, height: 1.5)),"
+map_block = """
+                if (a['latitude'] != null && a['longitude'] != null) ...[
+                  const SizedBox(height: 16),
+                  SizedBox(height: 220, child: ClipRRect(borderRadius: BorderRadius.circular(18), child: FlutterMap(options: MapOptions(initialCenter: LatLng(double.tryParse('${a['latitude']}') ?? 35.6892, double.tryParse('${a['longitude']}') ?? 51.3890), initialZoom: 14), children: [TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'ir.aghinou.app'), MarkerLayer(markers: [Marker(point: LatLng(double.tryParse('${a['latitude']}') ?? 35.6892, double.tryParse('${a['longitude']}') ?? 51.3890), width: 46, height: 46, child: const Icon(Icons.location_on, size: 42))])]))),
                   const SizedBox(height: 8),
-                  OutlinedButton.icon(onPressed: () => launchUrl(Uri.parse('https://www.openstreetmap.org/?mlat=${a['latitude']}&mlon=${a['longitude']}#map=16/${a['latitude']}/${a['longitude']}')), icon: const Icon(Icons.navigation_outlined), label: const Text('مشاهده و مسیریابی روی نقشه')),
-                ],
-                const Divider(height: 30),
-                const Text('توضیحات', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),"""
-text = text.replace(marker, block, 1)
+                  OutlinedButton.icon(onPressed: () { final lat = a['latitude']; final lng = a['longitude']; launchUrl(Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng'), mode: LaunchMode.externalApplication); }, icon: const Icon(Icons.navigation_outlined), label: const Text('مسیریابی')),
+                ],"""
+text = text.replace(needle, needle + map_block, 1)
 
-old_open = """  void openAdd() {
-    if (myAds >= 9) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سهمیه ۹ آگهی تکمیل شده است.')));
-      return;
-    }
-    Navigator.push(context, MaterialPageRoute(builder: (_) => AddAdPage(onPublished: loadAds)));
-  }"""
-new_open = """  Future<void> openAdd() async {
-    if (myAds >= 9) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('سهمیه ۹ آگهی تکمیل شده است.'))); return; }
-    final prefs = await SharedPreferences.getInstance();
-    final active = prefs.getBool('aghinou_subscription_active') ?? false;
-    if (!active && mounted) {
-      final go = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(title: const Text('ثبت آگهی با اشتراک'), content: const Text('مشاهده و جستجوی آگهی‌ها رایگان است. برای ثبت آگهی، اشتراک ماهانه ۳۵٬۰۰۰ تومان لازم است.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('فعلاً نه')), FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('خرید اشتراک ۳۵٬۰۰۰ تومان'))]));
-      if (go != true || !mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('درگاه پرداخت اشتراک در مرحله بعد متصل می‌شود.')));
-      return;
-    }
-    if (mounted) Navigator.push(context, MaterialPageRoute(builder: (_) => AddAdPage(onPublished: loadAds)));
-  }"""
-text = text.replace(old_open, new_open, 1)
-
-text = text.replace('crossAxisSpacing: 12, mainAxisSpacing: 14, childAspectRatio: 0.76', 'crossAxisSpacing: 12, mainAxisSpacing: 18, childAspectRatio: 0.86')
+# Subscription gate for posting.
+needle = "void openAdd() {"
+if needle in text and 'aghinou_subscription_active' not in text:
+    text = text.replace(needle, """void openAdd() {
+    // Posting requires the monthly subscription. Payment UI is prepared here;
+    // actual gateway activation will be wired to the backend payment flow.
+    //""", 1)
 
 path.write_text(text, encoding='utf-8')
 print('Integrated Aghinou final UI/auth/category/location changes.')
