@@ -7,6 +7,7 @@ on:
       - main
       - aghinou-fixes-2026-09-01
       - aghinou-final-integration-2026-09-02
+      - aghinou-ui-carousell-final-2026-09-02
 
 permissions:
   contents: read
@@ -31,6 +32,9 @@ jobs:
 
       - name: Integrate first-run subscription intro
         run: python3 tool/inject_first_run_intro.py
+
+      - name: Integrate Carousell-style Persian UI
+        run: python3 tool/integrate_carousell_ui.py
 
       - name: Get dependencies
         run: flutter pub get
