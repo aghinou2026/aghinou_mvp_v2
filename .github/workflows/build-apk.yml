@@ -8,6 +8,7 @@ on:
       - aghinou-fixes-2026-09-01
       - aghinou-final-integration-2026-09-02
       - aghinou-ui-carousell-final-2026-09-02
+      - aghinou-ui-carousell-final-fix-2026-09-02
 
 permissions:
   contents: read
