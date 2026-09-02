@@ -33,6 +33,8 @@ jobs:
         run: python3 tool/integrate_carousell_ui.py
       - name: Apply final Aghinou polish
         run: python3 tool/final_polish.py
+      - name: Apply final visual fixes
+        run: python3 tool/force_final_ui.py
       - name: Get dependencies
         run: flutter pub get
       - name: Analyze
