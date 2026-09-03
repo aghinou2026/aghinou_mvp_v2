@@ -13,3 +13,5 @@
 
 ## Build 112
 CI release validation is enabled for the Build 112 pull request.
+
+Build 112 syntax-repair parser was hardened and the release pipeline is being revalidated.
