@@ -38,10 +38,11 @@ jobs:
           from pathlib import Path
 
           path = Path('lib/main.dart')
+          pattern = re.compile(r"lib/main\.dart:(\d+):(\d+) • Expected to find '\)'")
           for attempt in range(20):
               p = subprocess.run(['flutter', 'analyze', '--no-fatal-infos', '--no-fatal-warnings'], text=True, capture_output=True)
               out = p.stdout + p.stderr
-              errors = [(int(m.group(1)), int(m.group(2))) for m in re.finditer(r"lib/main\\.dart:(\\d+):(\\d+) • Expected to find '\\)'", out)]
+              errors = [(int(m.group(1)), int(m.group(2))) for m in pattern.finditer(out)]
               if not errors:
                   if p.returncode != 0:
                       print(out)
@@ -54,7 +55,10 @@ jobs:
                   if 1 <= line_no <= len(lines):
                       line = lines[line_no - 1]
                       pos = min(max(column - 1, 0), len(line))
-                      lines[line_no - 1] = line[:pos] + ')' + line[pos:]
+                      if pos == len(line) or line[pos:].strip() == '':
+                          lines[line_no - 1] = line + ')'
+                      else:
+                          lines[line_no - 1] = line[:pos] + ')' + line[pos:]
                       changed += 1
               if changed == 0:
                   print(out)
