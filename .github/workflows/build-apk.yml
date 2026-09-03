@@ -7,6 +7,7 @@ on:
       - main
       - aghinou-fixes-2026-09-01
       - aghinou-final-integration-2026-09-02
+      - aghinou-build112-baseline-2026-09-02
 
 permissions:
   contents: read
@@ -15,29 +16,20 @@ permissions:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-
       - name: Show Flutter version
         run: flutter --version
-
-      - name: Integrate first-run subscription intro
-        run: python3 tool/inject_first_run_intro.py
-
       - name: Get dependencies
         run: flutter pub get
-
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
       - name: Prepare release signing
         shell: bash
         env:
@@ -52,7 +44,6 @@ jobs:
           test -s android/app/aghinou-release.jks
           keytool -list -keystore android/app/aghinou-release.jks -storepass "$AGHINOU_KEY_PASSWORD" >/dev/null
           echo "Release keystore decoded and validated successfully."
-
       - name: Install Gradle 8.14
         shell: bash
         run: |
@@ -62,7 +53,6 @@ jobs:
           unzip -q /tmp/gradle.zip -d /opt
           echo "/opt/gradle-${GRADLE_VERSION}/bin" >> "$GITHUB_PATH"
           /opt/gradle-${GRADLE_VERSION}/bin/gradle --version
-
       - name: Build release APK
         shell: bash
         env:
@@ -83,7 +73,6 @@ jobs:
           mkdir -p build/app/outputs/flutter-apk
           cp "$APK" build/app/outputs/flutter-apk/app-release.apk
           echo "APK successfully produced at: $APK"
-
       - name: Verify APK
         shell: bash
         run: |
@@ -94,7 +83,6 @@ jobs:
           APKSIGNER="${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner"
           test -x "$APKSIGNER"
           "$APKSIGNER" verify --verbose "$APK"
-
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
