@@ -10,3 +10,6 @@
 
 ## Supabase
 قبل از انتشار عمومی، RLS و Secretهای Edge Function را بررسی کنید.
+
+## Build 112
+CI release validation is enabled for the Build 112 pull request.
