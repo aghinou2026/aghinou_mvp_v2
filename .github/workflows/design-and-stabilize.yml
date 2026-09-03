@@ -1,0 +1,88 @@
+name: Build unified Aghinou UI and auth stabilization
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - aghinou-fixes-2026-09-01
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: aghinou-fixes-2026-09-01
+          fetch-depth: 0
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply unified release changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/main.dart')
+          s = p.read_text()
+
+          old = """      theme: ThemeData(\n        useMaterial3: true,\n        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6C3FE8)),\n        inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),\n      ),"""
+          new = """      theme: ThemeData(\n        useMaterial3: true,\n        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF7C4DFF), brightness: Brightness.light),\n        scaffoldBackgroundColor: const Color(0xFFF5F2FF),\n        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0, backgroundColor: Color(0xFFF5F2FF)),\n        cardTheme: CardThemeData(\n          elevation: 3,\n          margin: const EdgeInsets.only(bottom: 12),\n          shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(18))),\n        ),\n        inputDecorationTheme: InputDecorationTheme(\n          filled: true,\n          fillColor: Colors.white,\n          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),\n          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),\n          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(width: 2)),\n        ),\n        navigationBarTheme: const NavigationBarThemeData(height: 70),\n      ),"""
+          if old not in s: raise SystemExit('theme anchor not found')
+          s = s.replace(old, new)
+
+          old = """      if (supabase.auth.currentUser == null) await supabase.auth.signInAnonymously();\n      final u = supabase.auth.currentUser;"""
+          new = """      if (supabase.auth.currentSession == null) {\n        await supabase.auth.signInAnonymously();\n      } else {\n        try {\n          await supabase.auth.refreshSession();\n        } catch (_) {\n          await supabase.auth.signOut();\n          await supabase.auth.signInAnonymously();\n        }\n      }\n      final u = supabase.auth.currentUser;"""
+          if old not in s: raise SystemExit('login anchor not found')
+          s = s.replace(old, new)
+
+          old = """          Card(\n          clipBehavior: Clip.antiAlias,\n          margin: const EdgeInsets.only(bottom: 10),"""
+          new = """          Card(\n          clipBehavior: Clip.antiAlias,\n          margin: const EdgeInsets.only(bottom: 12),"""
+          s = s.replace(old, new)
+
+          old = """                      : Image.network(imgs.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image)),"""
+          new = """                      : Image.network(imgs.first, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFFE8E0FF), child: Icon(Icons.broken_image))),"""
+          s = s.replace(old, new)
+
+          old = """                leading: Icon(c == 'خودرو' ? Icons.directions_car : c == 'املاک' ? Icons.home_work_outlined : c == 'موبایل' ? Icons.phone_android : Icons.category_outlined),"""
+          new = """                leading: CircleAvatar(\n                  backgroundColor: _categoryColor(c),\n                  child: Icon(c == 'خودرو' ? Icons.directions_car : c == 'املاک' ? Icons.home_work_outlined : c == 'موبایل' ? Icons.phone_android : c == 'لوازم خانه' ? Icons.chair_outlined : c == 'کالای دیجیتال' ? Icons.devices_outlined : c == 'پوشاک' ? Icons.checkroom : c == 'خدمات' ? Icons.handyman_outlined : Icons.category_outlined, color: Colors.white),\n                ),"""
+          if old not in s: raise SystemExit('category anchor not found')
+          s = s.replace(old, new)
+
+          marker = "class CategoryPage extends StatefulWidget {"
+          helper = """Color _categoryColor(String c) {\n  switch (c) {\n    case 'خودرو': return const Color(0xFFE45757);\n    case 'املاک': return const Color(0xFF3F7CFF);\n    case 'موبایل': return const Color(0xFF00A896);\n    case 'لوازم خانه': return const Color(0xFFE59F2A);\n    case 'کالای دیجیتال': return const Color(0xFF7C4DFF);\n    case 'پوشاک': return const Color(0xFFD84F9B);\n    case 'خدمات': return const Color(0xFF00897B);\n    default: return const Color(0xFF6C63FF);\n  }\n}\n\n"""
+          if helper not in s:
+            if marker not in s: raise SystemExit('category class marker not found')
+            s = s.replace(marker, helper + marker, 1)
+
+          old = """            else SizedBox(height: 280, child: PageView.builder(itemCount: widget.images.length, itemBuilder: (_, i) => Image.network(widget.images[i], fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 60))))),"""
+          new = """            else SizedBox(\n              height: 300,\n              child: PageView.builder(\n                itemCount: widget.images.length,\n                itemBuilder: (_, i) => GestureDetector(\n                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ZoomImagePage(images: widget.images, initialIndex: i))),\n                  child: Hero(tag: 'ad-image-${widget.ad['idd'] ?? ''}-$i', child: Image.network(widget.images[i], fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, size: 60)))),\n                ),\n              ),\n            ),"""
+          if old not in s: raise SystemExit('details image anchor not found')
+          s = s.replace(old, new)
+
+          marker = "class AddAdPage extends StatefulWidget {"
+          zoom = """class ZoomImagePage extends StatefulWidget {\n  final List<String> images;\n  final int initialIndex;\n  const ZoomImagePage({super.key, required this.images, required this.initialIndex});\n  @override State<ZoomImagePage> createState() => _ZoomImagePageState();\n}\n\nclass _ZoomImagePageState extends State<ZoomImagePage> {\n  late final PageController controller;\n  @override void initState() { super.initState(); controller = PageController(initialPage: widget.initialIndex); }\n  @override void dispose() { controller.dispose(); super.dispose(); }\n  @override\n  Widget build(BuildContext context) {\n    return Scaffold(\n      backgroundColor: Colors.black,\n      appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, title: const Text('نمایش عکس')),\n      body: PageView.builder(\n        controller: controller,\n        itemCount: widget.images.length,\n        itemBuilder: (_, i) => InteractiveViewer(\n          minScale: 1, maxScale: 5, panEnabled: true,\n          child: Center(child: Image.network(widget.images[i], fit: BoxFit.contain, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white, size: 70))),\n        ),\n      ),\n    );\n  }\n}\n\n"""
+          if zoom not in s:
+            if marker not in s: raise SystemExit('zoom marker not found')
+            s = s.replace(marker, zoom + marker, 1)
+
+          p.write_text(s)
+          pub = Path('pubspec.yaml')
+          ps = pub.read_text().replace('version: 0.3.0+4', 'version: 0.4.0+5')
+          pub.write_text(ps)
+          PY
+      - name: Analyze before commit
+        run: |
+          flutter pub get
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Commit unified release source
+        run: |
+          git config user.name "aghinou2026"
+          git config user.email "aghinou2026@users.noreply.github.com"
+          git add lib/main.dart pubspec.yaml
+          git commit -m "Aghinou unified visual refresh auth hardening and zoomable images" || exit 0
+          git push origin aghinou-fixes-2026-09-01

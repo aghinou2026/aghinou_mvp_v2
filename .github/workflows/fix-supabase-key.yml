@@ -1,0 +1,46 @@
+name: Fix Supabase publishable key
+
+on:
+  push:
+    branches:
+      - aghinou-fixes-2026-09-01
+
+permissions:
+  contents: write
+
+jobs:
+  fix-key:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: aghinou-fixes-2026-09-01
+          fetch-depth: 0
+
+      - name: Replace Supabase publishable key
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/main.dart')
+          s = p.read_text()
+          old = 'sb_publishable_uHov32wG1uTxNIkbQmQ_6W5mCwKf'
+          new = 'sb_publishable_uHov32wG1uTxNIkbQbaQmQ_6W5mCwKf'
+          if old not in s:
+              print('Old key not found; no source change needed.')
+              raise SystemExit(0)
+          p.write_text(s.replace(old, new))
+          print('Supabase publishable key corrected.')
+          PY
+
+      - name: Commit corrected key
+        run: |
+          git config user.name "aghinou2026"
+          git config user.email "aghinou2026@users.noreply.github.com"
+          git add lib/main.dart
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Fix Supabase publishable key"
+          git push origin aghinou-fixes-2026-09-01
