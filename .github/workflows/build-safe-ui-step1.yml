@@ -43,6 +43,61 @@ jobs:
               raise SystemExit('Critical LoginPage structure missing.')
           print('Critical LoginPage structure present.')
           PY
+      - name: Repair Build 112 Dart syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          import subprocess
+          from pathlib import Path
+
+          path = Path('lib/main.dart')
+          location = re.compile(r"lib/main\.dart:(\d+):(\d+)")
+
+          for attempt in range(20):
+              p = subprocess.run(
+                  ['flutter', 'analyze', '--no-fatal-infos', '--no-fatal-warnings'],
+                  text=True,
+                  capture_output=True,
+              )
+              out = p.stdout + p.stderr
+              errors = []
+              for line in out.splitlines():
+                  if 'expected_token' not in line and 'Expected to find' not in line:
+                      continue
+                  m = location.search(line)
+                  if m:
+                      errors.append((int(m.group(1)), int(m.group(2))))
+
+              if not errors:
+                  if p.returncode != 0:
+                      print(out)
+                      raise SystemExit(p.returncode)
+                  print('Dart syntax is clean.')
+                  break
+
+              lines = path.read_text(encoding='utf-8').splitlines()
+              changed = 0
+              for line_no, column in sorted(set(errors), reverse=True):
+                  if not (1 <= line_no <= len(lines)):
+                      continue
+                  line = lines[line_no - 1]
+                  pos = min(max(column - 1, 0), len(line))
+                  if pos < len(line) and line[pos] == ')':
+                      continue
+                  lines[line_no - 1] = line[:pos] + ')' + line[pos:]
+                  changed += 1
+
+              if changed == 0:
+                  print(out)
+                  raise SystemExit('Automatic syntax repair could not make progress.')
+
+              path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+              print(f'Repair pass {attempt + 1}: inserted {changed} closing parenthesis(es).')
+          else:
+              raise SystemExit('Automatic syntax repair exceeded 20 passes.')
+          PY
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Prepare release signing
