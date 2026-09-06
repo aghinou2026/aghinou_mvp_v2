@@ -36,6 +36,35 @@ jobs:
           assert a < b and 'Future<void> login() async' in s[a:b] and 'finally' in s[a:b]
           print('Login/Auth structure verified.')
           PY
+      - name: Repair four verified Dart delimiters
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/main.dart')
+          lines = p.read_text(encoding='utf-8').splitlines()
+          expected = {
+              93: '  @override Widget build(BuildContext context) => Directionality(textDirection: TextDirection.rtl, child: Scaffold(body: SafeArea(child: Padding(padding: const EdgeInsets.all(24), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.storefront, size: 76), const SizedBox(height: 12), const Text(\'آگهینو\', style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold)), const SizedBox(height: 8), const Text(\'خرید و فروش آسان و مطمئن\'), const SizedBox(height: 32), TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: \'شماره موبایل\', prefixIcon: Icon(Icons.phone))), const SizedBox(height: 16), SizedBox(width: double.infinity, child: FilledButton(onPressed: loading ? null : login, child: loading ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Text(\'ورود / ادامه\')))])))));',
+              247: '    Navigator.push(context, MaterialPageRoute(builder: (_) => AdDetailsPage(ad: ad, images: imgs, liked: favorites.contains(id), onLike: (v) => setState(() => v ? favorites.add(id) : favorites.remove(id))));',
+              435: '    )));',
+              579: '    ]),',
+          }
+          if lines[92] != expected[93][2:] and not lines[92].endswith(')])))));'):
+              raise SystemExit('Unexpected line 93; refusing mutation.')
+          if not lines[246].endswith(')));'):
+              raise SystemExit('Unexpected line 247; refusing mutation.')
+          if lines[434].strip() != '));':
+              raise SystemExit('Unexpected line 435; refusing mutation.')
+          if lines[578].strip() != ']),':
+              raise SystemExit('Unexpected line 579; refusing mutation.')
+          lines[92] += ')'
+          lines[246] += ')'
+          lines[434] = lines[434].replace('));', ')));', 1)
+          lines[578] = lines[578].replace(']),', '])),', 1)
+          p.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          print('Applied only the four previously verified delimiter repairs.')
+          PY
       - name: Format Dart source
         run: dart format lib
       - name: Analyze Dart source
