@@ -44,19 +44,19 @@ jobs:
           from pathlib import Path
           p = Path('lib/main.dart')
           s = p.read_text(encoding='utf-8')
-          replacements = [
+          targets = [
               ("const Text('ورود / ادامه')))]))));", "const Text('ورود / ادامه')))])))));"),
               ("favorites.remove(id))));", "favorites.remove(id)))));"),
               ("\n    ));\n  }\n}\n\nWidget _specGrid", "\n    )));\n  }\n}\n\nWidget _specGrid"),
               ("\n    ]),\n  ));\n}\n\nclass MyAdsPage", "\n    ])),\n  ));\n}\n\nclass MyAdsPage"),
           ]
-          for old, new in replacements:
+          for old, new in targets:
               count = s.count(old)
               if count != 1:
-                  raise SystemExit(f'Expected exactly one verified source pattern, found {count}: {old[-80:]}')
+                  raise SystemExit(f'Expected exactly one source pattern, found {count}: {old[-90:]}')
               s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
-          print('Applied four exact, context-verified delimiter repairs.')
+          print('Applied four exact delimiter repairs.')
           PY
       - name: Format Dart source
         run: dart format lib
@@ -97,7 +97,7 @@ jobs:
           cd android
           gradle assembleRelease --no-daemon --stacktrace
           cd ..
-          APK="android/app/build/outputs/apk/release/app-release.apk"
+          APK="android/app/build/outputs/flutter-apk/app-release.apk"
           test -f "$APK"
           mkdir -p build/app/outputs/flutter-apk
           cp "$APK" build/app/outputs/flutter-apk/app-release.apk
