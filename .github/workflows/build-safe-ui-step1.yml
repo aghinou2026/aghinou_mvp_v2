@@ -1,21 +1,17 @@
-name: Aghinou Safe UI Step 1 APK
-
-# Safe build workflow: UI-only patch, Login/Auth protected.
+name: Aghinou Clean APK Build
 on:
   push:
     branches:
       - aghinou-ui-safe-step1-2026-09-06
   workflow_dispatch:
-
 permissions:
   contents: read
   actions: read
-
 jobs:
   build-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout exact safe branch
+      - name: Checkout safe branch
         uses: actions/checkout@v4
         with:
           ref: aghinou-ui-safe-step1-2026-09-06
@@ -25,13 +21,11 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Show Flutter version
+      - name: Flutter version
         run: flutter --version
       - name: Get dependencies
         run: flutter pub get
-      - name: Apply safe UI patch
-        run: python3 tool/apply_safe_ui_step1.py
-      - name: Verify critical auth code unchanged
+      - name: Verify Login/Auth source
         shell: bash
         run: |
           set -euo pipefail
@@ -39,73 +33,12 @@ jobs:
           from pathlib import Path
           s = Path('lib/main.dart').read_text(encoding='utf-8')
           a, b = s.index('class LoginPage'), s.index('class IntroPage')
-          if not (a < b) or 'Future<void> login() async' not in s[a:b] or 'finally' not in s[a:b]:
-              raise SystemExit('Critical LoginPage structure missing.')
-          print('Critical LoginPage structure present.')
+          assert a < b and 'Future<void> login() async' in s[a:b] and 'finally' in s[a:b]
+          print('Login/Auth structure verified.')
           PY
-      - name: Repair Build 112 Dart syntax
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import re
-          import subprocess
-          from pathlib import Path
-
-          path = Path('lib/main.dart')
-          location = re.compile(r"lib/main\.dart:(\d+):(\d+)")
-          # The Build 112 minified AdDetails line reports a false positive at
-          # column 1048: inserting ')' before Padding() creates a positional
-          # argument error. The real missing delimiter on that line is at the
-          # final reported location and is still repaired normally.
-          false_positive = {(134, 1048)}
-
-          for attempt in range(20):
-              p = subprocess.run(
-                  ['flutter', 'analyze', '--no-fatal-infos', '--no-fatal-warnings'],
-                  text=True,
-                  capture_output=True,
-              )
-              out = p.stdout + p.stderr
-              errors = []
-              for line in out.splitlines():
-                  if 'expected_token' not in line and 'Expected to find' not in line:
-                      continue
-                  m = location.search(line)
-                  if m:
-                      errors.append((int(m.group(1)), int(m.group(2))))
-
-              errors = [e for e in errors if e not in false_positive]
-
-              if not errors:
-                  if p.returncode != 0:
-                      print(out)
-                      raise SystemExit(p.returncode)
-                  print('Dart syntax is clean.')
-                  break
-
-              lines = path.read_text(encoding='utf-8').splitlines()
-              changed = 0
-              for line_no, column in sorted(set(errors), reverse=True):
-                  if not (1 <= line_no <= len(lines)):
-                      continue
-                  line = lines[line_no - 1]
-                  pos = min(max(column - 1, 0), len(line))
-                  if pos < len(line) and line[pos] == ')':
-                      continue
-                  lines[line_no - 1] = line[:pos] + ')' + line[pos:]
-                  changed += 1
-
-              if changed == 0:
-                  print(out)
-                  raise SystemExit('Automatic syntax repair could not make progress.')
-
-              path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-              print(f'Repair pass {attempt + 1}: inserted {changed} closing parenthesis(es).')
-          else:
-              raise SystemExit('Automatic syntax repair exceeded 20 passes.')
-          PY
-      - name: Analyze
+      - name: Format Dart source
+        run: dart format lib
+      - name: Analyze Dart source
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Prepare release signing
         shell: bash
@@ -159,7 +92,7 @@ jobs:
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: aghinou-safe-ui-step1-release-apk
+          name: aghinou-clean-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
