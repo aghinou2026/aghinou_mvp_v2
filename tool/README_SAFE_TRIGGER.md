@@ -1,0 +1,1 @@
+This marker is used only to trigger the safe UI Step 1 workflow. It does not affect the Flutter application.
