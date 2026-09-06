@@ -5,7 +5,7 @@ on:
       - aghinou-ui-safe-step1-2026-09-06
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   actions: read
 jobs:
   build-apk:
@@ -36,10 +36,48 @@ jobs:
           assert a < b and 'Future<void> login() async' in s[a:b] and 'finally' in s[a:b]
           print('Login/Auth structure verified.')
           PY
+      - name: Repair four verified Dart delimiters
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/main.dart')
+          s = p.read_text(encoding='utf-8')
+          fixes = [
+              ("const Text('ورود / ادامه')))]))));", "const Text('ورود / ادامه')))])))));"),
+              ("favorites.remove(id))));", "favorites.remove(id)))));"),
+              ("\n    ));\n  }\n}\n\nWidget _specGrid", "\n    )));\n  }\n}\n\nWidget _specGrid"),
+              ("\n    ]),\n  ));\n}\n\nclass MyAdsPage", "\n    ])),\n  ));\n}\n\nclass MyAdsPage"),
+          ]
+          for old, new in fixes:
+              count = s.count(old)
+              if count == 1:
+                  s = s.replace(old, new, 1)
+              elif count == 0:
+                  print('Pattern already fixed or changed:', old[-80:])
+              else:
+                  raise SystemExit(f'Unexpected duplicate pattern: {old[-80:]}')
+          p.write_text(s, encoding='utf-8')
+          print('Verified delimiter repairs applied.')
+          PY
       - name: Format Dart source
-        run: dart format lib
+        run: dart format lib/main.dart
       - name: Analyze Dart source
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Persist verified source repairs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart
+          if git diff --cached --quiet; then
+            echo "No source changes to persist."
+          else
+            git commit -m "Fix verified Dart delimiters [skip ci]"
+            git push origin HEAD:aghinou-ui-safe-step1-2026-09-06
+          fi
       - name: Prepare release signing
         shell: bash
         env:
