@@ -1,448 +1,117 @@
 name: Aghinou Complete UI UX APK
 on:
   push:
-    branches:
-      - aghinou-ui-safe-step1-2026-09-06
+    branches: [aghinou-ui-safe-step1-2026-09-06]
   workflow_dispatch:
 permissions:
   contents: write
-  actions: read
 jobs:
   build-apk:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout project
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: aghinou-ui-safe-step1-2026-09-06
-          fetch-depth: 1
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - name: Get dependencies
+      - name: Dependencies
         run: flutter pub get
-      - name: Apply complete Aghinou update
-        shell: bash
+      - name: Apply complete UI UX update
         run: |
-          set -euo pipefail
-          python3 - <<'PY'
+          python3 <<'PY'
           from pathlib import Path
           import re
-
-          p = Path('lib/main.dart')
-          s = p.read_text(encoding='utf-8')
-
-          def once(old, new, label):
+          p=Path('lib/main.dart')
+          s=p.read_text(encoding='utf-8')
+          original=s
+          def replace_once(pattern, repl, label, flags=0):
               global s
-              n = s.count(old)
-              if n != 1:
-                  raise SystemExit(f'{label}: expected exactly 1 match, got {n}')
-              s = s.replace(old, new, 1)
-
-          # Repair the four known delimiter defects first. No silent repairs.
-          once("const Text('ورود / ادامه')))]))));", "const Text('ورود / ادامه')))])))));", 'login delimiter')
-          once("favorites.remove(id))));", "favorites.remove(id)))));", 'details delimiter')
-          once("\n    ));\n  }\n}\n\nWidget _specGrid", "\n    )));\n  }\n}\n\nWidget _specGrid", 'spec grid delimiter')
-          once("\n    ]),\n  ));\n}\n\nclass MyAdsPage", "\n    ])),\n  ));\n}\n\nclass MyAdsPage", 'add-ad delimiter')
-
-          # Polished global theme: colorful cards and a visible bottom navigation surface.
-          once(
-              "navigationBarTheme: const NavigationBarThemeData(height: 70),",
-              "navigationBarTheme: const NavigationBarThemeData(height: 72, backgroundColor: Color(0xFFFFFFFF), indicatorColor: Color(0xFFDCCBFF), labelTextStyle: MaterialStatePropertyAll(TextStyle(fontWeight: FontWeight.w700))),",
-              'navigation theme')
-
-          # Replace login UX only: phone is requested once; later launches can use one-touch quick entry.
-          start = s.index('class _LoginPageState')
-          end = s.index('class IntroPage')
-          login = r'''class _LoginPageState extends State<LoginPage> {
-  final phone = TextEditingController();
-  bool loading = false;
-  bool hasSavedPhone = false;
-  String savedPhone = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedPhone();
-  }
-
-  Future<void> _loadSavedPhone() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString('aghinou_saved_phone') ?? '';
-    if (!mounted) return;
-    setState(() {
-      savedPhone = value;
-      hasSavedPhone = value.isNotEmpty;
-    });
-  }
-
-  @override
-  void dispose() { phone.dispose(); super.dispose(); }
-
-  Future<void> _finishEntry(String value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('aghinou_saved_phone', value);
-    final seenIntro = prefs.getBool('aghinou_first_run_intro_seen') ?? false;
-    if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => seenIntro ? const HomePage() : const IntroPage()));
-  }
-
-  Future<void> login() async {
-    final value = phone.text.trim();
-    if (value.length < 10) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('شماره موبایل را کامل وارد کنید.'))); return; }
-    setState(() => loading = true);
-    try {
-      if (supabase.auth.currentSession == null) {
-        await supabase.auth.signInAnonymously();
-      } else {
-        try { await supabase.auth.refreshSession(); } catch (_) { await supabase.auth.signOut(); await supabase.auth.signInAnonymously(); }
-      }
-      final u = supabase.auth.currentUser;
-      if (u == null) throw Exception('کاربر ساخته نشد');
-      await supabase.from('profiles').upsert({'iidd': u.id, 'cphone': value, 'name': 'کاربر آگهینو'}, onConflict: 'iidd');
-      await _finishEntry(value);
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در ورود: $e')));
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
-
-  Future<void> quickLogin() async {
-    if (savedPhone.isEmpty) return;
-    setState(() => loading = true);
-    try {
-      if (supabase.auth.currentSession == null) await supabase.auth.signInAnonymously();
-      final u = supabase.auth.currentUser;
-      if (u == null) throw Exception('کاربر ساخته نشد');
-      await supabase.from('profiles').upsert({'iidd': u.id, 'cphone': savedPhone, 'name': 'کاربر آگهینو'}, onConflict: 'iidd');
-      await _finishEntry(savedPhone);
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ورود سریع انجام نشد: $e')));
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => Directionality(
-    textDirection: TextDirection.rtl,
-    child: Scaffold(
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 50, 24, 30),
-          children: [
-            const Icon(Icons.storefront_rounded, size: 82),
-            const SizedBox(height: 14),
-            const Text('آگهینو', textAlign: TextAlign.center, style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 8),
-            const Text('خرید و فروش آسان و مطمئن', textAlign: TextAlign.center),
-            const SizedBox(height: 32),
-            if (hasSavedPhone) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(children: [
-                    const Icon(Icons.touch_app_rounded, size: 42),
-                    const SizedBox(height: 8),
-                    Text('ورود سریع', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 5),
-                    Text(savedPhone, textAlign: TextAlign.center),
-                    const SizedBox(height: 14),
-                    SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: loading ? null : quickLogin, icon: const Icon(Icons.login_rounded), label: const Text('ورود با لمس'))),
-                    TextButton(onPressed: loading ? null : () => setState(() => hasSavedPhone = false), child: const Text('تغییر شماره موبایل')),
-                  ]),
-                ),
-              ),
-            ] else ...[
-              TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره موبایل', prefixIcon: Icon(Icons.phone_rounded))),
-              const SizedBox(height: 16),
-              SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: loading ? null : login, icon: const Icon(Icons.arrow_forward_rounded), label: Text(loading ? 'در حال ورود...' : 'ورود / ادامه'))),
-            ],
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-'''
-          s = s[:start] + login + s[end:]
-
-          # Home category selector becomes a 3-column colorful category grid.
-          old_category = """      Card(child: ListTile(leading: const Icon(Icons.category_outlined), title: Text(category == 'همه' ? 'انتخاب دسته‌بندی' : '$category${subcategory != 'همه' ? ' • $subcategory' : ''}'), subtitle: const Text('برای مشاهده زیر‌دسته‌ها لمس کنید'), trailing: const Icon(Icons.chevron_left), onTap: chooseCategory)),
-      const SizedBox(height: 12),"""
-          new_category = r'''      const SizedBox(height: 2),
-      Text('دسته‌بندی‌ها', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
-      const SizedBox(height: 10),
-      GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: categoryNames.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 1.12),
-        itemBuilder: (context, i) {
-          final c = categoryNames[i];
-          final icon = c == 'خودرو' ? Icons.directions_car_rounded : c == 'املاک' ? Icons.home_work_rounded : c == 'موبایل' ? Icons.phone_android_rounded : c == 'لوازم خانه' ? Icons.chair_rounded : c == 'کالای دیجیتال' ? Icons.devices_rounded : c == 'پوشاک' ? Icons.checkroom_rounded : c == 'خدمات' ? Icons.build_rounded : Icons.grid_view_rounded;
-          final colors = [const Color(0xFFE8DEFF), const Color(0xFFFFE0EC), const Color(0xFFDDF6FF), const Color(0xFFFFF0D2), const Color(0xFFE1F7E7), const Color(0xFFFFE5D5), const Color(0xFFE7E5FF), const Color(0xFFDDF4EA)];
-          final bg = colors[i % colors.length];
-          final selected = category == c;
-          return Card(
-            margin: EdgeInsets.zero,
-            color: selected ? Theme.of(context).colorScheme.primaryContainer : bg,
-            elevation: selected ? 4 : 1,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: () async {
-                if (c == 'همه') { setState(() { category = 'همه'; subcategory = 'همه'; }); return; }
-                final result = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => CategorySubPage(category: c, initialSubcategory: category == c ? subcategory : 'همه')));
-                if (result != null && mounted) { final parts = result.split('|||'); setState(() { category = parts[0]; subcategory = parts.length > 1 ? parts[1] : 'همه'; }); }
-              },
-              child: Padding(padding: const EdgeInsets.all(8), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, size: 30), const SizedBox(height: 6), Text(c, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))]),),
-            ),
-          );
-        },
-      ),
-      const SizedBox(height: 12),'''
-          once(old_category, new_category, 'home category grid')
-
-          # Add publish time + subcategory to the card; keep image square and spaced.
-          old_card_meta = """            Text('${ad['city'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
-          ])),"""
-          new_card_meta = r'''            Text('${ad['city'] ?? ''}${'${ad['subcategory'] ?? ''}'.isNotEmpty ? ' • ${ad['subcategory']}' : ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
-            const SizedBox(height: 3),
-            Text(_publishAge('${ad['created_at'] ?? ''}'), maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),
-          ])),'''
-          once(old_card_meta, new_card_meta, 'card metadata')
-
-          # Add the dynamic publish-time helper before the HomePage declaration.
-          marker = "class HomePage extends StatefulWidget"
-          helper = r'''String _publishAge(String raw) {
-  final dt = DateTime.tryParse(raw)?.toLocal();
-  if (dt == null) return 'زمان ثبت نامشخص';
-  final d = DateTime.now().difference(dt);
-  if (d.inMinutes < 1) return 'همین الان';
-  if (d.inMinutes < 60) return '${d.inMinutes} دقیقه پیش';
-  if (d.inHours < 24) return '${d.inHours} ساعت پیش';
-  if (d.inDays < 7) return '${d.inDays} روز پیش';
-  return '${dt.year}/${dt.month.toString().padLeft(2, '0')}/${dt.day.toString().padLeft(2, '0')}';
-}
-
-'''
-          if s.count(marker) != 1: raise SystemExit('publish helper marker mismatch')
-          s = s.replace(marker, helper + marker, 1)
-
-          # Replace the old category page with a focused category/subcategory flow.
-          start = s.index('class CategoryPage')
-          end = s.index('class CityPicker')
-          category_page = r'''class CategoryPage extends StatelessWidget {
-  final String initialCategory, initialSubcategory;
-  const CategoryPage({super.key, required this.initialCategory, required this.initialSubcategory});
-
-  IconData iconFor(String c) => c == 'خودرو' ? Icons.directions_car_rounded : c == 'املاک' ? Icons.home_work_rounded : c == 'موبایل' ? Icons.phone_android_rounded : c == 'لوازم خانه' ? Icons.chair_rounded : c == 'کالای دیجیتال' ? Icons.devices_rounded : c == 'پوشاک' ? Icons.checkroom_rounded : c == 'خدمات' ? Icons.build_rounded : Icons.grid_view_rounded;
-
-  @override
-  Widget build(BuildContext context) => Directionality(
-    textDirection: TextDirection.rtl,
-    child: Scaffold(
-      appBar: AppBar(title: const Text('دسته‌بندی‌ها')),
-      body: GridView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: categoryNames.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.35),
-        itemBuilder: (context, i) {
-          final c = categoryNames[i];
-          return Card(
-            margin: EdgeInsets.zero,
-            color: const [Color(0xFFE8DEFF), Color(0xFFFFE0EC), Color(0xFFDDF6FF), Color(0xFFFFF0D2), Color(0xFFE1F7E7), Color(0xFFFFE5D5), Color(0xFFE7E5FF), Color(0xFFDDF4EA)][i % 8],
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: () async {
-                if (c == 'همه') { Navigator.pop(context, 'همه|||همه'); return; }
-                final r = await Navigator.push<String>(context, MaterialPageRoute(builder: (_) => CategorySubPage(category: c, initialSubcategory: initialCategory == c ? initialSubcategory : 'همه')));
-                if (r != null && context.mounted) Navigator.pop(context, r);
-              },
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(iconFor(c), size: 34), const SizedBox(height: 8), Text(c, style: const TextStyle(fontWeight: FontWeight.w800))]),
-            ),
-          );
-        },
-      ),
-    ),
-  );
-}
-
-class CategorySubPage extends StatelessWidget {
-  final String category;
-  final String initialSubcategory;
-  const CategorySubPage({super.key, required this.category, required this.initialSubcategory});
-
-  @override
-  Widget build(BuildContext context) => Directionality(
-    textDirection: TextDirection.rtl,
-    child: Scaffold(
-      appBar: AppBar(title: Text(category)),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        Card(color: Theme.of(context).colorScheme.primaryContainer, child: ListTile(leading: const Icon(Icons.select_all), title: const Text('همه زیر‌دسته‌ها'), onTap: () => Navigator.pop(context, '$category|||همه'))),
-        const SizedBox(height: 8),
-        for (final sub in (categorySubs[category] ?? const ['همه']).where((x) => x != 'همه'))
-          Card(margin: const EdgeInsets.only(bottom: 8), child: ListTile(title: Text(sub, style: const TextStyle(fontWeight: FontWeight.w700)), trailing: const Icon(Icons.chevron_left), selected: sub == initialSubcategory, onTap: () => Navigator.pop(context, '$category|||$sub'))),
-      ]),
-    ),
-  );
-}
-
-'''
-          s = s[:start] + category_page + s[end:]
-
-          # Replace city picker with global city search: typing اردبیل finds it immediately.
-          start = s.index('class CityPicker')
-          end = s.index('class AdDetailsPage')
-          city_picker = r'''class CityPicker extends StatefulWidget {
-  const CityPicker({super.key});
-  @override State<CityPicker> createState() => _CityPickerState();
-}
-
-class _CityPickerState extends State<CityPicker> {
-  final controller = TextEditingController();
-  String q = '';
-
-  List<String> get allCities => allIranCities().toList();
-  List<String> get shownCities {
-    final query = q.trim().toLowerCase();
-    if (query.isEmpty) return allCities;
-    return allCities.where((c) => c.toLowerCase().contains(query)).toList();
-  }
-
-  Future<void> locate() async {
-    try {
-      if (!await Geolocator.isLocationServiceEnabled()) throw Exception('مکان‌یابی گوشی خاموش است.');
-      var p = await Geolocator.checkPermission();
-      if (p == LocationPermission.denied) p = await Geolocator.requestPermission();
-      if (p == LocationPermission.denied || p == LocationPermission.deniedForever) throw Exception('اجازه مکان‌یابی داده نشد.');
-      final pos = await Geolocator.getCurrentPosition();
-      if (mounted) showDialog(context: context, builder: (_) => AlertDialog(title: const Text('موقعیت فعلی'), content: Text('مختصات: ${pos.latitude.toStringAsFixed(5)} , ${pos.longitude.toStringAsFixed(5)}'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('باشه'))]));
-    } catch (e) { if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'))); }
-  }
-
-  @override
-  void dispose() { controller.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) => SafeArea(
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-      child: Column(children: [
-        Row(children: [Expanded(child: Text('انتخاب شهر', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900))), IconButton(onPressed: locate, icon: const Icon(Icons.my_location))]),
-        TextField(controller: controller, autofocus: true, onChanged: (v) => setState(() => q = v), decoration: const InputDecoration(prefixIcon: Icon(Icons.search_rounded), hintText: 'نام شهر را بنویسید؛ مثلاً اردبیل')),
-        const SizedBox(height: 10),
-        Expanded(child: ListView.builder(
-          itemCount: shownCities.length,
-          itemBuilder: (_, i) => ListTile(leading: const Icon(Icons.location_city_rounded), title: Text(shownCities[i]), onTap: () => Navigator.pop(context, shownCities[i])),
-        )),
-      ]),
-    ),
-  );
-}
-
-'''
-          s = s[:start] + city_picker + s[end:]
-
-          # Add-ad city field becomes a searchable picker instead of a 1200-item dropdown.
-          old_city = """      Row(children: [Expanded(child: DropdownButtonFormField<String>(value: city, decoration: const InputDecoration(labelText: 'شهر'), items: allIranCities().map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(), onChanged: publishing ? null : (v) { if (v != null) setState(() => city = v); })), IconButton(onPressed: publishing ? null : getLocation, icon: Icon(lat == null ? Icons.my_location : Icons.location_on))]),"""
-          new_city = r'''      Card(child: ListTile(
-        leading: const Icon(Icons.location_city_rounded),
-        title: Text(city, style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: const Text('برای جستجوی سریع شهر لمس کنید'),
-        trailing: Icon(lat == null ? Icons.search_rounded : Icons.location_on_rounded),
-        onTap: publishing ? null : () async {
-          final selected = await showModalBottomSheet<String>(context: context, isScrollControlled: true, showDragHandle: true, builder: (_) => const CityPicker());
-          if (selected != null && mounted) setState(() => city = selected);
-        },
-      )),'''
-          once(old_city, new_city, 'add-ad city picker')
-
-          # Make the selected category in the home grid the active filter and retain square image cards.
-          if "crossAxisSpacing: 14, mainAxisSpacing: 16" not in s:
-              raise SystemExit('listing grid marker missing')
-
-          p.write_text(s, encoding='utf-8')
-          print('Complete UI/UX update staged in workspace.')
+              ns,n=re.subn(pattern,repl,s,count=1,flags=flags)
+              if n!=1: raise SystemExit(f'{label}: expected 1 match, got {n}')
+              s=ns
+          # Login: phone only first time, then one-touch entry.
+          start=s.index('class _LoginPageState')
+          end=s.index('class IntroPage')
+          login='''class _LoginPageState extends State<LoginPage> {\n  final phone = TextEditingController();\n  bool loading = false;\n  bool hasSavedPhone = false;\n  String savedPhone = '';\n  @override void initState(){ super.initState(); _loadSavedPhone(); }\n  Future<void> _loadSavedPhone() async { final p=await SharedPreferences.getInstance(); final v=p.getString('aghinou_saved_phone')??''; if(!mounted)return; setState((){savedPhone=v;hasSavedPhone=v.isNotEmpty;}); }\n  @override void dispose(){ phone.dispose(); super.dispose(); }\n  Future<void> _finish(String v) async { final p=await SharedPreferences.getInstance(); await p.setString('aghinou_saved_phone',v); final seen=p.getBool('aghinou_first_run_intro_seen')??false; if(mounted)Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>seen?const HomePage():const IntroPage())); }\n  Future<void> login() async { final v=phone.text.trim(); if(v.length<10){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره موبایل را کامل وارد کنید.')));return;} setState(()=>loading=true); try { if(supabase.auth.currentSession==null) await supabase.auth.signInAnonymously(); final u=supabase.auth.currentUser; if(u==null)throw Exception('کاربر ساخته نشد'); await supabase.from('profiles').upsert({'iidd':u.id,'cphone':v,'name':'کاربر آگهینو'},onConflict:'iidd'); await _finish(v); } catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('خطا در ورود: $e')));} finally{if(mounted)setState(()=>loading=false);} }\n  Future<void> quickLogin() async { if(savedPhone.isEmpty)return; setState(()=>loading=true); try { if(supabase.auth.currentSession==null) await supabase.auth.signInAnonymously(); final u=supabase.auth.currentUser; if(u==null)throw Exception('کاربر ساخته نشد'); await supabase.from('profiles').upsert({'iidd':u.id,'cphone':savedPhone,'name':'کاربر آگهینو'},onConflict:'iidd'); await _finish(savedPhone); } catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ورود سریع انجام نشد: $e')));} finally{if(mounted)setState(()=>loading=false);} }\n  @override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(24,50,24,30),children:[const Icon(Icons.storefront_rounded,size:82),const SizedBox(height:14),const Text('آگهینو',textAlign:TextAlign.center,style:TextStyle(fontSize:36,fontWeight:FontWeight.w900)),const SizedBox(height:8),const Text('خرید و فروش آسان و مطمئن',textAlign:TextAlign.center),const SizedBox(height:32),if(hasSavedPhone)...[Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(children:[const Icon(Icons.touch_app_rounded,size:42),const SizedBox(height:8),Text('ورود سریع',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),const SizedBox(height:5),Text(savedPhone),const SizedBox(height:14),SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:loading?null:quickLogin,icon:const Icon(Icons.login_rounded),label:const Text('ورود با لمس'))),TextButton(onPressed:loading?null:()=>setState(()=>hasSavedPhone=false),child:const Text('تغییر شماره موبایل'))])))] else ...[TextField(controller:phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'شماره موبایل',prefixIcon:Icon(Icons.phone_rounded))),const SizedBox(height:16),SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:loading?null:login,icon:const Icon(Icons.arrow_forward_rounded),label:Text(loading?'در حال ورود...':'ورود / ادامه')))] ]))));\n}\n\n'''
+          s=s[:start]+login+s[end:]
+          # Home category grid: each main category opens its own subcategory page.
+          pat=r"\s*Card\(child: ListTile\(leading: const Icon\(Icons\.category_outlined\).*?onTap: chooseCategory\)\),\s*const SizedBox\(height: 12\),"
+          cat=r'''\n      const SizedBox(height: 2),\n      Text('دسته‌بندی‌ها',style:Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight:FontWeight.w900)),\n      const SizedBox(height:10),\n      GridView.builder(shrinkWrap:true,physics:const NeverScrollableScrollPhysics(),itemCount:categoryNames.length,gridDelegate:const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount:3,crossAxisSpacing:10,mainAxisSpacing:10,childAspectRatio:1.12),itemBuilder:(context,i){final c=categoryNames[i];final icon=c=='خودرو'?Icons.directions_car_rounded:c=='املاک'?Icons.home_work_rounded:c=='موبایل'?Icons.phone_android_rounded:c=='لوازم خانه'?Icons.chair_rounded:c=='کالای دیجیتال'?Icons.devices_rounded:c=='پوشاک'?Icons.checkroom_rounded:c=='خدمات'?Icons.build_rounded:Icons.grid_view_rounded;return Card(margin:EdgeInsets.zero,color:Theme.of(context).colorScheme.surfaceContainerHighest,child:InkWell(borderRadius:BorderRadius.circular(18),onTap:()async{if(c=='همه'){setState((){category='همه';subcategory='همه';});return;}final r=await Navigator.push<String>(context,MaterialPageRoute(builder:(_)=>CategorySubPage(category:c,initialSubcategory:category==c?subcategory:'همه')));if(r!=null&&mounted){final q=r.split('|||');setState((){category=q[0];subcategory=q.length>1?q[1]:'همه';});}},child:Padding(padding:const EdgeInsets.all(8),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(icon,size:30),const SizedBox(height:6),Text(c,textAlign:TextAlign.center,maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w800,fontSize:12))])));}),\n      const SizedBox(height:12),'''
+          s,n=re.subn(pat,cat,s,count=1,flags=re.S)
+          if n!=1: raise SystemExit(f'home category grid: {n}')
+          # Publish time helper and metadata.
+          marker='class HomePage extends StatefulWidget'
+          if 'String _publishAge(' not in s:
+              helper="""String _publishAge(String raw){final dt=DateTime.tryParse(raw)?.toLocal();if(dt==null)return 'زمان ثبت نامشخص';final d=DateTime.now().difference(dt);if(d.inMinutes<1)return 'همین الان';if(d.inMinutes<60)return '${d.inMinutes} دقیقه پیش';if(d.inHours<24)return '${d.inHours} ساعت پیش';if(d.inDays<7)return '${d.inDays} روز پیش';return '${dt.year}/${dt.month.toString().padLeft(2,'0')}/${dt.day.toString().padLeft(2,'0')}';}\n\n"""
+              s=s.replace(marker,helper+marker,1)
+          s=s.replace("Text('${ad['city'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),","Text('${ad['city'] ?? ''} • ${ad['subcategory'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),\n            Text(_publishAge('${ad['created_at'] ?? ''}'), style: Theme.of(context).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600)),",1)
+          # Replace CategoryPage through CityPicker with isolated subcategory flow.
+          a=s.index('class CategoryPage'); b=s.index('class CityPicker')
+          cp='''class CategoryPage extends StatelessWidget {\n  final String initialCategory,initialSubcategory;\n  const CategoryPage({super.key,required this.initialCategory,required this.initialSubcategory});\n  IconData iconFor(String c)=>c=='خودرو'?Icons.directions_car_rounded:c=='املاک'?Icons.home_work_rounded:c=='موبایل'?Icons.phone_android_rounded:c=='لوازم خانه'?Icons.chair_rounded:c=='کالای دیجیتال'?Icons.devices_rounded:c=='پوشاک'?Icons.checkroom_rounded:c=='خدمات'?Icons.build_rounded:Icons.grid_view_rounded;\n  @override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('دسته‌بندی‌ها')),body:GridView.builder(padding:const EdgeInsets.all(16),itemCount:categoryNames.length,gridDelegate:const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount:2,crossAxisSpacing:12,mainAxisSpacing:12,childAspectRatio:1.35),itemBuilder:(context,i){final c=categoryNames[i];return Card(margin:EdgeInsets.zero,child:InkWell(borderRadius:BorderRadius.circular(18),onTap:()async{if(c=='همه'){Navigator.pop(context,'همه|||همه');return;}final r=await Navigator.push<String>(context,MaterialPageRoute(builder:(_)=>CategorySubPage(category:c,initialSubcategory:initialCategory==c?initialSubcategory:'همه')));if(r!=null&&context.mounted)Navigator.pop(context,r);},child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(iconFor(c),size:34),const SizedBox(height:8),Text(c,style:const TextStyle(fontWeight:FontWeight.w800))])));}))));\n}\nclass CategorySubPage extends StatelessWidget {\n  final String category,initialSubcategory;\n  const CategorySubPage({super.key,required this.category,required this.initialSubcategory});\n  @override Widget build(BuildContext context){final subs=categorySubs[category]??const <String>[];return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:Text(category)),body:ListView(padding:const EdgeInsets.all(16),children:[Card(child:ListTile(leading:const Icon(Icons.grid_view_rounded),title:Text('همه $category'),onTap:()=>Navigator.pop(context,'$category|||همه'))),...subs.where((x)=>x!='همه').map((x)=>Card(child:ListTile(leading:const Icon(Icons.arrow_back_ios_new_rounded),title:Text(x),onTap:()=>Navigator.pop(context,'$category|||$x'))))])));}\n}\n\n'''
+          s=s[:a]+cp+s[b:]
+          # City picker: global search, no province-by-province scrolling.
+          a=s.index('class CityPicker');
+          # find next class after CityPicker; preserve everything after it.
+          m=re.search(r'\nclass \w+',s[a+10:])
+          b=a+10+m.start() if m else len(s)
+          city='''class CityPicker extends StatefulWidget { const CityPicker({super.key}); @override State<CityPicker> createState()=>_CityPickerState(); }\nclass _CityPickerState extends State<CityPicker>{ final q=TextEditingController(); late List<String> cities; @override void initState(){super.initState();cities=allIranCities().toList();} @override void dispose(){q.dispose();super.dispose();} @override Widget build(BuildContext context){final text=q.text.trim();final shown=text.isEmpty?cities:cities.where((x)=>x.contains(text)).toList();return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('انتخاب شهر')),body:Column(children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:q,autofocus:true,onChanged:(_)=>setState((){}),decoration:const InputDecoration(prefixIcon:Icon(Icons.search),labelText:'جستجوی سریع شهر',hintText:'مثلاً اردبیل'))),Expanded(child:ListView.builder(itemCount:shown.length,itemBuilder:(c,i)=>ListTile(title:Text(shown[i]),onTap:()=>Navigator.pop(context,shown[i]))))]));}}\n\n'''
+          s=s[:a]+city+s[b:]
+          # Theme polish.
+          s=s.replace('navigationBarTheme: const NavigationBarThemeData(height: 70),','navigationBarTheme: const NavigationBarThemeData(height: 72, backgroundColor: Colors.white, indicatorColor: Color(0xFFDCCBFF), labelTextStyle: MaterialStatePropertyAll(TextStyle(fontWeight: FontWeight.w700)),),',1)
+          # City field: replace any DropdownButtonFormField<String> city selector with a searchable picker trigger.
+          s=re.sub(r"Row\(children: \[Expanded\(child: DropdownButtonFormField<String>\(value: city,.*?\)\), IconButton\(onPressed: publishing \? null : getLocation, icon: Icon\(lat == null \? Icons\.my_location : Icons\.location_on\)\)\]\),", "Card(child:ListTile(leading:const Icon(Icons.location_city_rounded),title:Text(city=='همه شهرها'?'انتخاب شهر':city),subtitle:const Text('جستجوی سریع شهر'),trailing:IconButton(onPressed:publishing?null:getLocation,icon:Icon(lat==null?Icons.my_location:Icons.location_on),),onTap:publishing?null:()async{final r=await showModalBottomSheet<String>(context:context,isScrollControlled:true,builder:(_)=>SizedBox(height:MediaQuery.of(context).size.height*.85,child:const CityPicker()));if(r!=null&&mounted)setState(()=>city=r);},)),", s, count=1, flags=re.S)
+          if s==original: raise SystemExit('No UI change was applied')
+          p.write_text(s,encoding='utf-8')
+          print('Complete UI/UX source update applied')
           PY
-      - name: Format Dart source
-        run: dart format lib/main.dart
-      - name: Analyze Dart source
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - name: Verify requested features are present
-        shell: bash
+      - name: Format and analyze
         run: |
-          set -euo pipefail
+          dart format lib/main.dart
+          flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Verify requested features
+        run: |
           grep -q "ورود با لمس" lib/main.dart
-          grep -q "CategorySubPage" lib/main.dart
+          grep -q "class CategorySubPage" lib/main.dart
           grep -q "جستجوی سریع شهر" lib/main.dart
           grep -q "دسته‌بندی‌ها" lib/main.dart
           grep -q "_publishAge" lib/main.dart
-          echo "All requested UI/UX features verified in source."
-      - name: Persist only the verified source
-        shell: bash
+          echo "All requested UI/UX markers verified"
+      - name: Commit verified source
         run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "aghinou2026"
+          git config user.email "aghinou2026@users.noreply.github.com"
           git add lib/main.dart
-          git commit -m "Complete Aghinou UI UX and interaction update [skip ci]"
+          git diff --cached --quiet || git commit -m "feat: complete Aghinou UI UX update [skip ci]"
           git push origin HEAD:aghinou-ui-safe-step1-2026-09-06
-      - name: Prepare release signing
-        shell: bash
+      - name: Build release APK
         env:
           AGHINOU_KEYSTORE_BASE64: ${{ secrets.AGHINOU_KEYSTORE_BASE64 }}
           AGHINOU_KEY_PASSWORD: ${{ secrets.AGHINOU_KEY_PASSWORD }}
-        run: |
-          set -euo pipefail
-          test -n "$AGHINOU_KEYSTORE_BASE64"
-          test -n "$AGHINOU_KEY_PASSWORD"
-          printf '%s' "$AGHINOU_KEYSTORE_BASE64" | tr -d '[:space:]' | base64 --decode > android/app/aghinou-release.jks
-          chmod 600 android/app/aghinou-release.jks
-          keytool -list -keystore android/app/aghinou-release.jks -storepass "$AGHINOU_KEY_PASSWORD" >/dev/null
-      - name: Install Gradle 8.14
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsSL "https://services.gradle.org/distributions/gradle-8.14-bin.zip" -o /tmp/gradle.zip
-          unzip -q /tmp/gradle.zip -d /opt
-          echo "/opt/gradle-8.14/bin" >> "$GITHUB_PATH"
-      - name: Build release APK
-        shell: bash
-        env:
-          AGHINOU_KEYSTORE_PATH: ${{ github.workspace }}/android/app/aghinou-release.jks
           AGHINOU_KEY_ALIAS: ${{ secrets.AGHINOU_KEY_ALIAS }}
-          AGHINOU_KEY_PASSWORD: ${{ secrets.AGHINOU_KEY_PASSWORD }}
         run: |
-          set -euo pipefail
-          test -n "$AGHINOU_KEY_ALIAS"
-          test -n "$AGHINOU_KEY_PASSWORD"
+          test -n "$AGHINOU_KEYSTORE_BASE64"
+          mkdir -p android/app
+          echo "$AGHINOU_KEYSTORE_BASE64" | base64 -d > android/app/aghinou-release.jks
+          cat > android/key.properties <<EOF
+          storePassword=$AGHINOU_KEY_PASSWORD
+          keyPassword=$AGHINOU_KEY_PASSWORD
+          keyAlias=$AGHINOU_KEY_ALIAS
+          storeFile=aghinou-release.jks
+          EOF
           flutter clean
           flutter pub get
-          cd android
-          gradle assembleRelease --no-daemon --stacktrace
-          cd ..
-          APK="android/app/build/outputs/flutter-apk/app-release.apk"
-          test -f "$APK"
-          mkdir -p build/app/outputs/flutter-apk
-          cp "$APK" build/app/outputs/flutter-apk/app-release.apk
-      - name: Verify APK signature
-        shell: bash
+          flutter build apk --release
+          test -s build/app/outputs/flutter-apk/app-release.apk
+      - name: Verify APK
         run: |
-          set -euo pipefail
-          APK="build/app/outputs/flutter-apk/app-release.apk"
-          test -f "$APK"
-          ls -lh "$APK"
-          APKSIGNER="${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner"
-          test -x "$APKSIGNER"
-          "$APKSIGNER" verify --verbose "$APK"
-      - name: Upload final APK
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose build/app/outputs/flutter-apk/app-release.apk
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: aghinou-complete-ui-ux-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-          retention-days: 14
