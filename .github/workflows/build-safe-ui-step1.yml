@@ -36,7 +36,7 @@ jobs:
           assert a < b and 'Future<void> login() async' in s[a:b] and 'finally' in s[a:b]
           print('Login/Auth structure verified.')
           PY
-      - name: Repair four verified Dart delimiters
+      - name: Repair verified Dart delimiters
         shell: bash
         run: |
           set -euo pipefail
@@ -48,7 +48,7 @@ jobs:
               ("const Text('ورود / ادامه')))]))));", "const Text('ورود / ادامه')))])))));"),
               ("favorites.remove(id))));", "favorites.remove(id)))));"),
               ("\n    ));\n  }\n}\n\nWidget _specGrid", "\n    )));\n  }\n}\n\nWidget _specGrid"),
-              ("\n    ]),\n  ));\n}\n\nclass MyAdsPage", "\n    ])),\n  ));\n}\n\nclass MyAdsPage"),
+              ("\n    ])),\n  ));\n}\n\nclass MyAdsPage", "\n    ]))),\n  ));\n}\n\nclass MyAdsPage"),
           ]
           for old, new in targets:
               count = s.count(old)
@@ -56,7 +56,7 @@ jobs:
                   raise SystemExit(f'Expected exactly one source pattern, found {count}: {old[-90:]}')
               s = s.replace(old, new, 1)
           p.write_text(s, encoding='utf-8')
-          print('Applied four exact delimiter repairs.')
+          print('Applied verified delimiter repairs.')
           PY
       - name: Format Dart source
         run: dart format lib
@@ -97,7 +97,7 @@ jobs:
           cd android
           gradle assembleRelease --no-daemon --stacktrace
           cd ..
-          APK="android/app/build/outputs/flutter-apk/app-release.apk"
+          APK="android/app/build/outputs/apk/release/app-release.apk"
           test -f "$APK"
           mkdir -p build/app/outputs/flutter-apk
           cp "$APK" build/app/outputs/flutter-apk/app-release.apk
