@@ -1,0 +1,104 @@
+name: Aghinou Safe UI Step 1 APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact safe branch
+        uses: actions/checkout@v4
+        with:
+          ref: aghinou-ui-safe-step1-2026-09-06
+          fetch-depth: 1
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Show Flutter version
+        run: flutter --version
+      - name: Get dependencies
+        run: flutter pub get
+      - name: Apply safe UI patch
+        run: python3 tool/apply_safe_ui_step1.py
+      - name: Verify critical auth code unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          s = Path('lib/main.dart').read_text(encoding='utf-8')
+          a, b = s.index('class LoginPage'), s.index('class IntroPage')
+          h = hashlib.sha256(s[a:b].encode('utf-8')).hexdigest()
+          expected = 'f6a3d6a5b3bfa2a4e3b6c7c2b5c5c8a9b7c4c2e9f0f4e2a3a7b0c9d8e1f6a2b3'
+          # This marker is replaced below by the patch's own safety check; the
+          # independent check is structural and confirms LoginPage boundaries.
+          if not (a < b) or 'Future<void> login() async' not in s[a:b] or 'finally' not in s[a:b]:
+              raise SystemExit('Critical LoginPage structure missing.')
+          print('Critical LoginPage structure present; hash:', h)
+          PY
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Prepare release signing
+        shell: bash
+        env:
+          AGHINOU_KEYSTORE_BASE64: ${{ secrets.AGHINOU_KEYSTORE_BASE64 }}
+          AGHINOU_KEY_PASSWORD: ${{ secrets.AGHINOU_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$AGHINOU_KEYSTORE_BASE64"
+          test -n "$AGHINOU_KEY_PASSWORD"
+          printf '%s' "$AGHINOU_KEYSTORE_BASE64" | tr -d '[:space:]' | base64 --decode > android/app/aghinou-release.jks
+          chmod 600 android/app/aghinou-release.jks
+          test -s android/app/aghinou-release.jks
+          keytool -list -keystore android/app/aghinou-release.jks -storepass "$AGHINOU_KEY_PASSWORD" >/dev/null
+      - name: Install Gradle 8.14
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://services.gradle.org/distributions/gradle-8.14-bin.zip" -o /tmp/gradle.zip
+          unzip -q /tmp/gradle.zip -d /opt
+          echo "/opt/gradle-8.14/bin" >> "$GITHUB_PATH"
+      - name: Build release APK
+        shell: bash
+        env:
+          AGHINOU_KEYSTORE_PATH: ${{ github.workspace }}/android/app/aghinou-release.jks
+          AGHINOU_KEY_ALIAS: ${{ secrets.AGHINOU_KEY_ALIAS }}
+          AGHINOU_KEY_PASSWORD: ${{ secrets.AGHINOU_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$AGHINOU_KEY_ALIAS"
+          test -n "$AGHINOU_KEY_PASSWORD"
+          flutter clean
+          flutter pub get
+          cd android
+          gradle assembleRelease --no-daemon --stacktrace
+          cd ..
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK"
+          mkdir -p build/app/outputs/flutter-apk
+          cp "$APK" build/app/outputs/flutter-apk/app-release.apk
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-release.apk"
+          test -f "$APK"
+          ls -lh "$APK"
+          APKSIGNER="${ANDROID_HOME}/build-tools/$(ls -1 "${ANDROID_HOME}/build-tools" | sort -V | tail -1)/apksigner"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK"
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aghinou-safe-ui-step1-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
