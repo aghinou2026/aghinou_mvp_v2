@@ -54,6 +54,11 @@ jobs:
 
           path = Path('lib/main.dart')
           location = re.compile(r"lib/main\.dart:(\d+):(\d+)")
+          # The Build 112 minified AdDetails line reports a false positive at
+          # column 1048: inserting ')' before Padding() creates a positional
+          # argument error. The real missing delimiter on that line is at the
+          # final reported location and is still repaired normally.
+          false_positive = {(134, 1048)}
 
           for attempt in range(20):
               p = subprocess.run(
@@ -69,6 +74,8 @@ jobs:
                   m = location.search(line)
                   if m:
                       errors.append((int(m.group(1)), int(m.group(2))))
+
+              errors = [e for e in errors if e not in false_positive]
 
               if not errors:
                   if p.returncode != 0:
