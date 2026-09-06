@@ -36,28 +36,6 @@ jobs:
           assert a < b and 'Future<void> login() async' in s[a:b] and 'finally' in s[a:b]
           print('Login/Auth structure verified.')
           PY
-      - name: Repair only verified source delimiters
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path('lib/main.dart')
-          s = p.read_text(encoding='utf-8')
-          targets = [
-              ("const Text('ورود / ادامه')))]))));", "const Text('ورود / ادامه')))])))));"),
-              ("favorites.remove(id))));", "favorites.remove(id)))));"),
-              ("\n    ));\n  }\n}\n\nWidget _specGrid", "\n    )));\n  }\n}\n\nWidget _specGrid"),
-              ("\n    ]),\n  ));\n}\n\nclass MyAdsPage", "\n    ]));\n  );\n}\n\nclass MyAdsPage"),
-          ]
-          for old, new in targets:
-              count = s.count(old)
-              if count != 1:
-                  raise SystemExit(f'Expected exactly one source pattern, found {count}: {old[-90:]}')
-              s = s.replace(old, new, 1)
-          p.write_text(s, encoding='utf-8')
-          print('Applied four verified delimiter repairs.')
-          PY
       - name: Format Dart source
         run: dart format lib
       - name: Analyze Dart source
