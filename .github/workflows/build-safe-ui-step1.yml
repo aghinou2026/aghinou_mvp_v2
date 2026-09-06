@@ -1,5 +1,6 @@
 name: Aghinou Safe UI Step 1 APK
 
+# Safe build workflow: UI-only patch, Login/Auth protected.
 on:
   push:
     branches:
