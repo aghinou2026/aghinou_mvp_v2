@@ -1,6 +1,9 @@
 name: Aghinou Safe UI Step 1 APK
 
 on:
+  push:
+    branches:
+      - aghinou-ui-safe-step1-2026-09-06
   workflow_dispatch:
 
 permissions:
@@ -32,17 +35,12 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import hashlib
           from pathlib import Path
           s = Path('lib/main.dart').read_text(encoding='utf-8')
           a, b = s.index('class LoginPage'), s.index('class IntroPage')
-          h = hashlib.sha256(s[a:b].encode('utf-8')).hexdigest()
-          expected = 'f6a3d6a5b3bfa2a4e3b6c7c2b5c5c8a9b7c4c2e9f0f4e2a3a7b0c9d8e1f6a2b3'
-          # This marker is replaced below by the patch's own safety check; the
-          # independent check is structural and confirms LoginPage boundaries.
           if not (a < b) or 'Future<void> login() async' not in s[a:b] or 'finally' not in s[a:b]:
               raise SystemExit('Critical LoginPage structure missing.')
-          print('Critical LoginPage structure present; hash:', h)
+          print('Critical LoginPage structure present.')
           PY
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
