@@ -1,130 +1,38 @@
 name: Aghinou Final Verified APK
+
 on:
   push:
-    branches: [aghinou-final-verified-2026-09-06]
+    branches:
+      - aghinou-final-verified-2026-09-06
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           ref: aghinou-final-verified-2026-09-06
-      - uses: subosito/flutter-action@v2
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
-      - name: Apply final UI changes
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          import re
-          p=Path('lib/main.dart')
-          s=p.read_text(encoding='utf-8')
 
-          def replace_between(start_marker,end_marker,replacement):
-              global s
-              a=s.index(start_marker)
-              b=s.index(end_marker,a)
-              s=s[:a]+replacement+s[b:]
+      - name: Dependencies
+        run: flutter pub get
 
-          # First use asks for phone; later launches offer one-touch entry.
-          login=r'''class _LoginPageState extends State<LoginPage> {
-            final phone=TextEditingController();
-            bool loading=false;
-            String savedPhone='';
-            @override void initState(){super.initState();_loadPhone();}
-            Future<void> _loadPhone() async {final p=await SharedPreferences.getInstance();if(!mounted)return;setState(()=>savedPhone=p.getString('aghinou_saved_phone')??'');}
-            @override void dispose(){phone.dispose();super.dispose();}
-            Future<void> _go(String value) async {final p=await SharedPreferences.getInstance();await p.setString('aghinou_saved_phone',value);final seen=p.getBool('aghinou_first_run_intro_seen')??false;if(mounted)Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>seen?const HomePage():const IntroPage()));}
-            Future<void> login() async {final value=phone.text.trim();if(value.length<10){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره موبایل را کامل وارد کنید.')));return;}setState(()=>loading=true);try{if(supabase.auth.currentSession==null)await supabase.auth.signInAnonymously();final u=supabase.auth.currentUser;if(u==null)throw Exception('کاربر ساخته نشد');await supabase.from('profiles').upsert({'iidd':u.id,'cphone':value,'name':'کاربر آگهینو'},onConflict:'iidd');await _go(value);}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('خطا در ورود: $e')));}finally{if(mounted)setState(()=>loading=false);}}
-            Future<void> quickLogin() async {if(savedPhone.isEmpty)return;setState(()=>loading=true);try{if(supabase.auth.currentSession==null)await supabase.auth.signInAnonymously();final u=supabase.auth.currentUser;if(u==null)throw Exception('کاربر ساخته نشد');await supabase.from('profiles').upsert({'iidd':u.id,'cphone':savedPhone,'name':'کاربر آگهینو'},onConflict:'iidd');await _go(savedPhone);}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ورود سریع انجام نشد: $e')));}finally{if(mounted)setState(()=>loading=false);}}
-            @override Widget build(BuildContext context){return Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:SafeArea(child:ListView(padding:const EdgeInsets.fromLTRB(24,50,24,30),children:[const Icon(Icons.storefront_rounded,size:82),const SizedBox(height:14),const Text('آگهینو',textAlign:TextAlign.center,style:TextStyle(fontSize:36,fontWeight:FontWeight.w900)),const SizedBox(height:8),const Text('خرید و فروش آسان و مطمئن',textAlign:TextAlign.center),const SizedBox(height:32),if(savedPhone.isNotEmpty)Card(child:Padding(padding:const EdgeInsets.all(18),child:Column(children:[const Icon(Icons.touch_app_rounded,size:42),const SizedBox(height:8),const Text('ورود سریع',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),const SizedBox(height:5),Text(savedPhone),const SizedBox(height:14),SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:loading?null:quickLogin,icon:const Icon(Icons.login_rounded),label:const Text('ورود با لمس'))),TextButton(onPressed:loading?null:()=>setState(()=>savedPhone=''),child:const Text('تغییر شماره موبایل'))])) else ...[TextField(controller:phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'شماره موبایل',prefixIcon:Icon(Icons.phone_rounded))),const SizedBox(height:16),SizedBox(width:double.infinity,child:FilledButton.icon(onPressed:loading?null:login,icon:const Icon(Icons.arrow_forward_rounded),label:Text(loading?'در حال ورود...':'ورود / ادامه')))] ]))));}
-          }
-
-          '''
-          replace_between('class _LoginPageState','class IntroPage',login)
-
-          # More polished navigation bar.
-          s=s.replace('navigationBarTheme: const NavigationBarThemeData(height: 70),','navigationBarTheme: const NavigationBarThemeData(height: 72, backgroundColor: Colors.white, indicatorColor: Color(0xFFDCCBFF), labelTextStyle: MaterialStatePropertyAll(TextStyle(fontWeight: FontWeight.w700)),),',1)
-
-          # Main categories: each tile opens only its own subcategories.
-          cat_pattern=r"\s*Card\(child: ListTile\(leading: const Icon\(Icons\.category_outlined\).*?onTap: chooseCategory\)\),\s*const SizedBox\(height: 12\),"
-          cat=r'''\n      const SizedBox(height: 2),
-      Text('دسته‌بندی‌ها',style:Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight:FontWeight.w900)),
-      const SizedBox(height:10),
-      Wrap(spacing:10,runSpacing:10,children:categoryNames.map((c){final icon=c=='خودرو'?Icons.directions_car_rounded:c=='املاک'?Icons.home_work_rounded:c=='موبایل'?Icons.phone_android_rounded:c=='لوازم خانه'?Icons.chair_rounded:c=='کالای دیجیتال'?Icons.devices_rounded:c=='پوشاک'?Icons.checkroom_rounded:c=='خدمات'?Icons.build_rounded:Icons.grid_view_rounded;return SizedBox(width:(MediaQuery.of(context).size.width-62)/3,height:92,child:Card(margin:EdgeInsets.zero,child:InkWell(borderRadius:BorderRadius.circular(18),onTap:()async{if(c=='همه'){setState((){category='همه';subcategory='همه';});return;}final r=await Navigator.push<String>(context,MaterialPageRoute(builder:(_)=>CategorySubPage(category:c,initialSubcategory:'همه')));if(r!=null&&mounted){final parts=r.split('|||');setState((){category=parts[0];subcategory=parts.length>1?parts[1]:'همه';});}},child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[Icon(icon,size:30),const SizedBox(height:6),Text(c,textAlign:TextAlign.center,maxLines:2,overflow:TextOverflow.ellipsis,style:const TextStyle(fontWeight:FontWeight.w800,fontSize:12))])));}).toList()),
-      const SizedBox(height:12),'''
-          s,n=re.subn(cat_pattern,cat,s,count=1,flags=re.S)
-          if n!=1: raise SystemExit(f'category selector not found: {n}')
-
-          # Publish-time helper and metadata.
-          helper="""String _publishAge(String raw){final dt=DateTime.tryParse(raw)?.toLocal();if(dt==null)return 'زمان ثبت نامشخص';final d=DateTime.now().difference(dt);if(d.inMinutes<1)return 'همین الان';if(d.inMinutes<60)return '${d.inMinutes} دقیقه پیش';if(d.inHours<24)return '${d.inHours} ساعت پیش';if(d.inDays<7)return '${d.inDays} روز پیش';return '${dt.year}/${dt.month.toString().padLeft(2,'0')}/${dt.day.toString().padLeft(2,'0')}';}\n\n"""
-          if '_publishAge(' not in s:s=s.replace('class HomePage extends StatefulWidget',helper+'class HomePage extends StatefulWidget',1)
-          old="Text('${ad['city'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),"
-          if old in s:s=s.replace(old,"Text('${ad['city'] ?? ''} • ${ad['subcategory'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),\n            Text(_publishAge('${ad['created_at'] ?? ''}'), style: Theme.of(context).textTheme.bodySmall),",1)
-
-          # Category page: when a main category is selected, show only that category's subs.
-          category_page=r'''class CategoryPage extends StatelessWidget {
-            final String initialCategory,initialSubcategory;
-            const CategoryPage({super.key,required this.initialCategory,required this.initialSubcategory});
-            @override Widget build(BuildContext context){
-              final c=initialCategory=='همه'?categoryNames.where((x)=>x!='همه').first:initialCategory;
-              return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:Text(c)),body:CategorySubPage(category:c,initialSubcategory:initialSubcategory));
-            }
-          }
-          class CategorySubPage extends StatelessWidget {
-            final String category,initialSubcategory;
-            const CategorySubPage({super.key,required this.category,required this.initialSubcategory});
-            @override Widget build(BuildContext context){
-              final subs=categorySubs[category]??const <String>[];
-              return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:Text(category)),body:ListView(padding:const EdgeInsets.all(16),children:[Card(child:ListTile(leading:const Icon(Icons.grid_view_rounded),title:Text('همه $category'),onTap:()=>Navigator.pop(context,'$category|||همه'))),...subs.where((x)=>x!='همه').map((x)=>Card(child:ListTile(leading:const Icon(Icons.chevron_left_rounded),title:Text(x),onTap:()=>Navigator.pop(context,'$category|||$x'))))])));
-            }
-          }
-
-          '''
-          replace_between('class CategoryPage','class CityPicker',category_page)
-
-          # Global searchable city picker. AddAd already routes its city selection through chooseCity().
-          city=r'''class CityPicker extends StatefulWidget {
-            const CityPicker({super.key});
-            @override State<CityPicker> createState()=>_CityPickerState();
-          }
-          class _CityPickerState extends State<CityPicker>{
-            final q=TextEditingController();
-            late List<String> cities;
-            @override void initState(){super.initState();cities=allIranCities().toList();}
-            @override void dispose(){q.dispose();super.dispose();}
-            @override Widget build(BuildContext context){final text=q.text.trim();final shown=text.isEmpty?cities:cities.where((x)=>x.contains(text)).toList();return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('انتخاب شهر')),body:Column(children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:q,autofocus:true,onChanged:(_)=>setState((){}),decoration:const InputDecoration(prefixIcon:Icon(Icons.search),labelText:'جستجوی سریع شهر',hintText:'مثلاً اردبیل'))),Expanded(child:ListView.builder(itemCount:shown.length,itemBuilder:(context,index){return ListTile(title:Text(shown[index]),onTap:()=>Navigator.pop(context,shown[index]));}))])));}
-          }
-
-          '''
-          replace_between('class CityPicker','class _AddAdPageState',city)
-
-          p.write_text(s,encoding='utf-8')
-          PY
       - name: Format and analyze
         run: |
           dart format lib/main.dart
           flutter analyze --no-fatal-infos --no-fatal-warnings
-      - name: Verify requested features
-        run: |
-          grep -q 'ورود با لمس' lib/main.dart
-          grep -q 'class CategorySubPage' lib/main.dart
-          grep -q 'جستجوی سریع شهر' lib/main.dart
-          grep -q 'دسته‌بندی‌ها' lib/main.dart
-          grep -q '_publishAge' lib/main.dart
-      - name: Commit verified source
-        run: |
-          git config user.name aghinou2026
-          git config user.email aghinou2026@users.noreply.github.com
-          git add lib/main.dart
-          git commit -m 'feat: complete Aghinou UI UX verified source [skip ci]'
-          git push origin HEAD:aghinou-final-verified-2026-09-06
-      - name: Build signed APK
+
+      - name: Build release APK
         env:
           KS: ${{ secrets.AGHINOU_KEYSTORE_BASE64 }}
           KP: ${{ secrets.AGHINOU_KEY_PASSWORD }}
@@ -140,7 +48,9 @@ jobs:
           APKSIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           test -n "$APKSIGNER"
           "$APKSIGNER" verify --verbose build/app/outputs/flutter-apk/app-release.apk
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: aghinou-final-verified-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
