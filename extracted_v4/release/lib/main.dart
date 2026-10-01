@@ -537,3 +537,38 @@ class _AddAdPageState extends State<AddAdPage>{
     );
   }
 }
+class FavoritesPage extends StatefulWidget {
+  const FavoritesPage({super.key});
+  @override State<FavoritesPage> createState() => _FavoritesPageState();
+}
+class _FavoritesPageState extends State<FavoritesPage> {
+  bool loading=true; List<Map<String,dynamic>> rows=[];
+  @override void initState(){super.initState();load();}
+  Future<void> load() async { final u=supabase.auth.currentUser; if(u==null){if(mounted)setState(()=>loading=false);return;} try{final r=await supabase.from('favorites').select('ad_id,ads(*)').eq('user_id',u.id);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}catch(_){if(mounted)setState(()=>loading=false);}}
+  @override Widget build(BuildContext c){if(loading)return const Center(child:CircularProgressIndicator());return Directionality(textDirection:TextDirection.rtl,child:ListView(padding:const EdgeInsets.all(16),children:[const Text('آگهی‌های ذخیره‌شده',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),if(rows.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Text('آگهی ذخیره‌شده‌ای ندارید.')), ...rows.map((r){final ad=r['ads'] is Map?Map<String,dynamic>.from(r['ads']):<String,dynamic>{};return Card(child:ListTile(onTap:()=>Navigator.push(c,MaterialPageRoute(builder:(_)=>AdDetailPage(ad:ad))),title:Text(ad['title']?.toString()??'بدون عنوان'),subtitle:Text((ad['price']?.toString()??'توافقی')+' تومان • '+(ad['city']?.toString()??''))));})]));}
+}
+
+class SubscriptionPage extends StatefulWidget {
+  const SubscriptionPage({super.key});
+  @override State<SubscriptionPage> createState()=>_SubscriptionPageState();
+}
+class _SubscriptionPageState extends State<SubscriptionPage> {
+  Map<String,dynamic>? settings; final note=TextEditingController(); bool loading=true,sending=false;
+  @override void initState(){super.initState();load();}
+  @override void dispose(){note.dispose();super.dispose();}
+  Future<void> load() async { try{final r=await supabase.from('subscription_settings').select('price,duration_days,ad_limit,image_limit,destination_card,card_holder,bank_name,instructions,enabled').eq('id',true).maybeSingle();if(mounted)setState((){settings=r;loading=false;});}catch(_){if(mounted)setState(()=>loading=false);}}
+  Future<void> submit() async {final u=supabase.auth.currentUser;if(u==null||settings==null||note.text.trim().isEmpty)return;setState(()=>sending=true);try{await supabase.from('payments').insert({'user_id':u.id,'amount':settings!['price'],'status':'checking','payment_note':note.text.trim(),'payment_code':u.id.substring(0,8)+'-'+DateTime.now().millisecondsSinceEpoch.toString()});if(mounted)showDialog(context:context,builder:(_)=>const AlertDialog(title:Text('درخواست ثبت شد'),content:Text('اشتراک فقط پس از تأیید واقعی پرداخت فعال می‌شود.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت پرداخت: '+e.toString())));}finally{if(mounted)setState(()=>sending=false);}}
+  @override Widget build(BuildContext c){if(loading)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:CircularProgressIndicator())));final s=settings;if(s==null||s['enabled']!=true)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:Text('فروش اشتراک فعال نیست.'))));return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('خرید اشتراک')),body:ListView(padding:const EdgeInsets.all(16),children:[Card(child:ListTile(title:Text(s['price'].toString()+' تومان'),subtitle:Text(s['duration_days'].toString()+' روز • '+s['ad_limit'].toString()+' آگهی • '+s['image_limit'].toString()+' عکس'))),Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[SelectableText('شماره کارت: '+(s['destination_card']?.toString()??'تنظیم نشده')),SelectableText('صاحب کارت: '+(s['card_holder']?.toString()??'-')),SelectableText('بانک: '+(s['bank_name']?.toString()??'-')),Text(s['instructions']?.toString()??'')]))),TextField(controller:note,decoration:const InputDecoration(labelText:'کد پیگیری / توضیح انتقال',border:OutlineInputBorder())),FilledButton(onPressed:sending?null:submit,child:sending?const CircularProgressIndicator():const Text('ثبت برای بررسی'))]));}
+}
+
+class AdDetailPage extends StatefulWidget {
+  final Map<String,dynamic> ad; const AdDetailPage({super.key,required this.ad});
+  @override State<AdDetailPage> createState()=>_AdDetailPageState();
+}
+class _AdDetailPageState extends State<AdDetailPage> {
+  bool saved=false;
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {final u=supabase.auth.currentUser?.id,id=widget.ad['idd']?.toString();if(u==null||id==null)return;try{final r=await supabase.from('favorites').select('ad_id').eq('user_id',u).eq('ad_id',id).maybeSingle();if(mounted)setState(()=>saved=r!=null);}catch(_){}}
+  Future<void> toggle() async {final u=supabase.auth.currentUser?.id,id=widget.ad['idd']?.toString();if(u==null||id==null)return;try{if(saved){await supabase.from('favorites').delete().eq('user_id',u).eq('ad_id',id);}else{await supabase.from('favorites').insert({'user_id':u,'ad_id':id});}if(mounted)setState(()=>saved=!saved);}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره آگهی: '+e.toString())));}}
+  @override Widget build(BuildContext c){final title=widget.ad['title']?.toString()??'بدون عنوان';final price=widget.ad['price']?.toString()??'توافقی';final city=widget.ad['city']?.toString()??'';final cat=widget.ad['category']?.toString()??'';final desc=widget.ad['edescription']?.toString()??'توضیحی ثبت نشده است.';return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('جزئیات آگهی'),actions:[IconButton(onPressed:toggle,icon:Icon(saved?Icons.favorite:Icons.favorite_border))]),body:ListView(padding:const EdgeInsets.all(16),children:[Text(title,style:const TextStyle(fontSize:22,fontWeight:FontWeight.bold)),const SizedBox(height:8),Text(price+' تومان',style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold)),Text(city+' • '+cat),const Divider(height:24),Text(desc),const SizedBox(height:24),FilledButton.icon(onPressed:(){},icon:const Icon(Icons.phone),label:const Text('تماس')),OutlinedButton.icon(onPressed:(){},icon:const Icon(Icons.chat),label:const Text('پیام'))])));}
+}
