@@ -567,10 +567,11 @@ class _HomePageState extends State<HomePage> {
                   : 'غیرفعال • ۳۹,۰۰۰ تومان / ماه • حداکثر ۹ آگهی',
             ),
             trailing: FilledButton(
-              onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage())); },
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage()));
+              },
               child: const Text('خرید'),
-            ),
-          ),
+            )),
         ),
         Card(
           child: ListTile(
@@ -1635,7 +1636,7 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 10),
         Center(
           child: Text(
-            supabase.auth.currentUser?.email ?? 'کاربر آگهینو',
+            supabase.auth.currentUser?.phone ?? 'کاربر آگهینو',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
