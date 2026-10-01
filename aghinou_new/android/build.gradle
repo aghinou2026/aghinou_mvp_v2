@@ -1,0 +1,2 @@
+// Project-level Gradle configuration is managed by android/settings.gradle.
+// Plugin versions are declared there to avoid duplicate classpath/version conflicts.
