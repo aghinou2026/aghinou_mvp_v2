@@ -688,10 +688,21 @@ class _AddAdPageState extends State<AddAdPage>{
           TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله (اختیاری)',border:OutlineInputBorder())),
           const SizedBox(height:14),
           OutlinedButton.icon(onPressed:publishing?null:pickImages,icon:const Icon(Icons.add_a_photo_outlined),label:Text('افزودن عکس '+selectedImages.length.toString()+'/حداکثر')),
-          if(selectedImages.isNotEmpty)SizedBox(height:120,child:ListView.separated(scrollDirection:Axis.horizontal,itemCount:selectedImages.length,itemBuilder:(_,i)=>Stack(children:[
-            ClipRRect(borderRadius:BorderRadius.circular(12),child:Image.memory(Uint8List.fromList(selectedImages[i].readAsBytesSync()),width:110,height:110,fit:BoxFit.cover)),
-            Positioned(top:3,right:3,child:CircleAvatar(radius:14,child:IconButton(padding:EdgeInsets.zero,onPressed:()=>removeImage(i),icon:const Icon(Icons.close,size:16))))
-          ]),separatorBuilder:(_,__)=>const SizedBox(width:8))),
+          if(selectedImages.isNotEmpty)SizedBox(height:132,child:ReorderableListView.builder(
+            scrollDirection:Axis.horizontal,
+            buildDefaultDragHandles:false,
+            itemCount:selectedImages.length,
+            onReorder:(oldIndex,newIndex){setState((){if(newIndex>oldIndex)newIndex--;final x=selectedImages.removeAt(oldIndex);selectedImages.insert(newIndex,x);});},
+            itemBuilder:(_,i){final img=selectedImages[i];return Padding(
+              key:ValueKey(img.path),
+              padding:const EdgeInsets.only(right:8),
+              child:Stack(children:[
+                ClipRRect(borderRadius:BorderRadius.circular(12),child:Image.memory(Uint8List.fromList(img.readAsBytesSync()),width:110,height:110,fit:BoxFit.cover)),
+                Positioned(top:3,right:3,child:CircleAvatar(radius:14,child:IconButton(padding:EdgeInsets.zero,onPressed:()=>removeImage(i),icon:const Icon(Icons.close,size:16)))),
+                Positioned(bottom:3,left:3,child:Container(padding:const EdgeInsets.symmetric(horizontal:7,vertical:3),decoration:BoxDecoration(color:Colors.black54,borderRadius:BorderRadius.circular(8)),child:Text(i==0?'عکس اصلی':'${i+1}',style:const TextStyle(color:Colors.white,fontSize:11))))
+              ]));}
+          )),
+          if(selectedImages.length>1)const Padding(padding:EdgeInsets.only(top:6),child:Text('برای تغییر عکس اصلی، عکس اول را جابه‌جا کنید.')),
           const SizedBox(height:16),
           OutlinedButton(onPressed:publishing?null:preview,child:const Text('پیش‌نمایش')),
           const SizedBox(height:8),
