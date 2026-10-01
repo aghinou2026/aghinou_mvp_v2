@@ -570,5 +570,66 @@ class _MessagesPageState extends State<MessagesPage>{
     ]));
   }
 }
-class ConversationPage extends StatefulWidget { final String conversationId,title; const ConversationPage({super.key,required this.conversationId,required this.title}); @override State<ConversationPage> createState()=>_ConversationPageState(); }
-class _ConversationPageState extends State<ConversationPage>{ final input=TextEditingController(); bool loading=true,sending=false; List<Map<String,dynamic>> rows=[]; @override void initState(){super.initState();load();} @override void dispose(){input.dispose();super.dispose();} Future<void> load()async{try{final r=await supabase.from('messages').select('*').eq('conversation_id',widget.conversationId).order('created_at');if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}catch(e){if(mounted)setState(()=>loading=false);}} Future<void> send()async{final body=input.text.trim(),u=supabase.auth.currentUser?.id;if(body.isEmpty||u==null)return;setState(()=>sending=true);try{await supabase.from('messages').insert({'conversation_id':widget.conversationId,'sender_id':u,'body':body});input.clear();await load();}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ارسال پیام: '+e.toString())));}finally{if(mounted)setState(()=>sending=false);}} @override Widget build(BuildContext c){final u=supabase.auth.currentUser?.id;return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:Text(widget.title)),body:Column(children:[Expanded(child:loading?const Center(child:CircularProgressIndicator()):ListView(padding:const EdgeInsets.all(12),children:rows.map((r){final mine=r['sender_id']==u;return Align(alignment:mine?Alignment.centerLeft:Alignment.centerRight,child:Card(child:Padding(padding:const EdgeInsets.all(10),child:Text(r['body']?.toString()??''))));}).toList())),SafeArea(child:Row(children:[Expanded(child:TextField(controller:input,decoration:const InputDecoration(hintText:'پیام خود را بنویسید'))),IconButton(onPressed:sending?null:send,icon:const Icon(Icons.send))]))]));}}
+class ConversationPage extends StatefulWidget {
+  final String conversationId, title;
+  const ConversationPage({super.key, required this.conversationId, required this.title});
+  @override State<ConversationPage> createState() => _ConversationPageState();
+}
+class _ConversationPageState extends State<ConversationPage> {
+  final input=TextEditingController();
+  bool loading=true, sending=false;
+  List<Map<String,dynamic>> rows=[];
+  @override void initState(){super.initState();load();}
+  @override void dispose(){input.dispose();super.dispose();}
+  Future<void> load() async {
+    try {
+      final r=await supabase.from('messages').select('*').eq('conversation_id',widget.conversationId).order('created_at');
+      if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
+    } catch(e) { if(mounted)setState(()=>loading=false); }
+  }
+  Future<void> send() async {
+    final body=input.text.trim(); final u=supabase.auth.currentUser?.id;
+    if(body.isEmpty||u==null)return;
+    setState(()=>sending=true);
+    try {
+      await supabase.from('messages').insert({'conversation_id':widget.conversationId,'sender_id':u,'body':body});
+      input.clear(); await load();
+    } catch(e) { if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ارسال پیام: '+e.toString()))); }
+    finally { if(mounted)setState(()=>sending=false); }
+  }
+  @override Widget build(BuildContext c) {
+    final u=supabase.auth.currentUser?.id;
+    return Directionality(
+      textDirection:TextDirection.rtl,
+      child:Scaffold(
+        appBar:AppBar(title:Text(widget.title)),
+        body:Column(
+          children:[
+            Expanded(
+              child:loading
+                ? const Center(child:CircularProgressIndicator())
+                : ListView(
+                    padding:const EdgeInsets.all(12),
+                    children:rows.map((r){
+                      final mine=r['sender_id']==u;
+                      return Align(
+                        alignment:mine?Alignment.centerLeft:Alignment.centerRight,
+                        child:Card(child:Padding(padding:const EdgeInsets.all(10),child:Text(r['body']?.toString()??''))),
+                      );
+                    }).toList(),
+                  ),
+            ),
+            SafeArea(
+              child:Row(
+                children:[
+                  Expanded(child:TextField(controller:input,decoration:const InputDecoration(hintText:'پیام خود را بنویسید'))),
+                  IconButton(onPressed:sending?null:send,icon:const Icon(Icons.send)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
