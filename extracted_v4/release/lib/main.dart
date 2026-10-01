@@ -574,15 +574,21 @@ class _AddAdPageState extends State<AddAdPage>{
   @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();super.dispose();}
 
   Future<void> pickImages() async {
-    if(selectedImages.length>=10){
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('حداکثر ۱۰ عکس مجاز است.')));
-      return;
+    try{
+      final settings=await supabase.from('subscription_settings').select('image_limit').eq('id',true).maybeSingle();
+      final maxImages=(settings?['image_limit'] as num?)?.toInt()??10;
+      if(selectedImages.length>=maxImages){
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حداکثر $maxImages عکس مجاز است.')));
+        return;
+      }
+      final xs=await picker.pickMultiImage(imageQuality:85,maxWidth:1800,maxHeight:1800);
+      if(!mounted)return;
+      final remaining=maxImages-selectedImages.length;
+      setState(()=>selectedImages.addAll(xs.take(remaining)));
+    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت تنظیمات عکس: $e')));
     }
-    final xs=await picker.pickMultiImage(imageQuality:85,maxWidth:1800,maxHeight:1800);
-    if(!mounted)return;
-    setState(()=>selectedImages.addAll(xs.take(10-selectedImages.length)));
   }
-
   void removeImage(int i)=>setState(()=>selectedImages.removeAt(i));
 
   Future<void> publish() async {
@@ -649,7 +655,7 @@ class _AddAdPageState extends State<AddAdPage>{
         const SizedBox(height:10),
         Text(desc.text,maxLines:5,overflow:TextOverflow.ellipsis),
         const SizedBox(height:16),
-        Text('تعداد عکس: '+selectedImages.length.toString()+' از ۱۰'),
+        Text('تعداد عکس انتخاب‌شده: '+selectedImages.length.toString()),
         const SizedBox(height:12),
         FilledButton(onPressed:publishing?null:(){Navigator.pop(context);publish();},child:const Text('تأیید و انتشار')),
       ]))));
@@ -681,7 +687,7 @@ class _AddAdPageState extends State<AddAdPage>{
           const SizedBox(height:12),
           TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله (اختیاری)',border:OutlineInputBorder())),
           const SizedBox(height:14),
-          OutlinedButton.icon(onPressed:publishing?null:pickImages,icon:const Icon(Icons.add_a_photo_outlined),label:Text('افزودن عکس '+selectedImages.length.toString()+'/۱۰')),
+          OutlinedButton.icon(onPressed:publishing?null:pickImages,icon:const Icon(Icons.add_a_photo_outlined),label:Text('افزودن عکس '+selectedImages.length.toString()+'/حداکثر')),
           if(selectedImages.isNotEmpty)SizedBox(height:120,child:ListView.separated(scrollDirection:Axis.horizontal,itemCount:selectedImages.length,itemBuilder:(_,i)=>Stack(children:[
             ClipRRect(borderRadius:BorderRadius.circular(12),child:Image.memory(Uint8List.fromList(selectedImages[i].readAsBytesSync()),width:110,height:110,fit:BoxFit.cover)),
             Positioned(top:3,right:3,child:CircleAvatar(radius:14,child:IconButton(padding:EdgeInsets.zero,onPressed:()=>removeImage(i),icon:const Icon(Icons.close,size:16))))
