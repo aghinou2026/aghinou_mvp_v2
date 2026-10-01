@@ -541,8 +541,34 @@ class _AdDetailPageState extends State<AdDetailPage> {
   Future<void> callSeller() async { final seller=widget.ad['seller_id']?.toString(); if(seller==null)return; try{ final p=await supabase.from('profiles').select('cphone').eq('iidd',seller).maybeSingle(); final phone=p?['cphone']?.toString(); if(phone==null||phone.isEmpty){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره تماس فروشنده در دسترس نیست.')));return;} await launchUrl(Uri.parse('tel:$phone')); }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تماس: '+e.toString())));}}
   @override Widget build(BuildContext c){final title=widget.ad['title']?.toString()??'بدون عنوان';final price=widget.ad['price']?.toString()??'توافقی';final city=widget.ad['city']?.toString()??'';final cat=widget.ad['category']?.toString()??'';final desc=widget.ad['edescription']?.toString()??'توضیحی ثبت نشده است.';return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('جزئیات آگهی'),actions:[IconButton(onPressed:toggle,icon:Icon(saved?Icons.favorite:Icons.favorite_border))]),body:ListView(padding:const EdgeInsets.all(16),children:[Text(title,style:const TextStyle(fontSize:22,fontWeight:FontWeight.bold)),const SizedBox(height:8),Text(price+' تومان',style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold)),Text(city+' • '+cat),const Divider(height:24),Text(desc),const SizedBox(height:24),FilledButton.icon(onPressed:()=>callSeller(),icon:const Icon(Icons.phone),label:const Text('تماس با فروشنده')),OutlinedButton.icon(onPressed:startChat,icon:const Icon(Icons.chat),label:const Text('پیام به فروشنده'))])));}
 }
-class MessagesPage extends StatefulWidget { const MessagesPage({super.key}); @override State<MessagesPage> createState()=>_MessagesPageState(); }
-class _MessagesPageState extends State<MessagesPage>{ bool loading=true; List<Map<String,dynamic>> rows=[]; @override void initState(){super.initState();load();} Future<void> load()async{final u=supabase.auth.currentUser;if(u==null){if(mounted)setState(()=>loading=false);return;} try{final r=await supabase.from('conversations').select('*').or('buyer_id.eq.${u.id},seller_id.eq.${u.id}').order('created_at',ascending:false);if(mounted)setState(() { rows=List<Map<String,dynamic>>.from(r); loading=false; });}catch(_){if(mounted)setState(()=>loading=false);}} @override Widget build(BuildContext c){if(loading)return const Center(child:CircularProgressIndicator());return Directionality(textDirection:TextDirection.rtl,child:ListView(padding:const EdgeInsets.all(16),children:[const Text('پیام‌ها',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),if(rows.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Text('هنوز گفت‌وگویی ندارید.')), ...rows.map((r)=>Card(child:ListTile(title:Text(r['title']?.toString()??'گفت‌وگو'),subtitle:Text(r['updated_at']?.toString()??r['created_at']?.toString()??''),leading:const Icon(Icons.chat_bubble_outline))))]));}}
-
+class MessagesPage extends StatefulWidget {
+  const MessagesPage({super.key});
+  @override State<MessagesPage> createState()=>_MessagesPageState();
+}
+class _MessagesPageState extends State<MessagesPage>{
+  bool loading=true; List<Map<String,dynamic>> rows=[];
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {
+    final u=supabase.auth.currentUser;
+    if(u==null){if(mounted)setState(()=>loading=false);return;}
+    try{
+      final r=await supabase.from('conversations').select('*').or('buyer_id.eq.${u.id},seller_id.eq.${u.id}').order('created_at',ascending:false);
+      if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
+    }catch(_){if(mounted)setState(()=>loading=false);}
+  }
+  @override Widget build(BuildContext c){
+    if(loading)return const Center(child:CircularProgressIndicator());
+    return Directionality(textDirection:TextDirection.rtl,child:ListView(padding:const EdgeInsets.all(16),children:[
+      const Text('پیام‌ها',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),
+      if(rows.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Text('هنوز گفت‌وگویی ندارید.')),
+      ...rows.map((r)=>Card(child:ListTile(
+        title:Text(r['title']?.toString()??'گفت‌وگو'),
+        subtitle:Text(r['updated_at']?.toString()??r['created_at']?.toString()??''),
+        leading:const Icon(Icons.chat_bubble_outline),
+        onTap:()=>Navigator.push(c,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:r['id'].toString(),title:r['title']?.toString()??'گفت‌وگو'))),
+      ))),
+    ]));
+  }
+}
 class ConversationPage extends StatefulWidget { final String conversationId,title; const ConversationPage({super.key,required this.conversationId,required this.title}); @override State<ConversationPage> createState()=>_ConversationPageState(); }
 class _ConversationPageState extends State<ConversationPage>{ final input=TextEditingController(); bool loading=true,sending=false; List<Map<String,dynamic>> rows=[]; @override void initState(){super.initState();load();} @override void dispose(){input.dispose();super.dispose();} Future<void> load()async{try{final r=await supabase.from('messages').select('*').eq('conversation_id',widget.conversationId).order('created_at');if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}catch(e){if(mounted)setState(()=>loading=false);}} Future<void> send()async{final body=input.text.trim(),u=supabase.auth.currentUser?.id;if(body.isEmpty||u==null)return;setState(()=>sending=true);try{await supabase.from('messages').insert({'conversation_id':widget.conversationId,'sender_id':u,'body':body});input.clear();await load();}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ارسال پیام: '+e.toString())));}finally{if(mounted)setState(()=>sending=false);}} @override Widget build(BuildContext c){final u=supabase.auth.currentUser?.id;return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:Text(widget.title)),body:Column(children:[Expanded(child:loading?const Center(child:CircularProgressIndicator()):ListView(padding:const EdgeInsets.all(12),children:rows.map((r){final mine=r['sender_id']==u;return Align(alignment:mine?Alignment.centerLeft:Alignment.centerRight,child:Card(child:Padding(padding:const EdgeInsets.all(10),child:Text(r['body']?.toString()??''))));}).toList())),SafeArea(child:Row(children:[Expanded(child:TextField(controller:input,decoration:const InputDecoration(hintText:'پیام خود را بنویسید'))),IconButton(onPressed:sending?null:send,icon:const Icon(Icons.send))]))]));}}
