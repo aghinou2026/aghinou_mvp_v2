@@ -287,16 +287,16 @@ class _HomePageState extends State<HomePage> {
 
     try {
       final row = await supabase
-          .from('payments')
-          .select('subscription_expires_at')
+          .from('subscriptions')
+          .select('expires_at')
           .eq('user_id', uid)
-          .eq('status', 'paid')
-          .gt('subscription_expires_at', DateTime.now().toIso8601String())
-          .order('subscription_expires_at', ascending: false)
+          .eq('status', 'active')
+          .gt('expires_at', DateTime.now().toIso8601String())
+          .order('expires_at', ascending: false)
           .limit(1)
           .maybeSingle();
 
-      final expiresRaw = row?['subscription_expires_at']?.toString();
+      final expiresRaw = row?['expires_at']?.toString();
       final expires = expiresRaw == null ? null : DateTime.tryParse(expiresRaw);
 
       if (!mounted) return;
@@ -567,7 +567,7 @@ class _HomePageState extends State<HomePage> {
             subtitle: Text(
               hasActiveSubscription && subscriptionExpiresAt != null
                   ? 'فعال تا ${subscriptionExpiresAt!.toLocal().toString().split('.').first}'
-                  : 'غیرفعال • ۳۵,۰۰۰ تومان / ماه • حداکثر ۹ آگهی',
+                  : 'غیرفعال • ۳۹,۰۰۰ تومان / ماه • حداکثر ۹ آگهی',
             ),
             trailing: FilledButton(
               onPressed: () async {
@@ -839,12 +839,12 @@ class _AddAdPageState extends State<AddAdPage> {
 
     try {
       final subscription = await supabase
-          .from('payments')
-          .select('subscription_expires_at')
+          .from('subscriptions')
+          .select('expires_at')
           .eq('user_id', user.id)
-          .eq('status', 'paid')
-          .gt('subscription_expires_at', DateTime.now().toIso8601String())
-          .order('subscription_expires_at', ascending: false)
+          .eq('status', 'active')
+          .gt('expires_at', DateTime.now().toIso8601String())
+          .order('expires_at', ascending: false)
           .limit(1)
           .maybeSingle();
 
@@ -950,7 +950,7 @@ class _AddAdPageState extends State<AddAdPage> {
                 leading: const Icon(Icons.workspace_premium),
                 title: const Text('اشتراک پایه'),
                 subtitle: const Text(
-                  '۳۵,۰۰۰ تومان / ماه • سهمیه این ماه: حداکثر ۹ آگهی',
+                  '۳۹,۰۰۰ تومان / ماه • سهمیه این ماه: حداکثر ۹ آگهی',
                 ),
               ),
             ),
