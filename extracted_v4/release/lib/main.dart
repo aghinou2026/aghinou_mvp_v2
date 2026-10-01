@@ -299,7 +299,7 @@ class _HomePageState extends State<HomePage> {
       for (final c in cats) { ids[c['id'].toString()] = c['name'].toString(); }
       final map = <String, List<String>>{};
       for (final s in subs) {
-        final cat = ids[s['category_id']?.toString() ?? ''];
+        final cat = ids[s['category_id']?.toString() ?? ''] ?? '';
         final name = s['name']?.toString() ?? '';
         if (cat.isNotEmpty && name.isNotEmpty) map.putIfAbsent(cat, () => []).add(name);
       }
@@ -1458,7 +1458,23 @@ class _AdDetailPageState extends State<AdDetailPage>{
       ]),
       body:loading?const Center(child:CircularProgressIndicator()):ListView(
         children:[
-          if(images.isNotEmpty)SizedBox(height:270,child:PageView.builder(itemCount:images.length,itemBuilder:(_,i)=>GestureDetector(onTap:()=>openImageViewer(i),child:Image.network(images[i]['image_url'].toString(),fit:BoxFit.cover,errorBuilder:(_,__,___)=>const Center(child:Icon(Icons.broken_image_outlined,size:60))))))),
+          if (images.isNotEmpty)
+            SizedBox(
+              height: 270,
+              child: PageView.builder(
+                itemCount: images.length,
+                itemBuilder: (_, i) => GestureDetector(
+                  onTap: () => openImageViewer(i),
+                  child: Image.network(
+                    images[i]['image_url'].toString(),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Center(
+                      child: Icon(Icons.broken_image_outlined, size: 60),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             Text(title,style:const TextStyle(fontSize:23,fontWeight:FontWeight.bold)),
             const SizedBox(height:8),
