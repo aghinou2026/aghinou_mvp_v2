@@ -157,13 +157,25 @@ class _HomePageState extends State<HomePage> {
     return ads.where((ad) => ad['seller_id'] == uid).length;
   }
 
+  String normalizeFa(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll('ي','ی')
+        .replaceAll('ى','ی')
+        .replaceAll('ك','ک')
+        .replaceAll('ة','ه')
+        .replaceAll('ۀ','ه')
+        .replaceAll(RegExp(r'[\u064B-\u065F]'), '')
+        .replaceAll('‌',' ')
+        .replaceAll(RegExp(r'\\s+'), ' ')
+        .trim();
+  }
+
   List<Map<String, dynamic>> get filteredAds {
-    final q = searchQuery.trim().toLowerCase();
+    final q = normalizeFa(searchQuery);
     return ads.where((ad) {
-      final categoryOk = selectedCategory == null ||
-          '${ad['category'] ?? ''}' == selectedCategory;
-      final text = '${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
-          '${ad['city'] ?? ''} ${ad['category'] ?? ''}'.toLowerCase();
+      final categoryOk = selectedCategory == null || '${ad['category'] ?? ''}' == selectedCategory;
+      final text = normalizeFa('${ad['title'] ?? ''} ${ad['edescription'] ?? ''} ${ad['city'] ?? ''} ${ad['category'] ?? ''}');
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && searchOk;
     }).toList();
