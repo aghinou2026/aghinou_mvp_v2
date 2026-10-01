@@ -106,6 +106,16 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     loadAds();
     loadSubscription();
+    loadAdmin();
+  }
+
+  Future<void> loadAdmin() async {
+    final uid = supabase.auth.currentUser?.id;
+    if (uid == null) return;
+    try {
+      final row = await supabase.from('admin_users').select('user_id').eq('user_id', uid).maybeSingle();
+      if (mounted) setState(() => isAdmin = row != null);
+    } catch (_) {}
   }
 
   Future<void> loadSubscription() async {
@@ -388,6 +398,15 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         const SizedBox(height: 8),
+        if (isAdmin)
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.admin_panel_settings_outlined),
+              title: const Text('پنل مدیریت'),
+              subtitle: const Text('بررسی و تأیید پرداخت‌ها'),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPage())),
+            ),
+          ),
         OutlinedButton.icon(
           onPressed: () async {
             await supabase.auth.signOut();
@@ -477,6 +496,54 @@ class _AddAdPageState extends State<AddAdPage>{
         ),
       ),
     );
+  }
+}
+class AdminPage extends StatefulWidget {
+  const AdminPage({super.key});
+  @override State<AdminPage> createState() => _AdminPageState();
+}
+class _AdminPageState extends State<AdminPage> {
+  bool loading = true;
+  bool working = false;
+  List<Map<String,dynamic>> payments = [];
+  @override void initState() { super.initState(); loadPayments(); }
+  Future<void> loadPayments() async {
+    try {
+      final r = await supabase.from('payments').select('id,user_id,amount,status,payment_note,payment_code,created_at').inFilter('status',['pending','checking']).order('created_at',ascending:false);
+      if (mounted) setState(() { payments=List<Map<String,dynamic>>.from(r); loading=false; });
+    } catch(e) { if(mounted){ setState(()=>loading=false); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت پرداخت‌ها: $e'))); } }
+  }
+  Future<void> decide(String id,bool approve) async {
+    if(working)return;
+    setState(()=>working=true);
+    try {
+      await supabase.rpc('confirm_payment',params:{'p_payment_id':id,'p_approve':approve,'p_reason':approve?null:'تأیید نشد توسط مدیر'});
+      if(mounted){ ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(approve?'پرداخت تأیید و اشتراک فعال شد.':'پرداخت رد شد.'))); await loadPayments(); }
+    } catch(e) { if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('عملیات: $e'))); }
+    finally { if(mounted)setState(()=>working=false); }
+  }
+  @override Widget build(BuildContext context) {
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+      appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:loadPayments,icon:const Icon(Icons.refresh))]),
+      body:loading?const Center(child:CircularProgressIndicator()):RefreshIndicator(
+        onRefresh:loadPayments,
+        child:ListView(padding:const EdgeInsets.all(16),children:[
+          Card(child:ListTile(leading:const Icon(Icons.payments_outlined),title:const Text('پرداخت‌های در انتظار'),subtitle:Text('${payments.length} پرداخت برای بررسی'))),
+          if(payments.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Text('پرداخت در انتظار بررسی وجود ندارد.')),
+          ...payments.map((p)=>Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text('مبلغ: ${p['amount']??'-'} تومان',style:const TextStyle(fontWeight:FontWeight.bold)),
+            Text('کد پرداخت: ${p['payment_code']??'-'}'),
+            Text('توضیح: ${p['payment_note']??'-'}'),
+            const SizedBox(height:8),
+            Row(children:[
+              Expanded(child:FilledButton.icon(onPressed:working?null:()=>decide(p['id'].toString(),true),icon:const Icon(Icons.check),label:const Text('تأیید'))),
+              const SizedBox(width:8),
+              Expanded(child:OutlinedButton.icon(onPressed:working?null:()=>decide(p['id'].toString(),false),icon:const Icon(Icons.close),label:const Text('رد'))),
+            ])
+          ]))))
+        ])
+      )
+    ));
   }
 }
 class FavoritesPage extends StatefulWidget {
