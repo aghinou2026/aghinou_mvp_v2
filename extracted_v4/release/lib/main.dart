@@ -594,8 +594,10 @@ class _AddAdPageState extends State<AddAdPage>{
     final p=int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'),''));
     if(p==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('قیمت را صحیح وارد کنید.')));return;}
     setState(()=>publishing=true);
+    String? createdAdId;
+    final uploadedPaths=<String>[];
     try{
-      final id=(await supabase.rpc('publish_ad',params:{
+      createdAdId=(await supabase.rpc('publish_ad',params:{
         'p_title':title.text.trim(),
         'p_description':desc.text.trim(),
         'p_price':p,
@@ -611,21 +613,26 @@ class _AddAdPageState extends State<AddAdPage>{
         final bytes=await x.readAsBytes();
         final ext=x.name.contains('.')?x.name.split('.').last.toLowerCase():'jpg';
         final safe=<String>{'jpg','jpeg','png','webp'}.contains(ext)?ext:'jpg';
-        final path='public/'+u.id+'/'+id+'/'+i.toString()+'_'+DateTime.now().microsecondsSinceEpoch.toString()+'.'+safe;
+        final path='public/'+u.id+'/'+createdAdId+'/'+i.toString()+'_'+DateTime.now().microsecondsSinceEpoch.toString()+'.'+safe;
         await supabase.storage.from('ad-images').uploadBinary(path,bytes,fileOptions:FileOptions(
           contentType:safe=='png'?'image/png':safe=='webp'?'image/webp':'image/jpeg'));
-        await supabase.from('ad_images').insert({'ad_id':id,'image_url':supabase.storage.from('ad-images').getPublicUrl(path)});
+        uploadedPaths.add(path);
+        await supabase.from('ad_images').insert({'ad_id':createdAdId,'image_url':supabase.storage.from('ad-images').getPublicUrl(path)});
       }
       await widget.onPublished();
       if(mounted){
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی با موفقیت ثبت شد.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی ثبت شد و برای تأیید مدیر ارسال شد.')));
         Navigator.pop(context);
       }
     }catch(e){
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت آگهی: '+e.toString())));
+      if(createdAdId!=null){
+        try{if(uploadedPaths.isNotEmpty)await supabase.storage.from('ad-images').remove(uploadedPaths);}catch(_){ }
+        try{await supabase.from('ad_images').delete().eq('ad_id',createdAdId!);}catch(_){ }
+        try{await supabase.from('ads').delete().eq('idd',createdAdId!);}catch(_){ }
+      }
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت آگهی انجام نشد و تغییرات ناقص پاک شد: '+e.toString())));
     }finally{if(mounted)setState(()=>publishing=false);}
   }
-
   Future<void> preview() async {
     if(title.text.trim().isEmpty||desc.text.trim().isEmpty){
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ابتدا عنوان و توضیحات را کامل کنید.')));return;
