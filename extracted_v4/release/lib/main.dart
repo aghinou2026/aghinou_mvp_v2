@@ -96,6 +96,11 @@ class _HomePageState extends State<HomePage> {
   DateTime? subscriptionExpiresAt;
   String searchQuery = '';
   String? selectedCategory;
+  String? selectedCity;
+  String sortMode = 'newest';
+  int? minPrice;
+  int? maxPrice;
+  List<String> recentSearches = [];
   List<Map<String, dynamic>> ads = [];
 
   static const categories = <String>[
@@ -174,12 +179,43 @@ class _HomePageState extends State<HomePage> {
 
   List<Map<String, dynamic>> get filteredAds {
     final q = normalizeFa(searchQuery);
-    return ads.where((ad) {
+    final result = ads.where((ad) {
       final categoryOk = selectedCategory == null || '${ad['category'] ?? ''}' == selectedCategory;
+      final cityOk = selectedCity == null || '${ad['city'] ?? ''}' == selectedCity;
+      final price = (ad['price'] as num?)?.toInt();
+      final minOk = minPrice == null || (price != null && price >= minPrice!);
+      final maxOk = maxPrice == null || (price != null && price <= maxPrice!);
       final text = normalizeFa('${ad['title'] ?? ''} ${ad['edescription'] ?? ''} ${ad['city'] ?? ''} ${ad['category'] ?? ''}');
       final searchOk = q.isEmpty || text.contains(q);
-      return categoryOk && searchOk;
+      return categoryOk && cityOk && minOk && maxOk && searchOk;
     }).toList();
+    if(sortMode=='cheapest') result.sort((a,b)=>((a['price'] as num?)??0).compareTo((b['price'] as num?)??0));
+    if(sortMode=='expensive') result.sort((a,b)=>((b['price'] as num?)??0).compareTo((a['price'] as num?)??0));
+    return result;
+  }
+
+  void openFilters() {
+    final min=TextEditingController(text:minPrice?.toString()??'');
+    final max=TextEditingController(text:maxPrice?.toString()??'');
+    showModalBottomSheet(context:context,isScrollControlled:true,builder:(_)=>StatefulBuilder(builder:(ctx,setSheet)=>Directionality(
+      textDirection:TextDirection.rtl,
+      child:Padding(padding:EdgeInsets.only(left:16,right:16,top:16,bottom:MediaQuery.of(ctx).viewInsets.bottom+16),child:ListView(shrinkWrap:true,children:[
+        const Text('فیلتر آگهی‌ها',style:TextStyle(fontSize:21,fontWeight:FontWeight.bold)),
+        const SizedBox(height:12),
+        DropdownButtonFormField<String>(value:selectedCity,items:[null,...['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز']].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه شهرها'))).toList(),onChanged:(v)=>setSheet(()=>selectedCity=v),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
+        const SizedBox(height:10),
+        TextField(controller:min,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'حداقل قیمت',border:OutlineInputBorder())),
+        const SizedBox(height:10),
+        TextField(controller:max,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'حداکثر قیمت',border:OutlineInputBorder())),
+        const SizedBox(height:10),
+        DropdownButtonFormField<String>(value:sortMode,items:const [
+          DropdownMenuItem(value:'newest',child:Text('جدیدترین')),
+          DropdownMenuItem(value:'cheapest',child:Text('ارزان‌ترین')),
+          DropdownMenuItem(value:'expensive',child:Text('گران‌ترین')),
+        ],onChanged:(v)=>setSheet(()=>sortMode=v??'newest'),decoration:const InputDecoration(labelText:'مرتب‌سازی',border:OutlineInputBorder())),
+        const SizedBox(height:14),
+        FilledButton(onPressed:(){setState(()=>{minPrice=int.tryParse(min.text),maxPrice=int.tryParse(max.text)});Navigator.pop(ctx);},child:const Text('اعمال فیلتر')),
+      ]))));
   }
 
   @override
@@ -255,7 +291,9 @@ class _HomePageState extends State<HomePage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          TextField(
+          Row(children:[
+            Expanded(child:TextField(
+            onSubmitted:(value){if(value.trim().isNotEmpty&&!recentSearches.contains(value.trim()))setState(()=>recentSearches=[value.trim(),...recentSearches].take(8).toList());},
             onChanged: (value) => setState(() => searchQuery = value),
             decoration: InputDecoration(
               hintText: 'چی می‌خوای پیدا کنی؟',
@@ -272,7 +310,12 @@ class _HomePageState extends State<HomePage> {
                 borderSide: BorderSide.none,
               ),
             ),
-          ),
+            )),
+            const SizedBox(width:8),
+            IconButton.filledTonal(onPressed:openFilters,icon:const Icon(Icons.tune),tooltip:'فیلتر'),
+          ]),
+          if(recentSearches.isNotEmpty && searchQuery.isEmpty)
+            SizedBox(height:40,child:ListView(scrollDirection:Axis.horizontal,children:recentSearches.map((x)=>Padding(padding:const EdgeInsets.only(left:6),child:ActionChip(label:Text(x),onPressed:()=>setState(()=>searchQuery=x)))).toList())),
           const SizedBox(height: 18),
           const Text(
             'دسته‌بندی‌ها',
