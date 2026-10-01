@@ -140,6 +140,7 @@ class _HomePageState extends State<HomePage> {
       final rows = await supabase
           .from('ads')
           .select('*, ad_images(image_url)')
+          .eq('publish_status', 'published')
           .order('created_at', ascending: false);
 
       if (!mounted) return;
@@ -835,7 +836,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
       final sellerId=widget.ad['seller_id']?.toString();
       Map<String,dynamic>? sp;
       if(sellerId!=null) sp=Map<String,dynamic>.from((await supabase.from('profiles').select('iidd,name,cphone,created_at').eq('iidd',sellerId).maybeSingle())??{});
-      final sims=await supabase.from('ads').select('idd,title,price,city,category').eq('category',widget.ad['category']?.toString()??'').neq('idd',id).limit(6);
+      final sims=await supabase.from('ads').select('idd,title,price,city,category,publish_status').eq('category',widget.ad['category']?.toString()??'').eq('publish_status','published').neq('idd',id).limit(6);
       if(mounted)setState((){images=List<Map<String,dynamic>>.from(imgs);seller=sp;similar=List<Map<String,dynamic>>.from(sims);loading=false;});
     }catch(e){if(mounted)setState(()=>loading=false);}
   }
@@ -959,7 +960,7 @@ class _SellerProfilePageState extends State<SellerProfilePage>{
   Future<void> load() async {
     try{
       final p=await supabase.from('profiles').select('iidd,name,cphone,city,created_at,avatar_url,profile_views').eq('iidd',widget.sellerId).maybeSingle();
-      final a=await supabase.from('ads').select('idd,title,price,city,category,view_count').eq('seller_id',widget.sellerId).limit(50);
+      final a=await supabase.from('ads').select('idd,title,price,city,category,view_count,publish_status').eq('seller_id',widget.sellerId).eq('publish_status','published').limit(50);
       final pv=(p?['profile_views'] as int?)??0;
       if(mounted)setState((){profile=p;ads=List<Map<String,dynamic>>.from(a);views=pv;loading=false;});
       try{await supabase.from('profiles').update({'profile_views':pv+1}).eq('iidd',widget.sellerId);}catch(_){ }
