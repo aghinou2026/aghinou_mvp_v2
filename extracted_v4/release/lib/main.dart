@@ -408,6 +408,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> buySubscription() async {
+    if(!mounted)return;
+    await Navigator.push(context,MaterialPageRoute(builder:(_)=>const SubscriptionPage()));
+    await loadSubscription();
+  }
+
   Widget account() {
     final remaining = (adLimit - adsUsed).clamp(0, adLimit);
 
