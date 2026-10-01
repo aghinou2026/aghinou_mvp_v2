@@ -174,7 +174,7 @@ class _HomePageState extends State<HomePage> {
         .replaceAll('ۀ','ه')
         .replaceAll(RegExp(r'[\u064B-\u065F]'), '')
         .replaceAll('‌',' ')
-        .replaceAll(RegExp(r'\\s+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
 
@@ -923,7 +923,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
         final fav=await supabase.from('favorites').select('ad_id').eq('user_id',u).eq('ad_id',id).maybeSingle();
         if(mounted)setState(()=>saved=fav!=null);
       }
-      final imgs=await supabase.from('ad_images').select('image_url').eq('ad_id',id);
+      final imgs=await supabase.from('ad_images').select('image_url,sort_order,is_primary').eq('ad_id',id).order('sort_order',ascending:true);
       final sellerId=widget.ad['seller_id']?.toString();
       Map<String,dynamic>? sp;
       if(sellerId!=null) sp=Map<String,dynamic>.from((await supabase.from('profiles').select('iidd,name,cphone,created_at').eq('iidd',sellerId).maybeSingle())??{});
@@ -1054,7 +1054,7 @@ class _SellerProfilePageState extends State<SellerProfilePage>{
       final a=await supabase.from('ads').select('idd,title,price,city,category,view_count,publish_status').eq('seller_id',widget.sellerId).eq('publish_status','published').limit(50);
       final pv=(p?['profile_views'] as int?)??0;
       if(mounted)setState((){profile=p;ads=List<Map<String,dynamic>>.from(a);views=pv;loading=false;});
-      try{await supabase.from('profiles').update({'profile_views':pv+1}).eq('iidd',widget.sellerId);}catch(_){ }
+      try{await supabase.rpc('increment_profile_view',params:{'p_seller_id':widget.sellerId});}catch(_){ }
     }catch(_){if(mounted)setState(()=>loading=false);}
   }
   @override Widget build(BuildContext context){
