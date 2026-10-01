@@ -240,6 +240,37 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+class FavoritesPage extends StatefulWidget {
+  const FavoritesPage({super.key});
+  @override State<FavoritesPage> createState() => _FavoritesPageState();
+}
+class _FavoritesPageState extends State<FavoritesPage> {
+  List<Map<String,dynamic>> items=[]; bool loading=true;
+  @override void initState(){super.initState(); load();}
+  Future<void> load() async {
+    final uid=supabase.auth.currentUser?.id;
+    if(uid==null){if(mounted)setState(()=>loading=false);return;}
+    try {
+      final rows=await supabase.from('favorites').select('ad_id, ads(*)').eq('user_id',uid).order('created_at',ascending:false);
+      if(!mounted)return; setState(()=>items=List<Map<String,dynamic>>.from(rows));
+    } catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت علاقه‌مندی‌ها انجام نشد: $e')));}
+    if(mounted)setState(()=>loading=false);
+  }
+  Future<void> remove(String id) async {
+    final uid=supabase.auth.currentUser?.id; if(uid==null)return;
+    try {await supabase.from('favorites').delete().eq('user_id',uid).eq('ad_id',id); await load();}
+    catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف انجام نشد: $e')));}
+  }
+  @override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+    appBar:AppBar(title:const Text('علاقه‌مندی‌ها')),
+    body:loading?const Center(child:CircularProgressIndicator()):items.isEmpty?const Center(child:Text('هنوز آگهی ذخیره‌شده‌ای ندارید.')):ListView.builder(
+      padding:const EdgeInsets.all(12),itemCount:items.length,itemBuilder:(context,i){
+        final ad=items[i]['ads'] is Map ? Map<String,dynamic>.from(items[i]['ads']) : <String,dynamic>{};
+        final id=items[i]['ad_id'].toString();
+        return Card(child:ListTile(title:Text('${ad['title']??'بدون عنوان'}'),subtitle:Text('${ad['price']??'توافقی'} تومان • ${ad['city']??''}'),trailing:IconButton(icon:const Icon(Icons.delete_outline),onPressed:()=>remove(id))));
+      }),
+  ));
+}
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
