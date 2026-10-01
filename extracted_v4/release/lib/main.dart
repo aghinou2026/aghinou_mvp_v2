@@ -461,6 +461,14 @@ class _HomePageState extends State<HomePage> {
         ),
         Card(
           child: ListTile(
+            leading: const Icon(Icons.inventory_2_outlined),
+            title: const Text('آگهی‌های من'),
+            subtitle: const Text('ویرایش و مدیریت آگهی‌های شما'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyAdsPage())),
+          ),
+        ),
+        Card(
+          child: ListTile(
             leading: const Icon(Icons.notifications_none),
             title: const Text('اعلان‌ها'),
             subtitle: const Text('مشاهده و مدیریت اعلان‌های حساب'),
@@ -549,6 +557,62 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+class MyAdsPage extends StatefulWidget {
+  const MyAdsPage({super.key});
+  @override State<MyAdsPage> createState()=>_MyAdsPageState();
+}
+class _MyAdsPageState extends State<MyAdsPage>{
+  bool loading=true; List<Map<String,dynamic>> ads=[];
+  @override void initState(){super.initState();load();}
+  Future<void> load()async{
+    try{
+      final uid=supabase.auth.currentUser?.id;if(uid==null)return;
+      final r=await supabase.from('ads').select('*, ad_images(image_url,sort_order,is_primary)').eq('seller_id',uid).order('created_at',ascending:false);
+      if(mounted)setState((){ads=List<Map<String,dynamic>>.from(r);loading=false;});
+    }catch(e){if(mounted)setState(()=>loading=false);}
+  }
+  Future<void> removeAd(String id)async{
+    final ok=await showDialog<bool>(context:context,builder:(_)=>AlertDialog(title:const Text('حذف آگهی'),content:const Text('آیا از حذف آگهی مطمئن هستید؟'),actions:[TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('انصراف')),FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('حذف'))]));
+    if(ok!=true)return;
+    try{await supabase.from('ads').delete().eq('idd',id).eq('seller_id',supabase.auth.currentUser!.id);await load();}catch(e){}
+  }
+  @override Widget build(BuildContext c){
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('آگهی‌های من')),body:
+      loading?const Center(child:CircularProgressIndicator()):ads.isEmpty?const Center(child:Text('هنوز آگهی‌ای ثبت نکرده‌اید.')):ListView.builder(padding:const EdgeInsets.all(12),itemCount:ads.length,itemBuilder:(_,i){
+        final a=ads[i];final ims=List<Map<String,dynamic>>.from(a['ad_images']??const[]);ims.sort((x,y)=>((x['sort_order'] as num?)??0).compareTo((y['sort_order'] as num?)??0));
+        final img=ims.isEmpty?null:ims.first['image_url']?.toString();final s=a['publish_status']?.toString()??'pending';final st=s=='published'?'منتشر شده':s=='rejected'?'رد شده':s=='paused'?'متوقف شده':'در انتظار تأیید';
+        return Card(child:ListTile(leading:img==null?const CircleAvatar(child:Icon(Icons.image)):Image.network(img,width:60,height:60,fit:BoxFit.cover),title:Text(a['title']?.toString()??''),subtitle:Text((a['price']??0).toString()+' تومان • '+st),trailing:PopupMenuButton<String>(itemBuilder:(_)=>const[PopupMenuItem(value:'edit',child:Text('ویرایش')),PopupMenuItem(value:'delete',child:Text('حذف'))],onSelected:(v)async{if(v=='edit'){await Navigator.push(c,MaterialPageRoute(builder:(_)=>EditAdPage(ad:a)));await load();}else{await removeAd(a['idd'].toString());}})));
+      }));
+  }
+}
+class EditAdPage extends StatefulWidget{
+  final Map<String,dynamic> ad;const EditAdPage({super.key,required this.ad});
+  @override State<EditAdPage> createState()=>_EditAdPageState();
+}
+class _EditAdPageState extends State<EditAdPage>{
+  late TextEditingController title,desc,price,neighborhood;late String category,city,condition,subcategory;bool saving=false;
+  @override void initState(){super.initState();final a=widget.ad;title=TextEditingController(text:a['title']?.toString()??'');desc=TextEditingController(text:a['edescription']?.toString()??'');price=TextEditingController(text:(a['price'] as num?)?.toInt().toString()??'');neighborhood=TextEditingController(text:a['neighborhood']?.toString()??'');category=a['category']?.toString()??'سایر';city=a['city']?.toString()??'تهران';condition=a['item_condition']?.toString()??'در حد نو';subcategory=a['subcategory']?.toString()??'سایر';}
+  @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();super.dispose();}
+  List<String> get subs=>category=='موبایل و تبلت'?['موبایل','تبلت','لوازم جانبی موبایل']:category=='خودرو'?['سواری','وانت','موتورسیکلت','قطعات خودرو']:category=='املاک'?['آپارتمان','خانه','زمین','مغازه']:['سایر'];
+  Future<void> save()async{
+    final p=int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'),''));final uid=supabase.auth.currentUser?.id;if(p==null||uid==null)return;
+    setState(()=>saving=true);try{
+      await supabase.from('ads').update({'title':title.text.trim(),'edescription':desc.text.trim(),'price':p,'city':city,'category':category,'subcategory':subcategory,'item_condition':condition,'neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim(),'publish_status':'pending'}).eq('idd',widget.ad['idd']).eq('seller_id',uid);
+      if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تغییرات ذخیره شد و آگهی برای بررسی دوباره ارسال شد.')));Navigator.pop(context);}
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تغییرات: '+e.toString())));}finally{if(mounted)setState(()=>saving=false);}
+  }
+  @override Widget build(BuildContext c)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('ویرایش آگهی')),body:ListView(padding:const EdgeInsets.all(16),children:[
+    DropdownButtonFormField<String>(value:category,items:_HomePageState.categories.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)setState(()=>category=v);},decoration:const InputDecoration(labelText:'دسته‌بندی',border:OutlineInputBorder())),
+    const SizedBox(height:12),DropdownButtonFormField<String>(value:subs.contains(subcategory)?subcategory:subs.first,items:subs.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>subcategory=v??subs.first),decoration:const InputDecoration(labelText:'زیر‌دسته',border:OutlineInputBorder())),
+    const SizedBox(height:12),TextField(controller:title,decoration:const InputDecoration(labelText:'عنوان',border:OutlineInputBorder())),
+    const SizedBox(height:12),TextField(controller:desc,maxLines:5,decoration:const InputDecoration(labelText:'توضیحات',border:OutlineInputBorder())),
+    const SizedBox(height:12),TextField(controller:price,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'قیمت (تومان)',border:OutlineInputBorder())),
+    const SizedBox(height:12),DropdownButtonFormField<String>(value:const['نو','در حد نو','کارکرده'].contains(condition)?condition:'در حد نو',items:const['نو','در حد نو','کارکرده'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>condition=v??condition),decoration:const InputDecoration(labelText:'وضعیت',border:OutlineInputBorder())),
+    const SizedBox(height:12),DropdownButtonFormField<String>(value:const['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز'].contains(city)?city:'تهران',items:const['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
+    const SizedBox(height:12),TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله',border:OutlineInputBorder())),
+    const SizedBox(height:18),FilledButton(onPressed:saving?null:save,child:Text(saving?'در حال ذخیره...':'ذخیره تغییرات')),
+  ]));
+}
 class AddAdPage extends StatefulWidget {
   final Future<void> Function() onPublished;
   const AddAdPage({super.key, required this.onPublished});
