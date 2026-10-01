@@ -89,6 +89,7 @@ class _HomePageState extends State<HomePage> {
   bool loadingAds = true;
   bool loadingSubscription = true;
   bool hasActiveSubscription = false;
+  bool isAdmin = false;
   int adsUsed = 0;
   int adLimit = 9;
   DateTime? subscriptionExpiresAt;
