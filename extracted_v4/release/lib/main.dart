@@ -217,7 +217,7 @@ class _HomePageState extends State<HomePage> {
         ],onChanged:(v)=>setSheet(() { sortMode=v??'newest'; }),decoration:const InputDecoration(labelText:'مرتب‌سازی',border:OutlineInputBorder())),
         const SizedBox(height:14),
         FilledButton(onPressed:(){setState(() { minPrice=int.tryParse(min.text); maxPrice=int.tryParse(max.text); });Navigator.pop(ctx);},child:const Text('اعمال فیلتر')),
-      ])))));
+      ]))));
   }
 
   @override
@@ -583,7 +583,7 @@ class _MyAdsPageState extends State<MyAdsPage>{
         final a=ads[i];final ims=List<Map<String,dynamic>>.from(a['ad_images']??const[]);ims.sort((x,y)=>((x['sort_order'] as num?)??0).compareTo((y['sort_order'] as num?)??0));
         final img=ims.isEmpty?null:ims.first['image_url']?.toString();final s=a['publish_status']?.toString()??'pending';final st=s=='published'?'منتشر شده':s=='rejected'?'رد شده':s=='paused'?'متوقف شده':'در انتظار تأیید';
         return Card(child:ListTile(leading:img==null?const CircleAvatar(child:Icon(Icons.image)):Image.network(img,width:60,height:60,fit:BoxFit.cover),title:Text(a['title']?.toString()??''),subtitle:Text((a['price']??0).toString()+' تومان • '+st),trailing:PopupMenuButton<String>(itemBuilder:(_)=>const[PopupMenuItem(value:'edit',child:Text('ویرایش')),PopupMenuItem(value:'delete',child:Text('حذف'))],onSelected:(v)async{if(v=='edit'){await Navigator.push(c,MaterialPageRoute(builder:(_)=>EditAdPage(ad:a)));await load();}else{await removeAd(a['idd'].toString());}})));
-      }));
+      })));
   }
 }
 class EditAdPage extends StatefulWidget{
@@ -612,7 +612,7 @@ class _EditAdPageState extends State<EditAdPage>{
     const SizedBox(height:12),DropdownButtonFormField<String>(value:const['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز'].contains(city)?city:'تهران',items:const['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
     const SizedBox(height:12),TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله',border:OutlineInputBorder())),
     const SizedBox(height:18),FilledButton(onPressed:saving?null:save,child:Text(saving?'در حال ذخیره...':'ذخیره تغییرات')),
-  ]));
+  ])));
 }
 class AddAdPage extends StatefulWidget {
   final Future<void> Function() onPublished;
@@ -723,7 +723,7 @@ class _AddAdPageState extends State<AddAdPage>{
         Text('تعداد عکس انتخاب‌شده: '+selectedImages.length.toString()),
         const SizedBox(height:12),
         FilledButton(onPressed:publishing?null:(){Navigator.pop(context);publish();},child:const Text('تأیید و انتشار')),
-      ]))));
+      ])))));
   }
 
   @override Widget build(BuildContext c) {
