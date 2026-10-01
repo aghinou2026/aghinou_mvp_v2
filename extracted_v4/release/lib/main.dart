@@ -1021,24 +1021,11 @@ class _AdminPageState extends State<AdminPage>{
   }
 }
 
-class NotificationsPage extends StatefulWidget { (${reports.length})'),
-        children:[
-          ...reports.map((r)=>Card(
-            child:ListTile(
-              title:Text((r['ads'] is Map ? r['ads']['title']?.toString() : null) ?? 'آگهی گزارش‌شده'),
-              subtitle:Text('${r['reason']??''} • وضعیت: ${r['status']??'pending'}\n${r['details']??''}'),
-              trailing:Wrap(children:[
-                IconButton(tooltip:'در حال بررسی',onPressed:working?null:()=>setReportStatus(r['id'].toString(),'reviewing'),icon:const Icon(Icons.search)),
-                IconButton(tooltip:'حل شد',onPressed:working?null:()=>setReportStatus(r['id'].toString(),'resolved'),icon:const Icon(Icons.check_circle_outline)),
-                IconButton(tooltip:'رد گزارش',onPressed:working?null:()=>setReportStatus(r['id'].toString(),'rejected'),icon:const Icon(Icons.close)),
-              ]),
-            ),
-          )),
-        ],
-      ),
-    ])));
-  }
-}class _NotificationsPageState extends State<NotificationsPage> {
+class NotificationsPage extends StatefulWidget {
+  const NotificationsPage({super.key});
+  @override State<NotificationsPage> createState()=>_NotificationsPageState();
+}
+class _NotificationsPageState extends State<NotificationsPage> {
   bool loading=true; List<Map<String,dynamic>> rows=[];
   @override void initState(){super.initState();load();}
   Future<void> load() async {
