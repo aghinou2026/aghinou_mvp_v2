@@ -567,41 +567,7 @@ class _HomePageState extends State<HomePage> {
                   : 'غیرفعال • ۳۹,۰۰۰ تومان / ماه • حداکثر ۹ آگهی',
             ),
             trailing: FilledButton(
-              onPressed: () async {
-                try {
-                  final response = await supabase.functions.invoke(
-                    'zarinpal-payment',
-                    body: const {'action': 'create'},
-                  );
-                  final data = Map<String, dynamic>.from(response.data as Map);
-                  final paymentUrl = data['payment_url']?.toString();
-                  if (paymentUrl == null || paymentUrl.isEmpty) {
-                    throw Exception('لینک پرداخت از سرور دریافت نشد.');
-                  }
-                  final opened = await launchUrl(
-                    Uri.parse(paymentUrl),
-                    mode: LaunchMode.externalApplication,
-                  );
-                  if (!opened) throw Exception('باز کردن صفحه پرداخت انجام نشد.');
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('پس از تکمیل پرداخت، برنامه را بازخوانی کنید.'),
-                      ),
-                    );
-                  }
-                } on FunctionException catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('خطای ایجاد پرداخت: ${e.details ?? e.reasonPhrase}')),
-                  );
-                } catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('خطای پرداخت: $e')),
-                  );
-                }
-              },
+              onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage())); },
               child: const Text('خرید'),
             ),
           ),
@@ -668,6 +634,86 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+}
+
+
+class SubscriptionPage extends StatefulWidget {
+  const SubscriptionPage({super.key});
+  @override State<SubscriptionPage> createState() => _SubscriptionPageState();
+}
+class _SubscriptionPageState extends State<SubscriptionPage> {
+  Map<String, dynamic>? settings;
+  bool loading = true, submitting = false;
+  final paymentNote = TextEditingController();
+  @override void initState() { super.initState(); loadSettings(); }
+  @override void dispose() { paymentNote.dispose(); super.dispose(); }
+  Future<void> loadSettings() async {
+    try {
+      final row = await supabase.from('subscription_settings').select('price,duration_days,ad_limit,image_limit,destination_card,card_holder,bank_name,instructions,enabled').eq('id', true).maybeSingle();
+      if (!mounted) return;
+      setState(() { settings = row; loading = false; });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('دریافت اطلاعات اشتراک انجام نشد: \$e')));
+    }
+  }
+  Future<void> submitPayment() async {
+    final user = supabase.auth.currentUser; final s = settings;
+    if (user == null || s == null) return;
+    final note = paymentNote.text.trim();
+    if (note.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('لطفاً کد پیگیری یا توضیح پرداخت را وارد کنید.')));
+      return;
+    }
+    setState(() => submitting = true);
+    try {
+      await supabase.from('payments').insert({
+        'user_id': user.id, 'amount': s['price'], 'status': 'checking',
+        'payment_note': note,
+        'payment_code': '\${user.id.substring(0, 8)}-\${DateTime.now().millisecondsSinceEpoch}',
+      });
+      if (!mounted) return;
+      paymentNote.clear();
+      await showDialog(context: context, builder: (_) => const AlertDialog(
+        title: Text('درخواست ثبت شد'),
+        content: Text('پرداخت شما در وضعیت «در حال بررسی» ثبت شد. اشتراک فقط پس از تأیید پرداخت فعال می‌شود.'),
+      ));
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ثبت پرداخت انجام نشد: \${e.message}')));
+    } finally { if (mounted) setState(() => submitting = false); }
+  }
+  @override Widget build(BuildContext context) {
+    if (loading) return const Directionality(textDirection: TextDirection.rtl, child: Scaffold(body: Center(child: CircularProgressIndicator())));
+    final s = settings;
+    if (s == null || s['enabled'] != true) return const Directionality(textDirection: TextDirection.rtl, child: Scaffold(body: Center(child: Text('فروش اشتراک در حال حاضر فعال نیست.'))));
+    final price = (s['price'] ?? 39000).toString(), days = (s['duration_days'] ?? 30).toString(), limit = (s['ad_limit'] ?? 9).toString(), imageLimit = (s['image_limit'] ?? 10).toString();
+    return Directionality(textDirection: TextDirection.rtl, child: Scaffold(
+      appBar: AppBar(title: const Text('خرید اشتراک آگهینو')),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        Card(child: Padding(padding: const EdgeInsets.all(18), child: Column(children: [
+          const Icon(Icons.workspace_premium, size: 52),
+          const SizedBox(height: 10), const Text('اشتراک آگهینو', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8), Text('\$price تومان'), Text('\$days روز • حداکثر \$limit آگهی • \$imageLimit عکس برای هر آگهی'),
+        ]))),
+        const SizedBox(height: 12),
+        Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('اطلاعات کارت مقصد', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          SelectableText('شماره کارت: \${s['destination_card'] ?? 'توسط مدیر تنظیم نشده'}'),
+          SelectableText('صاحب کارت: \${s['card_holder'] ?? '-'}'), SelectableText('بانک: \${s['bank_name'] ?? '-'}'),
+          if ((s['instructions'] ?? '').toString().isNotEmpty) ...[const SizedBox(height: 10), Text(s['instructions'].toString())],
+        ]))),
+        const SizedBox(height: 12),
+        TextField(controller: paymentNote, decoration: const InputDecoration(labelText: 'کد پیگیری / توضیح پرداخت', hintText: 'مثلاً شماره پیگیری یا زمان انتقال', border: OutlineInputBorder())),
+        const SizedBox(height: 16),
+        FilledButton.icon(onPressed: submitting ? null : submitPayment, icon: const Icon(Icons.check_circle_outline), label: Padding(padding: const EdgeInsets.all(14), child: submitting ? const CircularProgressIndicator(strokeWidth: 2) : const Text('ثبت درخواست پرداخت برای بررسی'))),
+        const SizedBox(height: 10),
+        const Text('توجه: صرفاً ثبت این درخواست اشتراک را فعال نمی‌کند. فعال‌سازی فقط پس از تأیید واقعی پرداخت توسط سیستم یا مدیر انجام می‌شود.', textAlign: TextAlign.center),
+      ]),
+    ));
   }
 }
 
