@@ -670,7 +670,7 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage>{
   bool loading=true,working=false;
   List<Map<String,dynamic>> payments=[];
-  Map<String,dynamic>? settings;
+  Map<String,dynamic>? stats;
   final price=TextEditingController(),days=TextEditingController(),limit=TextEditingController(),images=TextEditingController(),card=TextEditingController(),holder=TextEditingController(),bank=TextEditingController(),instructions=TextEditingController();
   bool enabled=true;
   @override void initState(){super.initState();load();}
@@ -679,8 +679,9 @@ class _AdminPageState extends State<AdminPage>{
     try{
       final r=await supabase.from('subscription_settings').select('*').eq('id',true).maybeSingle();
       final p=await supabase.from('payments').select('id,user_id,amount,status,payment_note,payment_code,created_at').inFilter('status',['pending','checking']).order('created_at',ascending:false);
+      final st=await supabase.rpc('admin_dashboard_stats');
       if(r!=null){price.text=r['price'].toString();days.text=r['duration_days'].toString();limit.text=r['ad_limit'].toString();images.text=r['image_limit'].toString();card.text=r['destination_card']?.toString()??'';holder.text=r['card_holder']?.toString()??'';bank.text=r['bank_name']?.toString()??'';instructions.text=r['instructions']?.toString()??'';enabled=r['enabled']==true;}
-      if(mounted)setState(()=>{settings=r,payments=List<Map<String,dynamic>>.from(p),loading=false});
+      if(mounted)setState(()=>{stats=Map<String,dynamic>.from(st),payments=List<Map<String,dynamic>>.from(p),loading=false});
     }catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('پنل مدیریت: $e')));}}
   }
   Future<void> saveSettings() async {
@@ -701,11 +702,19 @@ class _AdminPageState extends State<AdminPage>{
     finally{if(mounted)setState(()=>working=false);}
   }
   Widget field(TextEditingController c,String label,{TextInputType type=TextInputType.text})=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:c,keyboardType:type,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
+  Widget stat(String label,dynamic value,IconData icon)=>Expanded(child:Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(children:[Icon(icon,size:25),const SizedBox(height:5),Text(value?.toString()??'0',style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold)),Text(label)]))));
   @override Widget build(BuildContext context){
     if(loading)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:CircularProgressIndicator())));
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
       appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),
-      body:ListView(padding:const EdgeInsets.all(16),children:[
+      body:ListView(padding:const EdgeInsets.all(12),children:[
+        const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),
+        const SizedBox(height:8),
+        Row(children:[stat('کاربران',stats?['users'],Icons.people_outline),stat('آگهی‌ها',stats?['ads'],Icons.list_alt_outlined)]),
+        Row(children:[stat('آگهی فعال',stats?['active_ads'],Icons.check_circle_outline),stat('اشتراک فعال',stats?['subscriptions'],Icons.card_membership_outlined)]),
+        Row(children:[stat('پرداخت موفق',stats?['paid_payments'],Icons.payments_outlined),stat('درآمد',stats?['revenue'],Icons.account_balance_wallet_outlined)]),
+        Row(children:[stat('گزارش‌ها',stats?['reports'],Icons.flag_outlined),stat('پیام‌ها',stats?['messages'],Icons.chat_outlined)]),
+        const SizedBox(height:12),
         Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
           const Text('تنظیمات اشتراک و کارت‌به‌کارت',style:TextStyle(fontSize:19,fontWeight:FontWeight.bold)),
           const SizedBox(height:12),
