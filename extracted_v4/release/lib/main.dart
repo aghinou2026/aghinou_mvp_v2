@@ -918,6 +918,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
               title:Text(seller!['name']?.toString()??'فروشنده'),
               subtitle:Text('عضویت: ${seller!['created_at']?.toString().split('T').first??'-'}'),
               trailing:const Icon(Icons.person_outline),
+              onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>SellerProfilePage(sellerId:seller!['iidd'].toString()))),
             )),
             const SizedBox(height:8),
             Row(children:[
@@ -943,6 +944,44 @@ class _AdDetailPageState extends State<AdDetailPage>{
           ])),
         ],
       ),
+    ));
+  }
+}
+class SellerProfilePage extends StatefulWidget {
+  final String sellerId;
+  const SellerProfilePage({super.key, required this.sellerId});
+  @override State<SellerProfilePage> createState()=>_SellerProfilePageState();
+}
+class _SellerProfilePageState extends State<SellerProfilePage>{
+  bool loading=true; Map<String,dynamic>? profile; List<Map<String,dynamic>> ads=[]; int views=0;
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {
+    try{
+      final p=await supabase.from('profiles').select('iidd,name,cphone,city,created_at,avatar_url,profile_views').eq('iidd',widget.sellerId).maybeSingle();
+      final a=await supabase.from('ads').select('idd,title,price,city,category,view_count').eq('seller_id',widget.sellerId).limit(50);
+      final pv=(p?['profile_views'] as int?)??0;
+      if(mounted)setState((){profile=p;ads=List<Map<String,dynamic>>.from(a);views=pv;loading=false;});
+      try{await supabase.from('profiles').update({'profile_views':pv+1}).eq('iidd',widget.sellerId);}catch(_){ }
+    }catch(_){if(mounted)setState(()=>loading=false);}
+  }
+  @override Widget build(BuildContext context){
+    if(loading)return const Center(child:CircularProgressIndicator());
+    final p=profile??{}; final name=p['name']?.toString()??'فروشنده آگهینو';
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+      appBar:AppBar(title:const Text('پروفایل فروشنده')),
+      body:ListView(padding:const EdgeInsets.all(16),children:[
+        Card(child:ListTile(
+          leading:CircleAvatar(backgroundImage:(p['avatar_url']?.toString().isNotEmpty==true)?NetworkImage(p['avatar_url'].toString()):null,child:(p['avatar_url']?.toString().isNotEmpty==true)?null:const Icon(Icons.person)),
+          title:Text(name,style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold)),
+          subtitle:Text('${p['city']??''}\nعضویت: ${p['created_at']?.toString().split('T').first??'-'}'),
+        )),
+        Row(mainAxisAlignment:MainAxisAlignment.spaceAround,children:[Text('آگهی‌ها: ${ads.length}'),Text('مشاهده پروفایل: ${views+1}')]),
+        const SizedBox(height:16),
+        const Text('آگهی‌های فعال',style:TextStyle(fontSize:19,fontWeight:FontWeight.bold)),
+        const SizedBox(height:8),
+        if(ads.isEmpty)const Text('آگهی فعالی ندارد.'),
+        ...ads.map((ad)=>Card(child:ListTile(title:Text(ad['title']?.toString()??''),subtitle:Text('${ad['price']??'توافقی'} تومان • ${ad['city']??''}'),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>AdDetailPage(ad:ad))))),
+      ]),
     ));
   }
 }
