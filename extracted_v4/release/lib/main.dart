@@ -342,7 +342,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget account() {
-    final count = myAdsCount;
     final remaining = (adLimit - adsUsed).clamp(0, adLimit);
 
     return ListView(
@@ -360,7 +359,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         const SizedBox(height: 18),
-        Card(child:ListTile(leading:const Icon(Icons.workspace_premium),title:const Text('مدیریت اشتراک'),subtitle:Text(hasActiveSubscription?'فعال تا '+(subscriptionExpiresAt?.toLocal().toString().split('.').first??''):'فعال نیست'),trailing:const Icon(Icons.chevron_left),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const SubscriptionPage())))),
         Card(
           child: ListTile(
             leading: const Icon(Icons.workspace_premium),
