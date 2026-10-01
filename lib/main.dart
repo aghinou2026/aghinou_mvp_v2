@@ -25,7 +25,7 @@ class AghinouApp extends StatelessWidget {
       title: 'آگهینو',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6C3FE8)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF006D77)),
         inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
       ),
       home: const LoginPage(),
@@ -38,62 +38,68 @@ class LoginPage extends StatefulWidget {
   @override State<LoginPage> createState() => _LoginPageState();
 }
 class _LoginPageState extends State<LoginPage> {
-  final phone = TextEditingController();
-  bool loading = false;
-  @override void dispose() { phone.dispose(); super.dispose(); }
-
-  Future<void> login() async {
-    final value = phone.text.trim();
-    if (value.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('شماره موبایل را کامل وارد کنید.')));
-      return;
+  final phone = TextEditingController(), password = TextEditingController();
+  bool loading = false, registerMode = false, obscure = true;
+  @override void dispose() { phone.dispose(); password.dispose(); super.dispose(); }
+  String normalizePhone(String raw) {
+    var v = raw.trim().replaceAll(' ', '').replaceAll('-', '');
+    if (v.startsWith('0098')) v = '+98' + v.substring(4);
+    if (v.startsWith('98') && !v.startsWith('+98')) v = '+' + v;
+    if (v.startsWith('09')) v = '+98' + v.substring(1);
+    return v;
+  }
+  Future<void> submit() async {
+    final value = normalizePhone(phone.text), pass = password.text;
+    if (!RegExp(r'^\+989\d{9}$').hasMatch(value)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('شماره موبایل را به صورت 09xxxxxxxxx وارد کنید.'))); return;
+    }
+    if (pass.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('رمز ورود باید حداقل ۶ کاراکتر باشد.'))); return;
     }
     setState(() => loading = true);
     try {
-      if (supabase.auth.currentUser == null) await supabase.auth.signInAnonymously();
-      final u = supabase.auth.currentUser;
-      if (u == null) throw Exception('کاربر ساخته نشد');
-      await supabase.from('profiles').upsert({'iidd': u.id, 'cphone': value, 'name': 'کاربر آگهینو'}, onConflict: 'iidd');
+      if (registerMode) {
+        final r = await supabase.auth.signUp(phone: value, password: pass);
+        final u = r.user;
+        if (u == null) throw Exception('حساب ساخته نشد.');
+        if (r.session == null) throw Exception('حساب ساخته شد اما تأیید شماره تلفن فعال است. Phone Confirmations را در Supabase خاموش کنید.');
+        await supabase.from('profiles').upsert({'iidd': u.id, 'cphone': value, 'name': 'کاربر آگهینو'}, onConflict: 'iidd');
+      } else {
+        await supabase.auth.signInWithPassword(phone: value, password: pass);
+        final u = supabase.auth.currentUser;
+        if (u == null) throw Exception('ورود انجام نشد.');
+        await supabase.from('profiles').upsert({'iidd': u.id, 'cphone': value, 'name': 'کاربر آگهینو'}, onConflict: 'iidd');
+      }
       if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+    } on AuthException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطای ورود: ' + e.message)));
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا در ورود: $e')));
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطا: ' + e.toString())));
+    } finally { if (mounted) setState(() => loading = false); }
   }
-
-  @override
-  Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.storefront, size: 76),
-                const SizedBox(height: 12),
-                const Text('آگهینو', style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                const Text('خرید و فروش آسان و مطمئن'),
-                const SizedBox(height: 32),
-                TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره موبایل', prefixIcon: Icon(Icons.phone))),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: loading ? null : login,
-                    child: loading ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('ورود / ادامه'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  @override Widget build(BuildContext context) {
+    return Directionality(textDirection: TextDirection.rtl, child: Scaffold(
+      backgroundColor: const Color(0xFFF5F8FA),
+      body: SafeArea(child: Center(child: SingleChildScrollView(padding: const EdgeInsets.all(22), child: Column(children: [
+        Container(width: 92, height: 92, decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF006D77), Color(0xFF0A9396)]), borderRadius: BorderRadius.circular(28)), child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 48)),
+        const SizedBox(height: 18),
+        const Text('آگهینو', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 6), const Text('بازار ساده، امن و حرفه‌ای'),
+        const SizedBox(height: 24),
+        Card(elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)), child: Padding(padding: const EdgeInsets.all(18), child: Column(children: [
+          Align(alignment: Alignment.centerRight, child: Text(registerMode ? 'ساخت حساب جدید' : 'ورود به حساب', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold))),
+          const SizedBox(height: 16),
+          TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره موبایل', hintText: '09123456789', prefixIcon: Icon(Icons.phone_rounded))),
+          const SizedBox(height: 12),
+          TextField(controller: password, obscureText: obscure, decoration: InputDecoration(labelText: 'رمز ورود', prefixIcon: const Icon(Icons.lock_outline_rounded), suffixIcon: IconButton(onPressed: () => setState(() => obscure = !obscure), icon: Icon(obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined)))),
+          const SizedBox(height: 16),
+          SizedBox(width: double.infinity, child: FilledButton(onPressed: loading ? null : submit, child: loading ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)) : Text(registerMode ? 'ساخت حساب و ورود' : 'ورود'))),
+          const SizedBox(height: 8),
+          TextButton(onPressed: loading ? null : () => setState(() => registerMode = !registerMode), child: Text(registerMode ? 'حساب دارم؛ ورود' : 'حساب ندارم؛ ثبت‌نام')),
+        ]))),
+        const SizedBox(height: 18),
+        const Text('Indeed, with hardship comes ease.\nQur\'an 94:6', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontStyle: FontStyle.italic)),
+      ]))))); 
   }
 }
 
