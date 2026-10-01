@@ -994,29 +994,42 @@ class _AdminPageState extends State<AdminPage>{
       ExpansionTile(title:const Text('تنظیمات اشتراک و کارت‌به‌کارت'),children:[Padding(padding:const EdgeInsets.all(12),child:Column(children:[field(price,'قیمت اشتراک',type:TextInputType.number),field(days,'مدت (روز)',type:TextInputType.number),field(limit,'سهمیه آگهی',type:TextInputType.number),field(images,'حداکثر عکس',type:TextInputType.number),field(card,'شماره کارت مقصد'),field(holder,'صاحب کارت'),field(bank,'بانک'),field(instructions,'توضیحات'),SwitchListTile(value:enabled,onChanged:(v)=>setState(()=>enabled=v),title:const Text('فروش اشتراک فعال باشد')),FilledButton(onPressed:working?null:saveSettings,child:const Text('ذخیره'))]))]),
       ExpansionTile(title:Text('مدیریت کاربران (${fu.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text(u['name']?.toString()??'کاربر'),subtitle:Text(u['cphone']?.toString()??'-')))]),
       ExpansionTile(title:Text('مدیریت آگهی‌ها (${fa.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:adSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'عنوان یا شهر',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fa.take(50).map((ad)=>ListTile(title:Text(ad['title']?.toString()??'بدون عنوان'),subtitle:Text('${ad['city']??''} • ${ad['category']??''} • ${ad['price']??'توافقی'} تومان'),trailing:Wrap(children:[IconButton(tooltip:'تأیید',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'published'),icon:const Icon(Icons.check_circle_outline)),IconButton(tooltip:'رد',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'rejected'),icon:const Icon(Icons.cancel_outlined)),IconButton(tooltip:'توقف',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'paused'),icon:const Icon(Icons.pause_circle_outline)),IconButton(icon:const Icon(Icons.delete_outline),onPressed:working?null:()=>deleteAd(ad['idd'].toString()))])))]),
-      ExpansionTile(title:Text('پرداخت‌های در انتظار (${payments.length})'),children:[
-        ...payments.map((p){
-          final meta=p['metadata'] is Map?Map<String,dynamic>.from(p['metadata']):<String,dynamic>{};
-          final refCode=p['payment_code']?.toString()??'-';
-          final last4=meta['payer_card_last4']?.toString()??'-';
-          final transferAt=meta['transfer_at']?.toString()??'-';
-          return Card(margin:const EdgeInsets.only(bottom:8),child:ListTile(
-            isThreeLine:true,
-            leading:const CircleAvatar(child:Icon(Icons.payments_outlined)),
-            title:Text('${p['amount']??'-'} تومان',style:const TextStyle(fontWeight:FontWeight.bold)),
-            subtitle:Text('شماره پیگیری: $refCode\\n۴ رقم آخر کارت: $last4\\nزمان انتقال: $transferAt'),
-            onTap:()=>showDialog(context:context,builder:(_)=>AlertDialog(
-              title:const Text('جزئیات پرداخت'),
-              content:SingleChildScrollView(child:Text('مبلغ: ${p['amount']??'-'} تومان\\nشماره پیگیری: $refCode\\n۴ رقم آخر کارت: $last4\\nزمان انتقال: $transferAt\\nیادداشت: ${p['payment_note']??'-'}')),
-              actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('بستن'))],
-            )),
-            trailing:Wrap(children:[
-              IconButton(tooltip:'تأیید پرداخت',onPressed:working?null:()=>decide(p['id'].toString(),true),icon:const Icon(Icons.check_circle_outline)),
-              IconButton(tooltip:'رد پرداخت',onPressed:working?null:()=>decide(p['id'].toString(),false),icon:const Icon(Icons.cancel_outlined)),
-            ]),
+      ExpansionTile(
+        title:Text('پرداخت‌های در انتظار (${payments.length})'),
+        children:payments.map((p) {
+          final meta=p['metadata'] is Map ? Map<String,dynamic>.from(p['metadata']) : <String,dynamic>{};
+          final refCode=p['payment_code']?.toString() ?? '-';
+          final last4=meta['payer_card_last4']?.toString() ?? '-';
+          final transferAt=meta['transfer_at']?.toString() ?? '-';
+          return Card(
+            margin:const EdgeInsets.only(bottom:8),
+            child:ListTile(
+              isThreeLine:true,
+              leading:const CircleAvatar(child:Icon(Icons.payments_outlined)),
+              title:Text('${p['amount'] ?? '-'} تومان',style:const TextStyle(fontWeight:FontWeight.bold)),
+              subtitle:Text('شماره پیگیری: $refCode\n۴ رقم آخر کارت: $last4\nزمان انتقال: $transferAt'),
+              onTap:() => showDialog(
+                context:context,
+                builder:(_) => AlertDialog(
+                  title:const Text('جزئیات پرداخت'),
+                  content:SingleChildScrollView(
+                    child:Text('مبلغ: ${p['amount'] ?? '-'} تومان\nشماره پیگیری: $refCode\n۴ رقم آخر کارت: $last4\nزمان انتقال: $transferAt\nیادداشت: ${p['payment_note'] ?? '-'}'),
+                  ),
+                  actions:[
+                    TextButton(onPressed:() => Navigator.pop(context),child:const Text('بستن')),
+                  ],
+                ),
+              ),
+              trailing:Wrap(
+                children:[
+                  IconButton(tooltip:'تأیید پرداخت',onPressed:working ? null : () => decide(p['id'].toString(),true),icon:const Icon(Icons.check_circle_outline)),
+                  IconButton(tooltip:'رد پرداخت',onPressed:working ? null : () => decide(p['id'].toString(),false),icon:const Icon(Icons.cancel_outlined)),
+                ],
+              ),
+            ),
           );
-        }),
-      ]),
+        }).toList(),
+      ),
     ])));
   }
 }
