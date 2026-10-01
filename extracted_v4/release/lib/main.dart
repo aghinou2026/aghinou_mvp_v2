@@ -701,8 +701,8 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('اطلاعات کارت مقصد', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
-          SelectableText('شماره کارت: \${s['destination_card'] ?? 'توسط مدیر تنظیم نشده'}'),
-          SelectableText('صاحب کارت: \${s['card_holder'] ?? '-'}'), SelectableText('بانک: \${s['bank_name'] ?? '-'}'),
+          SelectableText('شماره کارت: ${s['destination_card'] ?? 'توسط مدیر تنظیم نشده'}'),
+          SelectableText('صاحب کارت: ${s['card_holder'] ?? '-'}'), SelectableText('بانک: ${s['bank_name'] ?? '-'}'),
           if ((s['instructions'] ?? '').toString().isNotEmpty) ...[const SizedBox(height: 10), Text(s['instructions'].toString())],
         ]))),
         const SizedBox(height: 12),
@@ -2777,7 +2777,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('دریافت اطلاعات اشتراک انجام نشد: \$e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('دریافت اطلاعات اشتراک انجام نشد: $e')));
     }
   }
   Future<void> submitPayment() async {
@@ -2793,7 +2793,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       await supabase.from('payments').insert({
         'user_id': user.id, 'amount': s['price'], 'status': 'checking',
         'payment_note': note,
-        'payment_code': '\${user.id.substring(0, 8)}-\${DateTime.now().millisecondsSinceEpoch}',
+        'payment_code': '${user.id.substring(0, 8)}-${DateTime.now().millisecondsSinceEpoch}',
       });
       if (!mounted) return;
       paymentNote.clear();
@@ -2803,7 +2803,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       ));
     } on PostgrestException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ثبت پرداخت انجام نشد: \${e.message}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ثبت پرداخت انجام نشد: ${e.message}')));
     } finally { if (mounted) setState(() => submitting = false); }
   }
   @override Widget build(BuildContext context) {
@@ -2823,8 +2823,8 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('اطلاعات کارت مقصد', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
-          SelectableText('شماره کارت: \${s['destination_card'] ?? 'توسط مدیر تنظیم نشده'}'),
-          SelectableText('صاحب کارت: \${s['card_holder'] ?? '-'}'), SelectableText('بانک: \${s['bank_name'] ?? '-'}'),
+          SelectableText('شماره کارت: ${s['destination_card'] ?? 'توسط مدیر تنظیم نشده'}'),
+          SelectableText('صاحب کارت: ${s['card_holder'] ?? '-'}'), SelectableText('بانک: ${s['bank_name'] ?? '-'}'),
           if ((s['instructions'] ?? '').toString().isNotEmpty) ...[const SizedBox(height: 10), Text(s['instructions'].toString())],
         ]))),
         const SizedBox(height: 12),
