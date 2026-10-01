@@ -8,19 +8,37 @@ android {
     namespace = "com.aghinou.app"
     compileSdk = flutter.compileSdkVersion
 
+    signingConfigs {
+        release {
+            storeFile = rootProject.file("aghinou-release.jks")
+            storePassword = System.getenv("AGHINOU_KEY_PASSWORD")
+            keyAlias = System.getenv("AGHINOU_KEY_ALIAS")
+            keyPassword = System.getenv("AGHINOU_KEY_PASSWORD")
+        }
+    }
+
     defaultConfig {
         applicationId = "com.aghinou.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.release
+            minifyEnabled false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = '17'
-    }
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
     }
 }
 
