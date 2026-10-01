@@ -278,6 +278,19 @@ class _FavoritesPageState extends State<FavoritesPage> {
       }),
   ));
 }
+String normalizePersian(String value) {
+  return value
+      .toLowerCase()
+      .replaceAll('ي', 'ی')
+      .replaceAll('ى', 'ی')
+      .replaceAll('ك', 'ک')
+      .replaceAll('ة', 'ه')
+      .replaceAll('ۀ', 'ه')
+      .replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '')
+      .replaceAll(RegExp(r'\\s+'), ' ')
+      .trim();
+}
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -291,17 +304,17 @@ class _HomePageState extends State<HomePage> {
   bool loadingSubscription = true;
   bool hasActiveSubscription = false;
   DateTime? subscriptionExpiresAt;
+  int subscriptionAdLimit = 9;
+  int subscriptionAdsUsed = 0;
   String searchQuery = '';
   String? selectedCategory;
   List<Map<String, dynamic>> ads = [];
 
   static const categories = <String>[
-    'کالای دیجیتال',
-    'خودرو',
-    'املاک',
-    'لوازم خانه',
-    'پوشاک',
-    'خدمات',
+    'خودرو','املاک','موبایل و تبلت','لوازم دیجیتال','لوازم خانگی',
+    'مبلمان و دکوراسیون','پوشاک و کیف و کفش','وسایل نقلیه','خدمات',
+    'استخدام و کاریابی','لوازم شخصی','سرگرمی و ورزش','کشاورزی و دامداری',
+    'ابزار و تجهیزات','حیوانات','سایر',
   ];
 
   @override
@@ -321,7 +334,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final row = await supabase
           .from('subscriptions')
-          .select('expires_at')
+          .select('expires_at,ad_limit,ads_used')
           .eq('user_id', uid)
           .eq('status', 'active')
           .gt('expires_at', DateTime.now().toIso8601String())
@@ -335,6 +348,8 @@ class _HomePageState extends State<HomePage> {
       if (!mounted) return;
       setState(() {
         subscriptionExpiresAt = expires;
+        subscriptionAdLimit = (row?['ad_limit'] as num?)?.toInt() ?? 9;
+        subscriptionAdsUsed = (row?['ads_used'] as num?)?.toInt() ?? 0;
         hasActiveSubscription = expires != null && expires.isAfter(DateTime.now());
         loadingSubscription = false;
       });
@@ -376,12 +391,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   List<Map<String, dynamic>> get filteredAds {
-    final q = searchQuery.trim().toLowerCase();
+    final q = normalizePersian(searchQuery);
     return ads.where((ad) {
       final categoryOk = selectedCategory == null ||
           '${ad['category'] ?? ''}' == selectedCategory;
-      final text = '${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
-          '${ad['city'] ?? ''} ${ad['category'] ?? ''}'.toLowerCase();
+      final text = normalizePersian('${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
+          '${ad['city'] ?? ''} ${ad['category'] ?? ''}');
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && searchOk;
     }).toList();
@@ -582,7 +597,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget account() {
     final count = myAdsCount;
-    final remaining = (9 - count).clamp(0, 9);
+    final remaining = (subscriptionAdLimit - subscriptionAdsUsed).clamp(0, subscriptionAdLimit);
 
     return ListView(
       padding: const EdgeInsets.all(16),
