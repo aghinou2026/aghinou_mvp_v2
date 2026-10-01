@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -215,7 +216,7 @@ class _HomePageState extends State<HomePage> {
           DropdownMenuItem(value:'expensive',child:Text('گران‌ترین')),
         ],onChanged:(v)=>setSheet(()=>sortMode=v??'newest'),decoration:const InputDecoration(labelText:'مرتب‌سازی',border:OutlineInputBorder())),
         const SizedBox(height:14),
-        FilledButton(onPressed:(){setState(()=>{minPrice=int.tryParse(min.text),maxPrice=int.tryParse(max.text)});Navigator.pop(ctx);},child:const Text('اعمال فیلتر')),
+        FilledButton(onPressed:(){setState(() { minPrice=int.tryParse(min.text); maxPrice=int.tryParse(max.text); });Navigator.pop(ctx);},child:const Text('اعمال فیلتر')),
       ]))));
   }
 
@@ -761,7 +762,7 @@ class _AddAdPageState extends State<AddAdPage>{
               key:ValueKey(img.path),
               padding:const EdgeInsets.only(right:8),
               child:Stack(children:[
-                ClipRRect(borderRadius:BorderRadius.circular(12),child:Image.memory(Uint8List.fromList(img.readAsBytesSync()),width:110,height:110,fit:BoxFit.cover)),
+                ClipRRect(borderRadius:BorderRadius.circular(12),child:Image.file(File(img.path),width:110,height:110,fit:BoxFit.cover)),
                 Positioned(top:3,right:3,child:CircleAvatar(radius:14,child:IconButton(padding:EdgeInsets.zero,onPressed:()=>removeImage(i),icon:const Icon(Icons.close,size:16)))),
                 Positioned(bottom:3,left:3,child:Container(padding:const EdgeInsets.symmetric(horizontal:7,vertical:3),decoration:BoxDecoration(color:Colors.black54,borderRadius:BorderRadius.circular(8)),child:Text(i==0?'عکس اصلی':'${i+1}',style:const TextStyle(color:Colors.white,fontSize:11))))
               ]));}
@@ -797,7 +798,7 @@ class _AdminPageState extends State<AdminPage>{
       final aa=await supabase.from('ads').select('idd,title,price,city,category,seller_id,publish_status,created_at').order('created_at',ascending:false).limit(100);
       final uu=await supabase.from('profiles').select('iidd,name,cphone,created_at').order('created_at',ascending:false).limit(100);
       if(r!=null){price.text=r['price'].toString();days.text=r['duration_days'].toString();limit.text=r['ad_limit'].toString();images.text=r['image_limit'].toString();card.text=r['destination_card']?.toString()??'';holder.text=r['card_holder']?.toString()??'';bank.text=r['bank_name']?.toString()??'';instructions.text=r['instructions']?.toString()??'';enabled=r['enabled']==true;}
-      if(mounted)setState(()=>{stats=Map<String,dynamic>.from(st),payments=List<Map<String,dynamic>>.from(p),ads=List<Map<String,dynamic>>.from(aa),users=List<Map<String,dynamic>>.from(uu),reports=List<Map<String,dynamic>>.from(rr),loading=false});
+      if(mounted)setState(() { stats=Map<String,dynamic>.from(st); payments=List<Map<String,dynamic>>.from(p); ads=List<Map<String,dynamic>>.from(aa); users=List<Map<String,dynamic>>.from(uu); reports=List<Map<String,dynamic>>.from(rr); loading=false; });
     }catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('پنل مدیریت: $e')));}}
   }
   Future<void> saveSettings() async {setState(()=>working=true);try{await supabase.rpc('update_subscription_settings',params:{'p_price':int.parse(price.text),'p_duration_days':int.parse(days.text),'p_ad_limit':int.parse(limit.text),'p_image_limit':int.parse(images.text),'p_destination_card':card.text.trim(),'p_card_holder':holder.text.trim(),'p_bank_name':bank.text.trim(),'p_instructions':instructions.text.trim(),'p_enabled':enabled});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تنظیمات ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تنظیمات: $e')));}finally{if(mounted)setState(()=>working=false);}}
@@ -838,7 +839,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override Widget build(BuildContext context){
     final unread=rows.where((x)=>x['read_at']==null).length;
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
-      appBar:AppBar(title:Text('اعلان‌ها${unread>0?' ($@{unread})':''}'),actions:[if(unread>0)TextButton(onPressed:markAllRead,child:const Text('همه خوانده شد'))]),
+      appBar:AppBar(title:Text('اعلان‌ها${unread>0?' ($unread)':''}'),actions:[if(unread>0)TextButton(onPressed:markAllRead,child:const Text('همه خوانده شد'))]),
       body:loading?const Center(child:CircularProgressIndicator()):rows.isEmpty?const Center(child:Text('اعلانی ندارید.')):ListView.builder(
         padding:const EdgeInsets.all(12),itemCount:rows.length,itemBuilder:(_,i){final n=rows[i];final unreadItem=n['read_at']==null;return Card(child:ListTile(
           leading:Icon(unreadItem?Icons.notifications_active:Icons.notifications_none),
