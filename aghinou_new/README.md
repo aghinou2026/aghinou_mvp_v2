@@ -1,5 +1,5 @@
-# Aghinou New Project
+# آگهینو — پروژه جدید از صفر
 
-A separate new branch for the redesigned Aghinou marketplace. The legacy main branch is intentionally left untouched.
+نسخه جدید و مستقل آگهینو. نسخه قدیمی دست‌نخورده باقی می‌ماند.
 
-Branch: aghinou-new-from-scratch
+Build pipeline فعال است و APK این نسخه از GitHub Actions ساخته می‌شود.
