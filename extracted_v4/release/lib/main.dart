@@ -106,41 +106,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> loadSubscription() async {
-    final uid = supabase.auth.currentUser?.id;
-    if (uid == null) {
-      if (mounted) setState(() => loadingSubscription = false);
-      return;
-    }
-
-    try {
-      final row = await supabase
-          .from('payments')
-          .select('subscription_expires_at')
-          .eq('user_id', uid)
-          .eq('status', 'paid')
-          .gt('subscription_expires_at', DateTime.now().toIso8601String())
-          .order('subscription_expires_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
-
-      final expiresRaw = row?['subscription_expires_at']?.toString();
-      final expires = expiresRaw == null ? null : DateTime.tryParse(expiresRaw);
-
-      if (!mounted) return;
-      setState(() {
-        subscriptionExpiresAt = expires;
-        hasActiveSubscription = expires != null && expires.isAfter(DateTime.now());
-        loadingSubscription = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => loadingSubscription = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('بررسی اشتراک انجام نشد: $e')),
-      );
-    }
+    final uid=supabase.auth.currentUser?.id;
+    if(uid==null){if(mounted)setState(()=>loadingSubscription=false);return;}
+    try{
+      final row=await supabase.from('subscriptions').select('expires_at,ads_used,ad_limit,status').eq('user_id',uid).eq('status','active').gt('expires_at',DateTime.now().toIso8601String()).order('expires_at',ascending:false).limit(1).maybeSingle();
+      final expiresRaw=row?['expires_at']?.toString();
+      final expires=expiresRaw==null?null:DateTime.tryParse(expiresRaw);
+      if(!mounted)return;
+      setState((){subscriptionExpiresAt=expires;hasActiveSubscription=expires!=null&&expires.isAfter(DateTime.now());adsUsed=(row?['ads_used'] as num?)?.toInt()??0;adLimit=(row?['ad_limit'] as num?)?.toInt()??9;loadingSubscription=false;});
+    }catch(e){if(mounted){setState(()=>loadingSubscription=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('بررسی اشتراک انجام نشد: $e')));}}
   }
-
   Future<void> loadAds() async {
     try {
       final rows = await supabase
@@ -205,13 +180,9 @@ class _HomePageState extends State<HomePage> {
         body: tab == 0
             ? home()
             : tab == 1
-                ? const Center(
-                    child: Text('علاقه‌مندی‌ها در نسخه بعدی فعال می‌شود.'),
-                  )
+                ? const FavoritesPage()
                 : tab == 2
-                    ? const Center(
-                        child: Text('پیام‌رسانی در نسخه بعدی فعال می‌شود.'),
-                      )
+                    ? const MessagesPage()
                     : account(),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: openAdd,
@@ -370,7 +341,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget account() {
     final count = myAdsCount;
-    final remaining = (9 - count).clamp(0, 9);
+    final remaining = (adLimit - adsUsed).clamp(0, adLimit);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -387,6 +358,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         const SizedBox(height: 18),
+        Card(child:ListTile(leading:const Icon(Icons.workspace_premium),title:const Text('مدیریت اشتراک'),subtitle:Text(hasActiveSubscription?'فعال تا '+(subscriptionExpiresAt?.toLocal().toString().split('.').first??''):'فعال نیست'),trailing:const Icon(Icons.chevron_left),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const SubscriptionPage())))),
         Card(
           child: ListTile(
             leading: const Icon(Icons.workspace_premium),
@@ -481,10 +453,10 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    if (myAdsCount >= 9) {
+    if (adsUsed >= adLimit) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('سهمیه ۹ آگهی این ماه تکمیل شده است.'),
+          content: Text('سهمیه آگهی این دوره تکمیل شده است.'),
         ),
       );
       return;
