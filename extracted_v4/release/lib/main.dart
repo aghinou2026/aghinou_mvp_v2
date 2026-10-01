@@ -704,25 +704,141 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
 }
 
 class AdDetailPage extends StatefulWidget {
-  final Map<String,dynamic> ad; const AdDetailPage({super.key,required this.ad});
+  final Map<String,dynamic> ad;
+  const AdDetailPage({super.key,required this.ad});
   @override State<AdDetailPage> createState()=>_AdDetailPageState();
 }
-class _AdDetailPageState extends State<AdDetailPage> {
-  bool saved=false;
+class _AdDetailPageState extends State<AdDetailPage>{
+  bool saved=false,loading=true;
+  List<Map<String,dynamic>> images=[],similar=[];
+  Map<String,dynamic>? seller;
+
   @override void initState(){super.initState();load();}
-  Future<void> load() async {final u=supabase.auth.currentUser?.id,id=widget.ad['idd']?.toString();if(u==null||id==null)return;try{final r=await supabase.from('favorites').select('ad_id').eq('user_id',u).eq('ad_id',id).maybeSingle();if(mounted)setState(()=>saved=r!=null);}catch(_){}}
-  Future<void> toggle() async {final u=supabase.auth.currentUser?.id,id=widget.ad['idd']?.toString();if(u==null||id==null)return;try{if(saved){await supabase.from('favorites').delete().eq('user_id',u).eq('ad_id',id);}else{await supabase.from('favorites').insert({'user_id':u,'ad_id':id});}if(mounted)setState(()=>saved=!saved);}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره آگهی: '+e.toString())));}}
-  Future<void> startChat() async {
-    final u=supabase.auth.currentUser?.id; final seller=widget.ad['seller_id']?.toString(); final adId=widget.ad['idd']?.toString();
-    if(u==null||seller==null||adId==null||seller==u){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('امکان شروع گفت‌وگو با این آگهی وجود ندارد.')));return;}
+  Future<void> load() async {
+    final u=supabase.auth.currentUser?.id;
+    final id=widget.ad['idd']?.toString();
+    if(id==null){if(mounted)setState(()=>loading=false);return;}
     try{
-      final existing=await supabase.from('conversations').select('id').eq('ad_id',adId).eq('buyer_id',u).eq('seller_id',seller).maybeSingle();
-      final id=existing?['id']?.toString() ?? (await supabase.from('conversations').insert({'buyer_id':u,'seller_id':seller,'ad_id':adId,'title':widget.ad['title']?.toString()??'گفت‌وگو'}).select('id').single())['id'].toString();
-      if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:id,title:widget.ad['title']?.toString()??'گفت‌وگو')));
+      await supabase.rpc('increment_ad_view',params:{'p_ad_id':id});
+      if(u!=null){
+        final fav=await supabase.from('favorites').select('ad_id').eq('user_id',u).eq('ad_id',id).maybeSingle();
+        if(mounted)setState(()=>saved=fav!=null);
+      }
+      final imgs=await supabase.from('ad_images').select('image_url').eq('ad_id',id);
+      final sellerId=widget.ad['seller_id']?.toString();
+      Map<String,dynamic>? sp;
+      if(sellerId!=null) sp=Map<String,dynamic>.from((await supabase.from('profiles').select('iidd,name,cphone,created_at').eq('iidd',sellerId).maybeSingle())??{});
+      final sims=await supabase.from('ads').select('idd,title,price,city,category').eq('category',widget.ad['category']?.toString()??'').neq('idd',id).limit(6);
+      if(mounted)setState((){images=List<Map<String,dynamic>>.from(imgs);seller=sp;similar=List<Map<String,dynamic>>.from(sims);loading=false;});
+    }catch(e){if(mounted)setState(()=>loading=false);}
+  }
+
+  Future<void> toggle() async {
+    final u=supabase.auth.currentUser?.id,id=widget.ad['idd']?.toString();
+    if(u==null||id==null)return;
+    try{
+      if(saved) await supabase.from('favorites').delete().eq('user_id',u).eq('ad_id',id);
+      else await supabase.from('favorites').insert({'user_id':u,'ad_id':id});
+      if(mounted)setState(()=>saved=!saved);
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره آگهی: '+e.toString())));}
+  }
+
+  Future<void> report() async {
+    final id=widget.ad['idd']?.toString(),u=supabase.auth.currentUser?.id;
+    if(id==null||u==null)return;
+    final reason=await showDialog<String>(context:context,builder:(_)=>SimpleDialog(
+      title:const Text('گزارش آگهی'),
+      children:['کلاهبرداری','کالای غیرقانونی','اطلاعات نادرست','قیمت نادرست','محتوای نامناسب','آگهی تکراری','سایر']
+        .map((x)=>SimpleDialogOption(onPressed:()=>Navigator.pop(context,x),child:Text(x))).toList()));
+    if(reason==null)return;
+    try{
+      await supabase.from('reports').insert({'reporter_id':u,'ad_id':id,'reason':reason});
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('گزارش شما ثبت شد.')));
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('گزارش: '+e.toString())));}
+  }
+
+  Future<void> shareAd() async {
+    final text='آگهی آگهینو: ${widget.ad['title']??''} • ${widget.ad['city']??''}';
+    await Clipboard.setData(ClipboardData(text:text));
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('متن آگهی کپی شد.')));
+  }
+
+  Future<void> startChat() async {
+    final u=supabase.auth.currentUser?.id,sellerId=widget.ad['seller_id']?.toString(),adId=widget.ad['idd']?.toString();
+    if(u==null||sellerId==null||adId==null||sellerId==u){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('امکان شروع گفت‌وگو وجود ندارد.')));return;}
+    try{
+      final ex=await supabase.from('conversations').select('id').eq('ad_id',adId).eq('buyer_id',u).eq('seller_id',sellerId).maybeSingle();
+      final cid=ex?['id']?.toString()??(await supabase.from('conversations').insert({'buyer_id':u,'seller_id':sellerId,'ad_id':adId,'title':widget.ad['title']?.toString()??'گفت‌وگو'}).select('id').single())['id'].toString();
+      if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:cid,title:widget.ad['title']?.toString()??'گفت‌وگو')));
     }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('شروع گفت‌وگو: '+e.toString())));}
   }
-  Future<void> callSeller() async { final seller=widget.ad['seller_id']?.toString(); if(seller==null)return; try{ final p=await supabase.from('profiles').select('cphone').eq('iidd',seller).maybeSingle(); final phone=p?['cphone']?.toString(); if(phone==null||phone.isEmpty){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره تماس فروشنده در دسترس نیست.')));return;} await launchUrl(Uri.parse('tel:$phone')); }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تماس: '+e.toString())));}}
-  @override Widget build(BuildContext c){final title=widget.ad['title']?.toString()??'بدون عنوان';final price=widget.ad['price']?.toString()??'توافقی';final city=widget.ad['city']?.toString()??'';final cat=widget.ad['category']?.toString()??'';final desc=widget.ad['edescription']?.toString()??'توضیحی ثبت نشده است.';return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('جزئیات آگهی'),actions:[IconButton(onPressed:toggle,icon:Icon(saved?Icons.favorite:Icons.favorite_border))]),body:ListView(padding:const EdgeInsets.all(16),children:[Text(title,style:const TextStyle(fontSize:22,fontWeight:FontWeight.bold)),const SizedBox(height:8),Text(price+' تومان',style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold)),Text(city+' • '+cat),const Divider(height:24),Text(desc),const SizedBox(height:24),FilledButton.icon(onPressed:()=>callSeller(),icon:const Icon(Icons.phone),label:const Text('تماس با فروشنده')),OutlinedButton.icon(onPressed:startChat,icon:const Icon(Icons.chat),label:const Text('پیام به فروشنده'))])));}
+
+  Future<void> callSeller() async {
+    final sellerId=widget.ad['seller_id']?.toString();
+    final phone=seller?['cphone']?.toString();
+    if(sellerId==null||phone==null||phone.isEmpty){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره تماس فروشنده در دسترس نیست.')));return;}
+    await launchUrl(Uri.parse('tel:$phone'));
+  }
+
+  @override Widget build(BuildContext c){
+    final title=widget.ad['title']?.toString()??'بدون عنوان';
+    final price=widget.ad['price']?.toString()??'توافقی';
+    final city=widget.ad['city']?.toString()??'';
+    final cat=widget.ad['category']?.toString()??'';
+    final desc=widget.ad['edescription']?.toString()??'توضیحی ثبت نشده است.';
+    final condition=widget.ad['item_condition']?.toString()??'';
+    final neighborhood=widget.ad['neighborhood']?.toString()??'';
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+      appBar:AppBar(title:const Text('جزئیات آگهی'),actions:[
+        IconButton(onPressed:shareAd,icon:const Icon(Icons.share_outlined)),
+        IconButton(onPressed:toggle,icon:Icon(saved?Icons.favorite:Icons.favorite_border)),
+      ]),
+      body:loading?const Center(child:CircularProgressIndicator()):ListView(
+        children:[
+          if(images.isNotEmpty)SizedBox(height:270,child:PageView.builder(itemCount:images.length,itemBuilder:(_,i)=>Image.network(images[i]['image_url'].toString(),fit:BoxFit.cover,errorBuilder:(_,__,___)=>const Center(child:Icon(Icons.broken_image_outlined,size:60))))),
+          Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text(title,style:const TextStyle(fontSize:23,fontWeight:FontWeight.bold)),
+            const SizedBox(height:8),
+            Text(price+' تومان',style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold)),
+            Text([city,neighborhood,cat,condition].where((x)=>x.isNotEmpty).join(' • ')),
+            const SizedBox(height:10),
+            Text('بازدید: ${widget.ad['view_count']??0}'),
+            const Divider(height:28),
+            const Text('توضیحات',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
+            const SizedBox(height:6),Text(desc),
+            const SizedBox(height:20),
+            if(seller!=null)Card(child:ListTile(
+              leading:const CircleAvatar(child:Icon(Icons.person)),
+              title:Text(seller!['name']?.toString()??'فروشنده'),
+              subtitle:Text('عضویت: ${seller!['created_at']?.toString().split('T').first??'-'}'),
+              trailing:const Icon(Icons.person_outline),
+            )),
+            const SizedBox(height:8),
+            Row(children:[
+              Expanded(child:FilledButton.icon(onPressed:callSeller,icon:const Icon(Icons.phone),label:const Text('تماس'))),
+              const SizedBox(width:8),
+              Expanded(child:OutlinedButton.icon(onPressed:startChat,icon:const Icon(Icons.chat),label:const Text('پیام'))),
+            ]),
+            const SizedBox(height:8),
+            OutlinedButton.icon(onPressed:report,icon:const Icon(Icons.flag_outlined),label:const Text('گزارش آگهی')),
+            if(similar.isNotEmpty)...[
+              const SizedBox(height:18),
+              const Text('آگهی‌های مشابه',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
+              const SizedBox(height:8),
+              SizedBox(height:145,child:ListView.separated(scrollDirection:Axis.horizontal,itemCount:similar.length,itemBuilder:(_,i){
+                final x=similar[i];
+                return SizedBox(width:190,child:Card(child:ListTile(
+                  title:Text(x['title']?.toString()??'',maxLines:2,overflow:TextOverflow.ellipsis),
+                  subtitle:Text((x['price']?.toString()??'توافقی')+' تومان\n'+(x['city']?.toString()??'')),
+                  onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>AdDetailPage(ad:x))),
+                )));
+              },separatorBuilder:(_,__)=>const SizedBox(width:8))),
+            ],
+          ])),
+        ],
+      ),
+    ));
+  }
 }
 class MessagesPage extends StatefulWidget {
   const MessagesPage({super.key});
