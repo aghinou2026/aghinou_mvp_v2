@@ -34,7 +34,6 @@ class AghinouApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'sans',
-        useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF5F8FA),
         colorScheme: const ColorScheme(
           brightness: Brightness.light,
@@ -74,12 +73,107 @@ class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
   @override State<LoginPage> createState() => _LoginPageState();
 }
+
 class _LoginPageState extends State<LoginPage> {
-  final phone = TextEditingController(); final otp = TextEditingController(); bool loading=false, codeSent=false;
-  @override void dispose(){phone.dispose();otp.dispose();super.dispose();}
-  String normalized(){final v=phone.text.trim().replaceAll(' ','').replaceAll('-','');return v.startsWith('0')?'+98'+v.substring(1):v;}
-  Future<void> sendCode() async { final v=normalized(); if(!RegExp(r'^\+98\d{10}$').hasMatch(v)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره موبایل را صحیح وارد کنید.')));return;} setState(()=>loading=true); try{await supabase.auth.signInWithOtp(phone:v,shouldCreateUser:true);if(mounted)setState(()=>codeSent=true);}on AuthException catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ارسال کد: '+e.message)));}finally{if(mounted)setState(()=>loading=false);}}
-  Future<void> verifyCode() async { final v=normalized(); final token=otp.text.trim(); if(token.length<4)return; setState(()=>loading=true); try{final r=await supabase.auth.verifyOTP(phone:v,token:token,type:OtpType.sms);final u=r.user??supabase.auth.currentUser;if(u==null)throw Exception('ورود تأیید نشد');await supabase.from('profiles').upsert({'iidd':u.id,'cphone':v,'name':'کاربر آگهینو'},onConflict:'iidd');if(mounted)Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const HomePage()));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ورود: '+e.toString())));}finally{if(mounted)setState(()=>loading=false);}}
+  final phone = TextEditingController();
+  final password = TextEditingController();
+  bool loading = false;
+
+  @override
+  void dispose() {
+    phone.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
+  String normalized() {
+    final v = phone.text.trim().replaceAll(' ', '').replaceAll('-', '');
+    return v.startsWith('0') ? '+98' + v.substring(1) : v;
+  }
+
+  Future<void> login() async {
+    final v = normalized();
+    final p = password.text;
+    if (!RegExp(r'^\+98\d{10}$').hasMatch(v)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('شماره موبایل را صحیح وارد کنید.')),
+      );
+      return;
+    }
+    if (p.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('رمز ورود باید حداقل ۶ کاراکتر باشد.')),
+      );
+      return;
+    }
+
+    setState(() => loading = true);
+    try {
+      final r = await supabase.auth.signInWithPassword(phone: v, password: p);
+      final u = r.user;
+      if (u == null) throw Exception('ورود انجام نشد.');
+      await supabase.from('profiles').upsert({
+        'iidd': u.id,
+        'cphone': v,
+        'name': 'کاربر آگهینو',
+      }, onConflict: 'iidd');
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+      }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ورود: ${e.message}')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ورود انجام نشد: ${e}')));
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  Future<void> register() async {
+    final v = normalized();
+    final p = password.text;
+    if (!RegExp(r'^\+98\d{10}$').hasMatch(v)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('شماره موبایل را صحیح وارد کنید.')),
+      );
+      return;
+    }
+    if (p.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('رمز ورود باید حداقل ۶ کاراکتر باشد.')),
+      );
+      return;
+    }
+
+    setState(() => loading = true);
+    try {
+      final r = await supabase.auth.signUp(phone: v, password: p);
+      final u = r.user;
+      if (u == null) throw Exception('ساخت حساب انجام نشد.');
+      if (r.session == null) {
+        throw Exception('حساب ساخته شد، اما تأیید شماره تلفن فعال است. در تنظیمات Auth باید تأیید شماره تلفن خاموش باشد.');
+      }
+      await supabase.from('profiles').upsert({
+        'iidd': u.id,
+        'cphone': v,
+        'name': 'کاربر آگهینو',
+      }, onConflict: 'iidd');
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+      }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ثبت‌نام: ${e.message}')));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ثبت‌نام انجام نشد: ${e}')));
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext c) {
     return Directionality(
@@ -109,10 +203,21 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 6),
                 const Text('بازار ساده، امن و حرفه‌ای', style: TextStyle(color: Color(0xFF60727A), fontSize: 14)),
                 const SizedBox(height: 30),
-                TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره موبایل', hintText: '09121234567', border: OutlineInputBorder())),
-                if (codeSent) TextField(controller: otp, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'کد تأیید', border: OutlineInputBorder())),
+                TextField(
+                  controller: phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(labelText: 'شماره موبایل', hintText: '09121234567', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: password,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'رمز ورود', hintText: 'حداقل ۶ کاراکتر', border: OutlineInputBorder()),
+                ),
                 const SizedBox(height: 16),
-                SizedBox(width: double.infinity, child: FilledButton(onPressed: loading ? null : (codeSent ? verifyCode : sendCode), child: Text(codeSent ? 'تأیید و ورود' : 'ارسال کد'))),
+                SizedBox(width: double.infinity, child: FilledButton(onPressed: loading ? null : login, child: Text(loading ? 'در حال ورود...' : 'ورود'))),
+                const SizedBox(height: 8),
+                SizedBox(width: double.infinity, child: OutlinedButton(onPressed: loading ? null : register, child: const Text('ساخت حساب جدید'))),
               ],
             ),
           ),
@@ -120,7 +225,9 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-}class HomePage extends StatefulWidget {
+}
+
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
