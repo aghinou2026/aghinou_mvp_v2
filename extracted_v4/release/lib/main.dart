@@ -287,7 +287,7 @@ String normalizePersian(String value) {
       .replaceAll('ة', 'ه')
       .replaceAll('ۀ', 'ه')
       .replaceAll(RegExp(r'[\u064B-\u065F\u0670]'), '')
-      .replaceAll(RegExp(r'\\s+'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
       .trim();
 }
 
