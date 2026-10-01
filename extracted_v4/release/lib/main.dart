@@ -669,76 +669,42 @@ class AdminPage extends StatefulWidget {
 }
 class _AdminPageState extends State<AdminPage>{
   bool loading=true,working=false;
-  List<Map<String,dynamic>> payments=[];
+  List<Map<String,dynamic>> payments=[],ads=[],users=[];
   Map<String,dynamic>? stats;
-  final price=TextEditingController(),days=TextEditingController(),limit=TextEditingController(),images=TextEditingController(),card=TextEditingController(),holder=TextEditingController(),bank=TextEditingController(),instructions=TextEditingController();
+  final price=TextEditingController(),days=TextEditingController(),limit=TextEditingController(),images=TextEditingController(),card=TextEditingController(),holder=TextEditingController(),bank=TextEditingController(),instructions=TextEditingController(),userSearch=TextEditingController(),adSearch=TextEditingController();
   bool enabled=true;
   @override void initState(){super.initState();load();}
-  @override void dispose(){for(final c in [price,days,limit,images,card,holder,bank,instructions])c.dispose();super.dispose();}
+  @override void dispose(){for(final c in [price,days,limit,images,card,holder,bank,instructions,userSearch,adSearch])c.dispose();super.dispose();}
   Future<void> load() async {
     try{
       final r=await supabase.from('subscription_settings').select('*').eq('id',true).maybeSingle();
       final p=await supabase.from('payments').select('id,user_id,amount,status,payment_note,payment_code,created_at').inFilter('status',['pending','checking']).order('created_at',ascending:false);
       final st=await supabase.rpc('admin_dashboard_stats');
+      final aa=await supabase.from('ads').select('idd,title,price,city,category,seller_id,publish_status,created_at').order('created_at',ascending:false).limit(100);
+      final uu=await supabase.from('profiles').select('iidd,name,cphone,created_at').order('created_at',ascending:false).limit(100);
       if(r!=null){price.text=r['price'].toString();days.text=r['duration_days'].toString();limit.text=r['ad_limit'].toString();images.text=r['image_limit'].toString();card.text=r['destination_card']?.toString()??'';holder.text=r['card_holder']?.toString()??'';bank.text=r['bank_name']?.toString()??'';instructions.text=r['instructions']?.toString()??'';enabled=r['enabled']==true;}
-      if(mounted)setState(()=>{stats=Map<String,dynamic>.from(st),payments=List<Map<String,dynamic>>.from(p),loading=false});
+      if(mounted)setState(()=>{stats=Map<String,dynamic>.from(st),payments=List<Map<String,dynamic>>.from(p),ads=List<Map<String,dynamic>>.from(aa),users=List<Map<String,dynamic>>.from(uu),loading=false});
     }catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('پنل مدیریت: $e')));}}
   }
-  Future<void> saveSettings() async {
-    setState(()=>working=true);
-    try{
-      await supabase.rpc('update_subscription_settings',params:{
-        'p_price':int.parse(price.text),'p_duration_days':int.parse(days.text),'p_ad_limit':int.parse(limit.text),'p_image_limit':int.parse(images.text),
-        'p_destination_card':card.text.trim(),'p_card_holder':holder.text.trim(),'p_bank_name':bank.text.trim(),'p_instructions':instructions.text.trim(),'p_enabled':enabled
-      });
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تنظیمات ذخیره شد.')));
-    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تنظیمات: $e')));}
-    finally{if(mounted)setState(()=>working=false);}
-  }
-  Future<void> decide(String id,bool approve) async {
-    if(working)return;setState(()=>working=true);
-    try{await supabase.rpc('confirm_payment',params:{'p_payment_id':id,'p_approve':approve,'p_reason':approve?null:'تأیید نشد توسط مدیر'});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(approve?'پرداخت تأیید و اشتراک فعال شد.':'پرداخت رد شد.')));await load();}}
-    catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('عملیات: $e')));}
-    finally{if(mounted)setState(()=>working=false);}
-  }
+  Future<void> saveSettings() async {setState(()=>working=true);try{await supabase.rpc('update_subscription_settings',params:{'p_price':int.parse(price.text),'p_duration_days':int.parse(days.text),'p_ad_limit':int.parse(limit.text),'p_image_limit':int.parse(images.text),'p_destination_card':card.text.trim(),'p_card_holder':holder.text.trim(),'p_bank_name':bank.text.trim(),'p_instructions':instructions.text.trim(),'p_enabled':enabled});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تنظیمات ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تنظیمات: $e')));}finally{if(mounted)setState(()=>working=false);}}
+  Future<void> decide(String id,bool approve) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('confirm_payment',params:{'p_payment_id':id,'p_approve':approve,'p_reason':approve?null:'تأیید نشد توسط مدیر'});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(approve?'پرداخت تأیید و اشتراک فعال شد.':'پرداخت رد شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('عملیات: $e')));}finally{if(mounted)setState(()=>working=false);}}
+  Future<void> deleteAd(String id) async {if(working)return;setState(()=>working=true);try{await supabase.from('ads').delete().eq('idd',id);if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی حذف شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی: $e')));}finally{if(mounted)setState(()=>working=false);}}
   Widget field(TextEditingController c,String label,{TextInputType type=TextInputType.text})=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:c,keyboardType:type,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
-  Widget stat(String label,dynamic value,IconData icon)=>Expanded(child:Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(children:[Icon(icon,size:25),const SizedBox(height:5),Text(value?.toString()??'0',style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold)),Text(label)]))));
+  Widget stat(String label,dynamic value,IconData icon)=>Expanded(child:Card(child:Padding(padding:const EdgeInsets.all(10),child:Column(children:[Icon(icon,size:24),Text(value?.toString()??'0',style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold)),Text(label)]))));
   @override Widget build(BuildContext context){
     if(loading)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:CircularProgressIndicator())));
-    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
-      appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),
-      body:ListView(padding:const EdgeInsets.all(12),children:[
-        const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),
-        const SizedBox(height:8),
-        Row(children:[stat('کاربران',stats?['users'],Icons.people_outline),stat('آگهی‌ها',stats?['ads'],Icons.list_alt_outlined)]),
-        Row(children:[stat('آگهی فعال',stats?['active_ads'],Icons.check_circle_outline),stat('اشتراک فعال',stats?['subscriptions'],Icons.card_membership_outlined)]),
-        Row(children:[stat('پرداخت موفق',stats?['paid_payments'],Icons.payments_outlined),stat('درآمد',stats?['revenue'],Icons.account_balance_wallet_outlined)]),
-        Row(children:[stat('گزارش‌ها',stats?['reports'],Icons.flag_outlined),stat('پیام‌ها',stats?['messages'],Icons.chat_outlined)]),
-        const SizedBox(height:12),
-        Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          const Text('تنظیمات اشتراک و کارت‌به‌کارت',style:TextStyle(fontSize:19,fontWeight:FontWeight.bold)),
-          const SizedBox(height:12),
-          field(price,'قیمت اشتراک (تومان)',type:TextInputType.number),field(days,'مدت اعتبار (روز)',type:TextInputType.number),field(limit,'سهمیه آگهی',type:TextInputType.number),field(images,'حداکثر عکس',type:TextInputType.number),
-          field(card,'شماره کارت مقصد'),field(holder,'نام صاحب کارت'),field(bank,'نام بانک'),field(instructions,'توضیحات پرداخت'),
-          SwitchListTile(value:enabled,onChanged:(v)=>setState(()=>enabled=v),title:const Text('فعال بودن فروش اشتراک')),
-          FilledButton(onPressed:working?null:saveSettings,child:const Text('ذخیره تنظیمات')),
-        ]))),
-        const SizedBox(height:12),
-        Card(child:ListTile(leading:const Icon(Icons.payments_outlined),title:const Text('پرداخت‌های در انتظار'),subtitle:Text('${payments.length} پرداخت برای بررسی'))),
-        if(payments.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Text('پرداخت در انتظار بررسی وجود ندارد.')),
-        ...payments.map((p)=>Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          Text('مبلغ: ${p['amount']??'-'} تومان',style:const TextStyle(fontWeight:FontWeight.bold)),
-          Text('کد پرداخت: ${p['payment_code']??'-'}'),Text('توضیح: ${p['payment_note']??'-'}'),
-          const SizedBox(height:8),Row(children:[
-            Expanded(child:FilledButton.icon(onPressed:working?null:()=>decide(p['id'].toString(),true),icon:const Icon(Icons.check),label:const Text('تأیید'))),
-            const SizedBox(width:8),Expanded(child:OutlinedButton.icon(onPressed:working?null:()=>decide(p['id'].toString(),false),icon:const Icon(Icons.close),label:const Text('رد'))),
-          ])
-        ])))),
-      ])
-    ));
+    final uq=userSearch.text.trim().toLowerCase(),aq=adSearch.text.trim().toLowerCase();
+    final fu=users.where((x)=>uq.isEmpty||x['name'].toString().toLowerCase().contains(uq)||x['cphone'].toString().contains(uq)).toList();
+    final fa=ads.where((x)=>aq.isEmpty||x['title'].toString().toLowerCase().contains(aq)||x['city'].toString().toLowerCase().contains(aq)).toList();
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),body:ListView(padding:const EdgeInsets.all(12),children:[
+      const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),Row(children:[stat('کاربران',stats?['users'],Icons.people),stat('آگهی‌ها',stats?['ads'],Icons.list_alt)]),Row(children:[stat('پرداخت موفق',stats?['paid_payments'],Icons.payments),stat('درآمد',stats?['revenue'],Icons.account_balance_wallet)]),
+      ExpansionTile(title:const Text('تنظیمات اشتراک و کارت‌به‌کارت'),children:[Padding(padding:const EdgeInsets.all(12),child:Column(children:[field(price,'قیمت اشتراک',type:TextInputType.number),field(days,'مدت (روز)',type:TextInputType.number),field(limit,'سهمیه آگهی',type:TextInputType.number),field(images,'حداکثر عکس',type:TextInputType.number),field(card,'شماره کارت مقصد'),field(holder,'صاحب کارت'),field(bank,'بانک'),field(instructions,'توضیحات'),SwitchListTile(value:enabled,onChanged:(v)=>setState(()=>enabled=v),title:const Text('فروش اشتراک فعال باشد')),FilledButton(onPressed:working?null:saveSettings,child:const Text('ذخیره'))]))]),
+      ExpansionTile(title:Text('مدیریت کاربران (${fu.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text(u['name']?.toString()??'کاربر'),subtitle:Text(u['cphone']?.toString()??'-')))]),
+      ExpansionTile(title:Text('مدیریت آگهی‌ها (${fa.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:adSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'عنوان یا شهر',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fa.take(50).map((ad)=>ListTile(title:Text(ad['title']?.toString()??'بدون عنوان'),subtitle:Text('${ad['city']??''} • ${ad['category']??''} • ${ad['price']??'توافقی'} تومان'),trailing:IconButton(icon:const Icon(Icons.delete_outline),onPressed:working?null:()=>deleteAd(ad['idd'].toString()))))]),
+      ExpansionTile(title:Text('پرداخت‌های در انتظار (${payments.length})'),children:[...payments.map((p)=>Card(child:ListTile(title:Text('${p['amount']??'-'} تومان'),subtitle:Text('کد: ${p['payment_code']??'-'}'),trailing:Wrap(children:[IconButton(onPressed:working?null:()=>decide(p['id'].toString(),true),icon:const Icon(Icons.check)),IconButton(onPressed:working?null:()=>decide(p['id'].toString(),false),icon:const Icon(Icons.close))]))))]),
+    ])));
   }
-}
-class FavoritesPage extends StatefulWidget {
+}class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
   @override State<FavoritesPage> createState() => _FavoritesPageState();
 }
