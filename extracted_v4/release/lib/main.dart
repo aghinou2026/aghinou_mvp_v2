@@ -139,7 +139,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final rows = await supabase
           .from('ads')
-          .select('*, ad_images(image_url)')
+          .select('*, ad_images(image_url,sort_order,is_primary)')
           .eq('publish_status', 'published')
           .order('created_at', ascending: false);
 
@@ -623,7 +623,7 @@ class _AddAdPageState extends State<AddAdPage>{
         await supabase.storage.from('ad-images').uploadBinary(path,bytes,fileOptions:FileOptions(
           contentType:safe=='png'?'image/png':safe=='webp'?'image/webp':'image/jpeg'));
         uploadedPaths.add(path);
-        await supabase.from('ad_images').insert({'ad_id':createdAdId,'image_url':supabase.storage.from('ad-images').getPublicUrl(path)});
+        await supabase.from('ad_images').insert({'ad_id':createdAdId,'image_url':supabase.storage.from('ad-images').getPublicUrl(path),'sort_order':i,'is_primary':i==0});
       }
       await widget.onPublished();
       if(mounted){
