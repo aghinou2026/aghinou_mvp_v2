@@ -23,6 +23,8 @@ Future<void> main() async {
 
 final supabase = Supabase.instance.client;
 
+const Map<String, List<String>> iranProvinceCities = {"اردبيل":["اصلاندوز","آبی بیگلو","بیله سوار","پارس آباد","تازه کند","تازه کندانگوت","جعفرآباد","خلخال","رضی","سرعین","عنبران","فخرآباد","کلور","کوراییم","گرمی","گیوی","لاهرود","مرادلو","مشگین شهر","نمین","نیر","هشتجین","هیر"],"اصفهان":["ابریشم","ابوزیدآباد","اردستان","اژیه","اصفهان","افوس","انارک","ایمانشهر","آران وبیدگل","بادرود","باغ بهادران","بافران","برزک","برف انبار","بوئین ومیاندشت","بهاران شهر","بهارستان","پیربکران","تودشک","تیران","جندق","جوزدان","جوشقان وکامو","چادگان","چرمهین","چمگردان","حبیب آباد","حسن آباد","حنا","خالدآباد","خمینی شهر","خوانسار","خور","خوراسگان","خورزوق","داران","دامنه","درچه پیاز","دستگرد","دولت آباد","دهاقان","دهق","دیزیچه","رزوه","رضوانشهر","زاینده رود","زرین شهر","زواره","زیباشهر","سده لنجان","سفیدشهر","سگزی","سمیرم","شاپورآباد","شاهین شهر","شهرضا","طالخونچه","عسگران","علویچه","فرخی","فریدونشهر","فلاورجان","فولادشهر","قمصر","قهجاورستان","قهدریجان","کاشان","کرکوند","کلیشادوسودرجان","کمشچه","کمه","کوشک","کوهپايه","کهریزسنگ","گرگاب","گزبرخوار","گلپایگان","گلدشت","گلشن","گلشهر","گوگد","لای بید","مبارکه","محمدآباد","مشکات","منظریه","مهاباد","میمه","نائین","نجف آباد","نصرآباد","نطنز","نوش آباد","نیاسر","نیک آباد","ورزنه","ورنامخواست","وزوان","ونک","هرند"],"البرز":["اشتهارد","آسارا","تنکمان","چهارباغ","سیف آباد","شهرجدید هشتگرد","طالقان","کرج","کمال شهر","کوهسار","گرمدره","ماهدشت","محمدشهر","مشكين دشت","نظرآباد","هشتگرد"],"ايلام":["ارکواز","ایلام","ایوان","آبدانان","آسمان آباد","بدره","پهله","توحید","چوار","دره شهر","دلگشا","دهلران","زرنه","سراب باغ","سرابله","صالح آباد","لومار","مورموری","موسیان","مهران","میمه"],"آذربايجان شرقي":["اسکو","اهر","ايلخچی","آبش احمد","آذرشهر","آقکند","باسمنج","بخشایش","بستان آباد","بناب","بناب جدید","تبریز","ترک","ترکمانچای","تسوج","تيكمه داش","جلفا","خاروانا","خامنه","خراجو","خسروشهر","خمارلو","خواجه","دوزدوزان","زرنق","زنوز","سراب","سردرود","سيس","سيه رود","شبستر","شربيان","شرفخانه","شندآباد","شهرجدیدسهند","صوفيان","عجب شير","قره آغاج","كشكسرای","كلوانق","كليبر","كوزه كنان","گوگان","ليلان","مراغه","مرند","ملكان","ممقان","مهربان","ميانه","نظركهريزي","وايقان","ورزقان","هاديشهر","هريس","هشترود","هوراند","يامچی"],"آذربايجان غربي":["ارومیه","اشنویه","ایواوغلی","آواجیق","باروق","بازرگان","بوکان","پلدشت","پیرانشهر","تازه شهر","تکاب","چهاربرج","خلیفان","خوی","دیزج دیز","ربط","سردشت","سرو","سلماس","سیلوانه","سیمینه","سیه چشمه","شاهین دژ","شوط","فیرورق","قره ضیاءالدین","قطور","قوشچی","کشاورز","گردکشانه","ماکو","محمدیار","محمودآباد","مهاباد","میاندوآب","میرآباد","نالوس","نقده","نوشین"],"بوشهر":["امام حسن","انارستان","اهرم","آبپخش","آبدان","برازجان","بردخون","بردستان","بندردير","بندرديلم","بندرريگ","بندركنگان","بندرگناوه","بنک","بوشهر","تنگ ارم","جم","چغادک","خارک","خورموج","دالکی","دلوار","ریز","سعدآباد","سیراف","شبانکاره","شنبه","عسلویه","کاکی","کلمه","نخل تقی","وحدتیه"],"تهران":["ارجمند","اسلامشهر","انديشه","آبسرد","آبعلي","باغستان","باقرشهر","بومهن","پاكدشت","پرديس","پيشوا","تجريش","تهران","جوادآباد","چهاردانگه","حسن آباد","دماوند","رباط كريم","رودهن","ري","شاهدشهر","شريف آباد","شهريار","صالح آباد","صباشهر","صفادشت","فردوسيه","فرون آباد","فشم","فيروزكوه","قدس","قرچك","كهريزك","كيلان","گلستان","لواسان","ملارد","نسيم شهر","نصيرآباد","وحيديه","ورامين"],"چهارمحال و بختياري":["اردل","آلونی","باباحیدر","بروجن","بلداجی","بن","جونقان","چلگرد","سامان","سفیددشت","سودجان","سورشجان","شلمزار","شهرکرد","طاقانک","فارسان","فرادنبه","فرخ شهر","کیان","گندمان","گهرو","لردگان","مال خلیفه","ناغان","نافچ","نقنه","هفشجان"],"خراسان جنوبي":["ارسک","اسديه","اسفدن","اسلاميه","آرين شهر","آیسک","بشرويه","بيرجند","حاجي آباد","خضري دشت بياض","خوسف","زهان","سرايان","سربيشه","سه قلعه","شوسف","طبس مسينا","فردوس","قائن","قهستان","گزیک","محمد شهر","مود","نهبندان","نیمبلوک"],"خراسان رضوي":["احمد‌آبادصولت","انابد","باجگیران","باخرز","بار","بایگ","بجستان","بردسکن","بیدخت","تایباد","تربت جام","تربت حیدریه","جغتای","جنگل","چاپشلو","چکنه","چناران","خرو","خلیل‌آباد","خواف","داورزن","درگز","درود","دولت‌آباد","رباط سنگ","رشتخوار","رضویه","روداب","ریوش","سبزوار","سرخس","سفیدسنگ","سلامی","سلطان‌آباد","سنگان","شادمهر","شاندیز","ششتمد","شهرآباد","شهرزو","صالح‌آباد","طرقبه","عشق‌آباد","فرهادگرد","فریمان","فیروزه","فیض‌آباد","قاسم‌آباد","قدمگاه","قلندرآباد","قوچان","کاخک","کاریز","کاشمر","کدکن","کلات","کندر","گلمکان","گناباد","لطف‌آباد","مزدآوند","مشهد","مشهدریزه","ملک‌آباد","نشتیفان","نصرآباد","نقاب","نوخندان","نیشابور","نیل‌شهر","همت‌آباد","یونسی"],"خراسان شمالي":["اسفراين","ايور","آشخانه","بجنورد","پيش قلعه","تيتكانلو","جاجرم","حصارگرمخان","درق","راز","سنخواست","شوقان","شيروان","صفي آباد","فاروج","قاضي","گرمه","لوجلی"],"خوزستان":["اروندکنار","الوان","امیدیه","اندیمشک","اهواز","ایذه","آبادان","آغاجاری","باغ ملک","بستان","بندرامام خمینی","بندرماهشهر","بهبهان","ترکالکی","جایزان","جنت مکان","چغامیش","چمران","چوئبده","حر","حسینیه","حمزه","حمیدیه","خرمشهر","دارخوین","دزآب","دزفول","دهدز","رامشیر","رامهرمز","رفیع","زهره","سالند","سردشت","سماله","سوسنگرد","شادگان","شاوور","شرافت","شوش","شوشتر","شیبان","صالح‌شهر","صالح مشطط","صفی‌آباد","صیدون","قلعه‌تل","قلعه‌خواجه","گتوند","گوریه","لالی","مسجدسلیمان","مشراگه","مقاومت","ملاثانی","میانرود","میداود","مینوشهر","ویس","هفتگل","هندیجان","هویزه"],"زنجان":["ابهر","ارمغانخانه","آب بر","چورزق","حلب","خرمدره","دندی","زرین آباد","زرین رود","زنجان","سجاس","سلطانیه","سهرورد","صائین قلعه","قیدار","گرماب","ماه نشان","هیدج"],"سمنان":["امیریه","ایوانکی","آرادان","بسطام","بیارجمند","دامغان","درجزین","دیباج","سرخه","سمنان","شاهرود","شهمیرزاد","کلاته خیج","گرمسار","مجن","مهدی شهر","میامی"],"سيستان وبلوچستان":["ادیمی","اسپکه","ایرانشهر","بزمان","بمپور","بنت","بنجار","پیشین","جالق","چاه بهار","خاش","دوست محمد","راسک","زابل","زابلی","زاهدان","زرآباد","زهک","سراوان","سرباز","سوران","سیرکان","علی اکبر","فنوج","قصرقند","کنارک","گشت","گلمورتی","محمدان","محمد آباد","محمدی","میرجاوه","نصرت آباد","نگور","نوک آباد","نیک شهر","هیدوج"],"فارس":["اردکان","ارسنجان","استهبان","اسیر","اشکنان","افزر","اقلید","امام شهر","اوز","اهل","ایج","ایزدخواست","آباده","آباده طشک","باب انار","بالاده","بنارویه","بوانات","بهمن","بیرم","بیضا","جنت شهر","جویم","جهرم","حاجی آباد","حسامی","حسن آباد","خانه زنیان","خاوران","خرامه","خشت","خنج","خور","خومه زار","داراب","داریان","دبیران","دژکرد","دوبرجی","دوزه","دهرم","رامجرد","رونیز","زاهدشهر","زرقان","سده","سروستان","سعادت شهر","سورمق","سیدان","ششده","شهر جدید صدرا","شهرپیر","شیراز","صغاد","صفاشهر","علامرودشت","عمادده","فدامی","فراشبند","فسا","فیروزآباد","قادرآباد","قائمیه","قطب آباد","قطرویه","قیر","کارزین","کازرون","کامفیروز","کره ای","کنارتخته","کوار","کوهنجان","گراش","گله دار","لار","لامرد","لپوئی","لطیفی","مبارک آباد","مرودشت","مشکان","مصیری","مهر","میمند","نوبندگان","نوجین","نودان","نورآباد","نی ریز","وراوی","هماشهر"],"قزوين":["ارداق","اسفرورین","اقبالیه","الوند","آبگرم","آبیک","آوج","بوئین زهرا","بیدستان","تاکستان","خاکعلی","خرمدشت","دانسفهان","رازمیان","سگزآباد","سیردان","شال","شریفیه","ضیاءآباد","قزوین","کوهین","محمدیه","محمودآبادنمونه","معلم کلايه","نرجه"],"قم":["جعفریه","دستجرد","سلفچگان","قم","قنوات","کهک"],"كردستان":["آرمرده","بابارشانی","بانه","بلبان آباد","بوئین سفلی","بیجار","چناره","دزج","دلبران","دهگلان","دیواندره","زرینه","سروآباد","سریش آباد","سقز","سنندج","شویشه","صاحب","قروه","کامیاران","کانی دینار","کانی سور","مریوان","موچش","یاسوکند"],"کرمان":["اختیارآباد","ارزوئیه","امین شهر","انار","اندوهجرد","باغین","بافت","بردسیر","بروات","بزنجان","بم","بهرمان","پاریز","جبالبارز","جوپار","جوزم","جیرفت","چترود","خاتون آباد","خانوک","خورسند","درب بهشت","دوساری","دهج","رابر","راور","راین","رفسنجان","رودبار","ریحان شهر","زرند","زنگی آباد","زیدآباد","سرچشمه","سیرجان","شهداد","شهربابک","صفائیه","عنبرآباد","فاریاب","فهرج","قلعه گنج","کاظم آباد","کرمان","کشکوئیه","کوهبنان","کهنوج","کیانشهر","گلباف","گلزار","لاله زار","ماهان","محمد آباد","محی آباد","مردهک","منوجان","نجف شهر","نرماشیر","نظام شهر","نگار","نودژ","هجدک","هماشهر","یزدان شهر"],"کرمانشاه":["ازگله","اسلام‌آبادغرب","باینگان","بیستون","پاوه","تازه‌آباد","جوانرود","حمیل","رباط","روانسر","سرپل‌ذهاب","سرمست","سطر","سنقر","سومار","شاهو","صحنه","قصرشیرین","کرمانشاه","کرندغرب","کنگاور","کوزران","گهواره","گیلان غرب","میان‌راهان","نودشه","نوسود","هرسین","هلشی"],"کهگلویه و بويراحمد":["باشت","پاتاوه","چرام","چیتاب","دوگنبدان","دهدشت","دیشموک","سوق","سی‌سخت","قلعه‌رئیسی","گراب‌سفلی","لنده","لیکک","مادوان","مارگون","یاسوج"],"گلستان":["انبارآلوم","اینچه برون","آزادشهر","آق‌قلا","بندرگز","ترکمن","جلین","خان‌ببین","دلند","رامیان","سرخنکلاته","سیمین‌شهر","علی‌آباد","فاضل‌آباد","کردکوی","کلاله","گالیکش","گرگان","گمیش‌تپه","گنبدکاووس","مراوه‌تپه","مینودشت","نگین‌شهر","نوده‌خاندوز"],"گيلان":["احمدسرگوراب","اسالم","اطاقور","املش","آستارا","آستانه اشرفیه","بازارجمعه","بره سر","بندرانزلی","پره سر","توتکابن","جیرنده","چابکسر","چاف وچمخاله","چوبر","حویق","خشکبیجار","خمام","دیلمان","رانکوه","رحیم آباد","رستم آباد","رشت","رضوانشهر","رودبار","رودبنه","رودسر","سنگر","سیاهکل","شفت","شلمان","صومعه سرا","فومن","کلاچای","کوچصفهان","کومله","کیاشهر","گوراب زرمیخ","لاهیجان","لشت نشاء","لنگرود","لوشان","لولمان","لوندویل","لیسار","ماسال","ماسوله","مرجقل","منجیل","واجارگاه","هشتپر"],"لرستان":["ازنا","اشترینان","الشتر","الیگودرز","بروجرد","پلدختر","چالانچولان","چغلوندی","چقابل","خرم آباد","درب گنبد","دورود","زاغه","سپیددشت","سراب دوره","شول آباد","فیروز آباد","کونانی","کوهدشت","گراب","معمولان","مؤمن آباد","نور آباد","ویسیان","هفت چشمه"],"مازندران":["امیرکلا","ایزدشهر","آلاشت","آمل","بابل","بابلسر","بلده","بهشهر","بهنمیر","پل سفید","پول","تنکابن","جویبار","چالوس","چمستان","خرم آباد","خلیل شهر","خوش رودپی","دابودشت","رامسر","رستمکلا","رویان","رینه","زرگر محله","زیرآب","ساری","سرخرود","سلمان شهر","سورک","شیرگاه","شیرود","عباس آباد","فریدونکنار","فریم","قائم شهر","کتالم وسادات شهر","کلارآباد","کلاردشت","کله بست","کوهی خیل","کیاسر","کیاکلا","گتاب","گزنک","گلوگاه","محمود آباد","مرزن آباد","مرزیکلا","نشتارود","نکا","نور"],"مركزي":["اراک","آستانه","آشتیان","پرندک","تفرش","توره","جاورسیان","خشکرود","خمین","خنداب","داودآباد","دلیجان","رازقان","زاویه","ساروق","ساوه","سنجان","شازند","شهرجدیدمهاجران","غرق آباد","فرمهین","قورچی باشی","کرهرود","کمیجان","مأمونیه","محلات","میلاجرد","نراق","نوبران","نیمور","هندودر"],"هرمزگان":["ابوموسی","بستک","بندرجاسک","بندرچارک","بندرعباس","بندرلنگه","بیکاه","پارسیان","تخت","جناح","حاجی آباد","خمیر","درگهان","دهبارز","رویدر","زیارتعلی","سردشت بشاگرد","سرگز","سندرک","سوزا","سیریک","فارغان","فین","قشم","قلعه قاضی","کنگ","کوشکنار","کیش","گوهران","میناب","هرمز","هشتبندی"],"همدان":["ازندریان","اسدآباد","برزول","بهار","تویسرکان","جورقان","جوکار","دمق","رزن","زنگنه","سامن","سرکان","شیرین سو","صالح آباد","فامنین","فرسفج","فیروزان","قروه در جزین","قهاوند","کبودرآهنگ","گل تپه","گیان","لالجین","مریانج","ملایر","نهاوند","همدان"],"يزد":["ابرکوه","احمدآباد","اردکان","اشکذر","بافق","بفروئیه","بهاباد","تفت","حمیدیا","خضرآباد","دیهوک","زارچ","شاهدیه","طبس","عشق‌آباد","عقدا","مروست","مهردشت","مهریز","میبد","ندوشن","نیر","هرات","یزد"]};
+
 class AghinouApp extends StatelessWidget {
   const AghinouApp({super.key});
 
@@ -227,6 +229,27 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+class HomeCategoryData {
+  static const Map<String,List<String>> categorySubs={
+    'خودرو':['سواری','شاسی‌بلند','وانت','موتورسیکلت'],
+    'املاک':['آپارتمان','خانه و ویلا','زمین','مغازه و تجاری'],
+    'موبایل و تبلت':['موبایل','تبلت','لوازم جانبی'],
+    'لوازم دیجیتال':['لپ‌تاپ','کامپیوتر','تلویزیون','دوربین'],
+    'لوازم خانگی':['یخچال و فریزر','لباسشویی','اجاق و گاز','کولر و تهویه'],
+    'مبلمان و دکوراسیون':['مبل','میز و صندلی','تخت و سرویس خواب','دکوراسیون'],
+    'پوشاک و کیف و کفش':['لباس زنانه','لباس مردانه','کیف','کفش'],
+    'وسایل نقلیه':['دوچرخه','قایق','قطعات و لوازم'],
+    'خدمات':['فنی و تعمیرات','نظافت','آموزش','حمل و نقل'],
+    'استخدام و کاریابی':['تمام‌وقت','پاره‌وقت','دورکاری','کارآموزی'],
+    'لوازم شخصی':['ساعت و اکسسوری','زیورآلات','عینک'],
+    'سرگرمی و ورزش':['ورزش','کتاب','بازی و کنسول','آلات موسیقی'],
+    'کشاورزی و دامداری':['دام','طیور','ماشین‌آلات کشاورزی','محصولات کشاورزی'],
+    'ابزار و تجهیزات':['ابزار دستی','ابزار برقی','تجهیزات کارگاهی','تجهیزات ایمنی'],
+    'حیوانات':['سگ','گربه','پرندگان','آبزیان'],
+    'سایر':['متفرقه'],
+  };
+  static List<String> subsFor(String category)=>categorySubs[category]??const [];
+}
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -246,6 +269,7 @@ class _HomePageState extends State<HomePage> {
   String searchQuery = '';
   String? selectedCategory;
   String? selectedSubcategory;
+  String? selectedProvince;
   String? selectedCity;
   Map<String, List<String>> categorySubs = {};
   String sortMode = 'newest';
@@ -374,13 +398,14 @@ class _HomePageState extends State<HomePage> {
     final result = ads.where((ad) {
       final categoryOk = selectedCategory == null || '${ad['category'] ?? ''}' == selectedCategory;
       final subcategoryOk = selectedSubcategory == null || '${ad['subcategory'] ?? ''}' == selectedSubcategory;
-      final cityOk = selectedCity == null || '${ad['city'] ?? ''}' == selectedCity;
+      final provinceOk = selectedProvince == null || '${ad['province'] ?? ''}' == selectedProvince;
+    final cityOk = selectedCity == null || '${ad['city'] ?? ''}' == selectedCity;
       final price = (ad['price'] as num?)?.toInt();
       final minOk = minPrice == null || (price != null && price >= minPrice!);
       final maxOk = maxPrice == null || (price != null && price <= maxPrice!);
       final text = normalizeFa('${ad['title'] ?? ''} ${ad['edescription'] ?? ''} ${ad['city'] ?? ''} ${ad['category'] ?? ''}');
       final searchOk = q.isEmpty || text.contains(q);
-      return categoryOk && subcategoryOk && cityOk && minOk && maxOk && searchOk;
+      return categoryOk && subcategoryOk && provinceOk && cityOk && minOk && maxOk && searchOk;
     }).toList();
     if(sortMode=='cheapest') result.sort((a,b)=>((a['price'] as num?)??0).compareTo((b['price'] as num?)??0));
     if(sortMode=='expensive') result.sort((a,b)=>((b['price'] as num?)??0).compareTo((a['price'] as num?)??0));
@@ -807,14 +832,19 @@ class EditAdPage extends StatefulWidget{
   @override State<EditAdPage> createState()=>_EditAdPageState();
 }
 class _EditAdPageState extends State<EditAdPage>{
-  late TextEditingController title,desc,price,neighborhood;late String category,city,condition,subcategory;bool saving=false;
-  @override void initState(){super.initState();final a=widget.ad;title=TextEditingController(text:a['title']?.toString()??'');desc=TextEditingController(text:a['edescription']?.toString()??'');price=TextEditingController(text:(a['price'] as num?)?.toInt().toString()??'');neighborhood=TextEditingController(text:a['neighborhood']?.toString()??'');category=a['category']?.toString()??'سایر';city=a['city']?.toString()??'تهران';condition=a['item_condition']?.toString()??'در حد نو';subcategory=a['subcategory']?.toString()??'سایر';}
+  late TextEditingController title,desc,price,neighborhood;
+  late String category,province,city,condition,subcategory;
+  bool saving=false;
+  @override void initState(){super.initState();final a=widget.ad;title=TextEditingController(text:a['title']?.toString()??'');desc=TextEditingController(text:a['edescription']?.toString()??'');price=TextEditingController(text:(a['price'] as num?)?.toInt().toString()??'');neighborhood=TextEditingController(text:a['neighborhood']?.toString()??'');category=a['category']?.toString()??'سایر';province=a['province']?.toString()??'تهران';city=a['city']?.toString()??(iranProvinceCities['تهران']?.first??'تهران');condition=a['item_condition']?.toString()??'در حد نو';subcategory=a['subcategory']?.toString()??'سایر';}
   @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();super.dispose();}
-  List<String> get subs=>category=='موبایل و تبلت'?['موبایل','تبلت','لوازم جانبی موبایل']:category=='خودرو'?['سواری','وانت','موتورسیکلت','قطعات خودرو']:category=='املاک'?['آپارتمان','خانه','زمین','مغازه']:['سایر'];
+  List<String> get subs {
+  final list=HomeCategoryData.subsFor(category);
+  return list.isEmpty?const ['سایر']:list;
+}
   Future<void> save()async{
     final p=int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'),''));final uid=supabase.auth.currentUser?.id;if(p==null||uid==null)return;
     setState(()=>saving=true);try{
-      await supabase.rpc('update_own_ad',params:{'p_ad_id':widget.ad['idd'],'p_title':title.text.trim(),'p_description':desc.text.trim(),'p_price':p,'p_city':city,'p_category':category,'p_subcategory':subcategory,'p_condition':condition,'p_neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim()});
+      await supabase.rpc('update_own_ad',params:{'p_ad_id':widget.ad['idd'],'p_title':title.text.trim(),'p_description':desc.text.trim(),'p_price':p,'p_city':city,'p_province':province,'p_category':category,'p_subcategory':subcategory,'p_condition':condition,'p_neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim()});
       if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تغییرات ذخیره شد و آگهی برای بررسی دوباره ارسال شد.')));Navigator.pop(context);}
     }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تغییرات: '+e.toString())));}finally{if(mounted)setState(()=>saving=false);}
   }
@@ -825,8 +855,10 @@ class _EditAdPageState extends State<EditAdPage>{
     const SizedBox(height:12),TextField(controller:desc,maxLines:5,decoration:const InputDecoration(labelText:'توضیحات',border:OutlineInputBorder())),
     const SizedBox(height:12),TextField(controller:price,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'قیمت (تومان)',border:OutlineInputBorder())),
     const SizedBox(height:12),DropdownButtonFormField<String>(value:const['نو','در حد نو','کارکرده'].contains(condition)?condition:'در حد نو',items:const['نو','در حد نو','کارکرده'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>condition=v??condition),decoration:const InputDecoration(labelText:'وضعیت',border:OutlineInputBorder())),
-    const SizedBox(height:12),DropdownButtonFormField<String>(value:const['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز'].contains(city)?city:'تهران',items:const['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
-    const SizedBox(height:12),TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله',border:OutlineInputBorder())),
+    const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities[province]?.contains(city)==true?city:iranProvinceCities[province]!.first,items:(iranProvinceCities[province]??const <String>[]).map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
+    const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities.containsKey(province)?province:iranProvinceCities.keys.first,items:iranProvinceCities.keys.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState((){province=v??province;city=iranProvinceCities[province]!.first;}),decoration:const InputDecoration(labelText:'استان',border:OutlineInputBorder())),
+    const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities.containsKey(province)?province:iranProvinceCities.keys.first,items:iranProvinceCities.keys.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState((){province=v??province;city=iranProvinceCities[province]!.first;}),decoration:const InputDecoration(labelText:'استان',border:OutlineInputBorder())),
+          const SizedBox(height:12),TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله',border:OutlineInputBorder())),
     const SizedBox(height:18),FilledButton(onPressed:saving?null:save,child:Text(saving?'در حال ذخیره...':'ذخیره تغییرات')),
   ])));
 }
@@ -838,17 +870,14 @@ class AddAdPage extends StatefulWidget {
 
 class _AddAdPageState extends State<AddAdPage>{
   final title=TextEditingController(),desc=TextEditingController(),price=TextEditingController(),neighborhood=TextEditingController();
-  String category='موبایل و تبلت',city='تهران',condition='در حد نو',subcategory='';
+  String category='موبایل و تبلت',province='تهران',city='تهران',condition='در حد نو',subcategory='';
   bool publishing=false;
   final picker=ImagePicker();
   final List<XFile> selectedImages=[];
 
   List<String> get subcategories {
-    if(category=='موبایل و تبلت') return ['موبایل','تبلت','لوازم جانبی موبایل'];
-    if(category=='خودرو') return ['سواری','وانت','موتورسیکلت','قطعات خودرو'];
-    if(category=='املاک') return ['آپارتمان','خانه','زمین','مغازه'];
-    if(category=='لوازم دیجیتال') return ['لپ‌تاپ','کامپیوتر','دوربین','کنسول بازی'];
-    return ['سایر'];
+    final list=HomeCategoryData.subsFor(category);
+    return list.isEmpty?const ['سایر']:list;
   }
 
   @override void initState(){super.initState(); subcategory=subcategories.first;}
@@ -889,6 +918,7 @@ class _AddAdPageState extends State<AddAdPage>{
         'p_description':desc.text.trim(),
         'p_price':p,
         'p_city':city,
+        'p_province':province,
         'p_category':category,
         'p_subcategory':subcategory,
         'p_condition':condition,
@@ -963,7 +993,7 @@ class _AddAdPageState extends State<AddAdPage>{
           DropdownButtonFormField<String>(value:condition,items:const ['نو','در حد نو','کارکرده'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
             onChanged:(v)=>setState(()=>condition=v??condition),decoration:const InputDecoration(labelText:'وضعیت کالا',border:OutlineInputBorder())),
           const SizedBox(height:12),
-          DropdownButtonFormField<String>(value:city,items:const ['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
+          DropdownButtonFormField<String>(value:iranProvinceCities[province]?.contains(city)==true?city:iranProvinceCities[province]!.first,items:(iranProvinceCities[province]??const <String>[]).map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
             onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
           const SizedBox(height:12),
           TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله (اختیاری)',border:OutlineInputBorder())),
