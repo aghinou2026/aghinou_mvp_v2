@@ -234,7 +234,7 @@ class _HomePageState extends State<HomePage> {
               icon: const Icon(Icons.refresh),
             ),
             IconButton(
-              onPressed: () {},
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
               icon: const Icon(Icons.notifications_none),
             ),
           ],
@@ -312,6 +312,8 @@ class _HomePageState extends State<HomePage> {
             ),
             )),
             const SizedBox(width:8),
+            IconButton.filledTonal(onPressed:saveCurrentSearch,icon:const Icon(Icons.bookmark_add_outlined),tooltip:'ذخیره جست‌وجو'),
+            const SizedBox(width:2),
             IconButton.filledTonal(onPressed:openFilters,icon:const Icon(Icons.tune),tooltip:'فیلتر'),
           ]),
           if(recentSearches.isNotEmpty && searchQuery.isEmpty)
@@ -408,6 +410,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> saveCurrentSearch() async {
+    final uid=supabase.auth.currentUser?.id;if(uid==null)return;
+    if(searchQuery.trim().isEmpty&&selectedCategory==null&&selectedCity==null&&minPrice==null&&maxPrice==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ابتدا یک عبارت یا فیلتر برای ذخیره انتخاب کنید.')));return;}
+    try{await supabase.from('saved_searches').insert({'user_id':uid,'query':searchQuery.trim(),'filters':{'category':selectedCategory,'city':selectedCity,'min_price':minPrice,'max_price':maxPrice,'sort':sortMode}});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('جست‌وجو ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره جست‌وجو: $e')));}
+  }
+
   Future<void> buySubscription() async {
     if(!mounted)return;
     await Navigator.push(context,MaterialPageRoute(builder:(_)=>const SubscriptionPage()));
@@ -448,6 +456,22 @@ class _HomePageState extends State<HomePage> {
               ),
               child: const Text('خرید اشتراک'),
             ),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.notifications_none),
+            title: const Text('اعلان‌ها'),
+            subtitle: const Text('مشاهده و مدیریت اعلان‌های حساب'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.bookmark_outline),
+            title: const Text('جست‌وجوهای ذخیره‌شده'),
+            subtitle: const Text('مدیریت جست‌وجوهای ذخیره‌شده'),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SavedSearchesPage())),
           ),
         ),
         Card(
@@ -704,7 +728,46 @@ class _AdminPageState extends State<AdminPage>{
       ExpansionTile(title:Text('پرداخت‌های در انتظار (${payments.length})'),children:[...payments.map((p)=>Card(child:ListTile(title:Text('${p['amount']??'-'} تومان'),subtitle:Text('کد: ${p['payment_code']??'-'}'),trailing:Wrap(children:[IconButton(onPressed:working?null:()=>decide(p['id'].toString(),true),icon:const Icon(Icons.check)),IconButton(onPressed:working?null:()=>decide(p['id'].toString(),false),icon:const Icon(Icons.close))]))))]),
     ])));
   }
-}class FavoritesPage extends StatefulWidget {
+}class NotificationsPage extends StatefulWidget {
+  const NotificationsPage({super.key});
+  @override State<NotificationsPage> createState() => _NotificationsPageState();
+}
+class _NotificationsPageState extends State<NotificationsPage> {
+  bool loading=true; List<Map<String,dynamic>> rows=[];
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {
+    final uid=supabase.auth.currentUser?.id;if(uid==null){if(mounted)setState(()=>loading=false);return;}
+    try{final r=await supabase.from('notifications').select('id,title,body,type,read_at,created_at').eq('user_id',uid).order('created_at',ascending:false).limit(100);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}
+    catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت اعلان‌ها انجام نشد: $e')));}}
+  }
+  Future<void> markRead(String id) async {try{await supabase.from('notifications').update({'read_at':DateTime.now().toIso8601String()}).eq('id',id).eq('user_id',supabase.auth.currentUser!.id);if(mounted)setState((){final i=rows.indexWhere((x)=>x['id'].toString()==id);if(i>=0)rows[i]['read_at']=DateTime.now().toIso8601String();});}catch(_){ }}
+  Future<void> markAllRead() async {final uid=supabase.auth.currentUser?.id;if(uid==null)return;try{await supabase.from('notifications').update({'read_at':DateTime.now().toIso8601String()}).eq('user_id',uid).isFilter('read_at',null);await load();}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('علامت‌گذاری اعلان‌ها: $e')));}}
+  @override Widget build(BuildContext context){
+    final unread=rows.where((x)=>x['read_at']==null).length;
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+      appBar:AppBar(title:Text('اعلان‌ها${unread>0?' ($@{unread})':''}'),actions:[if(unread>0)TextButton(onPressed:markAllRead,child:const Text('همه خوانده شد'))]),
+      body:loading?const Center(child:CircularProgressIndicator()):rows.isEmpty?const Center(child:Text('اعلانی ندارید.')):ListView.builder(
+        padding:const EdgeInsets.all(12),itemCount:rows.length,itemBuilder:(_,i){final n=rows[i];final unreadItem=n['read_at']==null;return Card(child:ListTile(
+          leading:Icon(unreadItem?Icons.notifications_active:Icons.notifications_none),
+          title:Text(n['title']?.toString()??'اعلان آگهینو',style:TextStyle(fontWeight:unreadItem?FontWeight.bold:FontWeight.normal)),
+          subtitle:Text('${n['body']??''}\\n${n['created_at']??''}'),
+          onTap:()=>markRead(n['id'].toString()),
+        ));},
+      ),
+    ));
+  }
+}
+class SavedSearchesPage extends StatefulWidget {
+  const SavedSearchesPage({super.key});
+  @override State<SavedSearchesPage> createState()=>_SavedSearchesPageState();
+}
+class _SavedSearchesPageState extends State<SavedSearchesPage>{
+  bool loading=true;List<Map<String,dynamic>> rows=[];
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {final uid=supabase.auth.currentUser?.id;if(uid==null){if(mounted)setState(()=>loading=false);return;}try{final r=await supabase.from('saved_searches').select('id,query,filters,created_at').eq('user_id',uid).order('created_at',ascending:false);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت جست‌وجوهای ذخیره‌شده: $e')));}}}
+  Future<void> deleteSearch(String id) async {final uid=supabase.auth.currentUser?.id;if(uid==null)return;try{await supabase.from('saved_searches').delete().eq('id',id).eq('user_id',uid);await load();}catch(_){ }}
+  @override Widget build(BuildContext context){return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('جست‌وجوهای ذخیره‌شده')),body:loading?const Center(child:CircularProgressIndicator()):rows.isEmpty?const Center(child:Text('جست‌وجوی ذخیره‌شده‌ای ندارید.')):ListView.builder(padding:const EdgeInsets.all(12),itemCount:rows.length,itemBuilder:(_,i){final r=rows[i];final f=r['filters'] is Map?Map<String,dynamic>.from(r['filters']):<String,dynamic>{};final d=<String>[if(f['city']!=null&&f['city'].toString().isNotEmpty)'شهر: ${f['city']}',if(f['category']!=null&&f['category'].toString().isNotEmpty)'دسته: ${f['category']}'].join(' • ');return Card(child:ListTile(title:Text(r['query']?.toString().isNotEmpty==true?r['query'].toString():'جست‌وجوی بدون کلمه'),subtitle:Text(d.isEmpty?'بدون فیلتر':d),trailing:IconButton(icon:const Icon(Icons.delete_outline),onPressed:()=>deleteSearch(r['id'].toString()))));},)));}}
+class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
   @override State<FavoritesPage> createState() => _FavoritesPageState();
 }
