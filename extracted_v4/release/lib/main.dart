@@ -1024,6 +1024,10 @@ class _AdminPageState extends State<AdminPage>{
   const NotificationsPage({super.key});
   @override State<NotificationsPage> createState() => _NotificationsPageState();
 }
+class NotificationsPage extends StatefulWidget {
+  const NotificationsPage({super.key});
+  @override State<NotificationsPage> createState() => _NotificationsPageState();
+}
 class _NotificationsPageState extends State<NotificationsPage> {
   bool loading=true; List<Map<String,dynamic>> rows=[];
   @override void initState(){super.initState();load();}
@@ -1250,5 +1254,316 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         )),
       ]),
     ));
+  }
+}
+
+class AdDetailPage extends StatefulWidget {
+  final Map<String,dynamic> ad;
+  const AdDetailPage({super.key,required this.ad});
+  @override State<AdDetailPage> createState()=>_AdDetailPageState();
+}
+class _AdDetailPageState extends State<AdDetailPage>{
+  bool saved=false,loading=true;
+  List<Map<String,dynamic>> images=[],similar=[];
+  Map<String,dynamic>? seller;
+
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {
+    final u=supabase.auth.currentUser?.id;
+    final id=widget.ad['idd']?.toString();
+    if(id==null){if(mounted)setState(()=>loading=false);return;}
+    try{
+      await supabase.rpc('increment_ad_view',params:{'p_ad_id':id});
+      if(u!=null){
+        final fav=await supabase.from('favorites').select('ad_id').eq('user_id',u).eq('ad_id',id).maybeSingle();
+        if(mounted)setState(()=>saved=fav!=null);
+      }
+      final imgs=await supabase.from('ad_images').select('image_url,sort_order,is_primary').eq('ad_id',id).order('sort_order',ascending:true);
+      final sellerId=widget.ad['seller_id']?.toString();
+      Map<String,dynamic>? sp;
+      if(sellerId!=null) sp=Map<String,dynamic>.from((await supabase.from('profiles').select('iidd,name,cphone,created_at').eq('iidd',sellerId).maybeSingle())??{});
+      final sims=await supabase.from('ads').select('idd,title,price,city,category,publish_status').eq('category',widget.ad['category']?.toString()??'').eq('publish_status','published').neq('idd',id).limit(6);
+      if(mounted)setState((){images=List<Map<String,dynamic>>.from(imgs);seller=sp;similar=List<Map<String,dynamic>>.from(sims);loading=false;});
+    }catch(e){if(mounted)setState(()=>loading=false);}
+  }
+
+  Future<void> toggle() async {
+    final u=supabase.auth.currentUser?.id,id=widget.ad['idd']?.toString();
+    if(u==null||id==null)return;
+    try{
+      if(saved) await supabase.from('favorites').delete().eq('user_id',u).eq('ad_id',id);
+      else await supabase.from('favorites').insert({'user_id':u,'ad_id':id});
+      if(mounted)setState(()=>saved=!saved);
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره آگهی: '+e.toString())));}
+  }
+
+  Future<void> report() async {
+    final id=widget.ad['idd']?.toString(),u=supabase.auth.currentUser?.id;
+    if(id==null||u==null)return;
+    final reason=await showDialog<String>(context:context,builder:(_)=>SimpleDialog(
+      title:const Text('گزارش آگهی'),
+      children:['کلاهبرداری','کالای غیرقانونی','اطلاعات نادرست','قیمت نادرست','محتوای نامناسب','آگهی تکراری','سایر']
+        .map((x)=>SimpleDialogOption(onPressed:()=>Navigator.pop(context,x),child:Text(x))).toList()));
+    if(reason==null)return;
+    try{
+      await supabase.from('reports').insert({'reporter_id':u,'ad_id':id,'reason':reason});
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('گزارش شما ثبت شد.')));
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('گزارش: '+e.toString())));}
+  }
+
+  Future<void> shareAd() async {
+    final text='آگهی آگهینو: ${widget.ad['title']??''} • ${widget.ad['city']??''}';
+    await Clipboard.setData(ClipboardData(text:text));
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('متن آگهی کپی شد.')));
+  }
+
+  Future<void> startChat() async {
+    final u=supabase.auth.currentUser?.id,sellerId=widget.ad['seller_id']?.toString(),adId=widget.ad['idd']?.toString();
+    if(u==null||sellerId==null||adId==null||sellerId==u){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('امکان شروع گفت‌وگو وجود ندارد.')));return;}
+    try{
+      final ex=await supabase.from('conversations').select('id').eq('ad_id',adId).eq('buyer_id',u).eq('seller_id',sellerId).maybeSingle();
+      final cid=ex?['id']?.toString()??(await supabase.from('conversations').insert({'buyer_id':u,'seller_id':sellerId,'ad_id':adId,'title':widget.ad['title']?.toString()??'گفت‌وگو'}).select('id').single())['id'].toString();
+      if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:cid,title:widget.ad['title']?.toString()??'گفت‌وگو')));
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('شروع گفت‌وگو: '+e.toString())));}
+  }
+
+  Future<void> callSeller() async {
+    final sellerId=widget.ad['seller_id']?.toString();
+    final phone=seller?['cphone']?.toString();
+    if(sellerId==null||phone==null||phone.isEmpty){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره تماس فروشنده در دسترس نیست.')));return;}
+    await launchUrl(Uri.parse('tel:$phone'));
+  }
+
+  @override Widget build(BuildContext c){
+    final title=widget.ad['title']?.toString()??'بدون عنوان';
+    final price=widget.ad['price']?.toString()??'توافقی';
+    final city=widget.ad['city']?.toString()??'';
+    final cat=widget.ad['category']?.toString()??'';
+    final desc=widget.ad['edescription']?.toString()??'توضیحی ثبت نشده است.';
+    final condition=widget.ad['item_condition']?.toString()??'';
+    final neighborhood=widget.ad['neighborhood']?.toString()??'';
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+      appBar:AppBar(title:const Text('جزئیات آگهی'),actions:[
+        IconButton(onPressed:shareAd,icon:const Icon(Icons.share_outlined)),
+        IconButton(onPressed:toggle,icon:Icon(saved?Icons.favorite:Icons.favorite_border)),
+      ]),
+      body:loading?const Center(child:CircularProgressIndicator()):ListView(
+        children:[
+          if(images.isNotEmpty)SizedBox(height:270,child:PageView.builder(itemCount:images.length,itemBuilder:(_,i)=>Image.network(images[i]['image_url'].toString(),fit:BoxFit.cover,errorBuilder:(_,__,___)=>const Center(child:Icon(Icons.broken_image_outlined,size:60))))),
+          Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text(title,style:const TextStyle(fontSize:23,fontWeight:FontWeight.bold)),
+            const SizedBox(height:8),
+            Text(price+' تومان',style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold)),
+            Text([city,neighborhood,cat,condition].where((x)=>x.isNotEmpty).join(' • ')),
+            const SizedBox(height:10),
+            Text('بازدید: ${widget.ad['view_count']??0}'),
+            const Divider(height:28),
+            const Text('توضیحات',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
+            const SizedBox(height:6),Text(desc),
+            const SizedBox(height:20),
+            if(seller!=null)Card(child:ListTile(
+              leading:const CircleAvatar(child:Icon(Icons.person)),
+              title:Text(seller!['name']?.toString()??'فروشنده'),
+              subtitle:Text('عضویت: ${seller!['created_at']?.toString().split('T').first??'-'}'),
+              trailing:const Icon(Icons.person_outline),
+              onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>SellerProfilePage(sellerId:seller!['iidd'].toString()))),
+            )),
+            const SizedBox(height:8),
+            Row(children:[
+              Expanded(child:FilledButton.icon(onPressed:callSeller,icon:const Icon(Icons.phone),label:const Text('تماس'))),
+              const SizedBox(width:8),
+              Expanded(child:OutlinedButton.icon(onPressed:startChat,icon:const Icon(Icons.chat),label:const Text('پیام'))),
+            ]),
+            const SizedBox(height:8),
+            OutlinedButton.icon(onPressed:report,icon:const Icon(Icons.flag_outlined),label:const Text('گزارش آگهی')),
+            if(similar.isNotEmpty)...[
+              const SizedBox(height:18),
+              const Text('آگهی‌های مشابه',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
+              const SizedBox(height:8),
+              SizedBox(height:145,child:ListView.separated(scrollDirection:Axis.horizontal,itemCount:similar.length,itemBuilder:(_,i){
+                final x=similar[i];
+                return SizedBox(width:190,child:Card(child:ListTile(
+                  title:Text(x['title']?.toString()??'',maxLines:2,overflow:TextOverflow.ellipsis),
+                  subtitle:Text((x['price']?.toString()??'توافقی')+' تومان\n'+(x['city']?.toString()??'')),
+                  onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>AdDetailPage(ad:x))),
+                )));
+              },separatorBuilder:(_,__)=>const SizedBox(width:8))),
+            ],
+          ])),
+        ],
+      ),
+    ));
+  }
+}
+class SellerProfilePage extends StatefulWidget {
+  final String sellerId;
+  const SellerProfilePage({super.key, required this.sellerId});
+  @override State<SellerProfilePage> createState()=>_SellerProfilePageState();
+}
+class _SellerProfilePageState extends State<SellerProfilePage>{
+  bool loading=true; Map<String,dynamic>? profile; List<Map<String,dynamic>> ads=[]; int views=0;
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {
+    try{
+      final p=await supabase.from('profiles').select('iidd,name,cphone,city,created_at,avatar_url,profile_views').eq('iidd',widget.sellerId).maybeSingle();
+      final a=await supabase.from('ads').select('idd,title,price,city,category,view_count,publish_status').eq('seller_id',widget.sellerId).eq('publish_status','published').limit(50);
+      final pv=(p?['profile_views'] as int?)??0;
+      if(mounted)setState((){profile=p;ads=List<Map<String,dynamic>>.from(a);views=pv;loading=false;});
+      try{await supabase.rpc('increment_profile_view',params:{'p_seller_id':widget.sellerId});}catch(_){ }
+    }catch(_){if(mounted)setState(()=>loading=false);}
+  }
+  @override Widget build(BuildContext context){
+    if(loading)return const Center(child:CircularProgressIndicator());
+    final p=profile??{}; final name=p['name']?.toString()??'فروشنده آگهینو';
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+      appBar:AppBar(title:const Text('پروفایل فروشنده')),
+      body:ListView(padding:const EdgeInsets.all(16),children:[
+        Card(child:ListTile(
+          leading:CircleAvatar(backgroundImage:(p['avatar_url']?.toString().isNotEmpty==true)?NetworkImage(p['avatar_url'].toString()):null,child:(p['avatar_url']?.toString().isNotEmpty==true)?null:const Icon(Icons.person)),
+          title:Text(name,style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold)),
+          subtitle:Text('${p['city']??''}\nعضویت: ${p['created_at']?.toString().split('T').first??'-'}'),
+        )),
+        Row(mainAxisAlignment:MainAxisAlignment.spaceAround,children:[Text('آگهی‌ها: ${ads.length}'),Text('مشاهده پروفایل: ${views+1}')]),
+        const SizedBox(height:16),
+        const Text('آگهی‌های فعال',style:TextStyle(fontSize:19,fontWeight:FontWeight.bold)),
+        const SizedBox(height:8),
+        if(ads.isEmpty)const Text('آگهی فعالی ندارد.'),
+        ...ads.map((ad)=>Card(
+          child:ListTile(
+            title:Text(ad['title']?.toString()??''),
+            subtitle:Text('${ad['price']??'توافقی'} تومان • ${ad['city']??''}'),
+            onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>AdDetailPage(ad:ad))),
+          ),
+         )),
+      ]),
+    ));
+  }
+}
+class MessagesPage extends StatefulWidget {
+  const MessagesPage({super.key});
+  @override State<MessagesPage> createState()=>_MessagesPageState();
+}
+class _MessagesPageState extends State<MessagesPage>{
+  bool loading=true; List<Map<String,dynamic>> rows=[];
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {
+    final u=supabase.auth.currentUser;
+    if(u==null){if(mounted)setState(()=>loading=false);return;}
+    try{
+      final r=await supabase.from('conversations').select('*').or('buyer_id.eq.${u.id},seller_id.eq.${u.id}').order('created_at',ascending:false);
+      if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
+    }catch(_){if(mounted)setState(()=>loading=false);}
+  }
+  @override Widget build(BuildContext c){
+    if(loading)return const Center(child:CircularProgressIndicator());
+    return Directionality(textDirection:TextDirection.rtl,child:ListView(padding:const EdgeInsets.all(16),children:[
+      const Text('پیام‌ها',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),
+      if(rows.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Text('هنوز گفت‌وگویی ندارید.')),
+      ...rows.map((r)=>Card(child:ListTile(
+        title:Text(r['title']?.toString()??'گفت‌وگو'),
+        subtitle:Text(r['updated_at']?.toString()??r['created_at']?.toString()??''),
+        leading:const Icon(Icons.chat_bubble_outline),
+        onTap:()=>Navigator.push(c,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:r['id'].toString(),title:r['title']?.toString()??'گفت‌وگو'))),
+      ))),
+    ]));
+  }
+}
+class ConversationPage extends StatefulWidget {
+  final String conversationId, title;
+  const ConversationPage({super.key, required this.conversationId, required this.title});
+  @override State<ConversationPage> createState() => _ConversationPageState();
+}
+class _ConversationPageState extends State<ConversationPage> {
+  final input=TextEditingController();
+  bool loading=true, sending=false;
+  List<Map<String,dynamic>> rows=[];
+  @override void initState(){super.initState();load();}
+  @override void dispose(){input.dispose();super.dispose();}
+  Future<void> load() async {
+    try {
+      final r=await supabase.from('messages').select('*').eq('conversation_id',widget.conversationId).order('created_at');
+      final uid=supabase.auth.currentUser?.id;
+      if(uid!=null){
+        await supabase.from('messages').update({'read_at':DateTime.now().toIso8601String()})
+          .eq('conversation_id',widget.conversationId).neq('sender_id',uid).isFilter('read_at',null);
+      }
+      if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
+    } catch(e) { if(mounted)setState(()=>loading=false); }
+  }
+  Future<void> deleteConversation() async {
+    final ok=await showDialog<bool>(
+      context:context,
+      builder:(_)=>AlertDialog(
+        title:const Text('حذف گفتگو'),
+        content:const Text('این گفتگو برای شما حذف می‌شود. ادامه می‌دهید؟'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('انصراف')),
+          FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('حذف')),
+        ],
+      ),
+    );
+    if(ok!=true)return;
+    try{
+      await supabase.from('messages').delete().eq('conversation_id',widget.conversationId);
+      await supabase.from('conversations').delete().eq('id',widget.conversationId);
+      if(mounted)Navigator.pop(context,true);
+    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف گفتگو: $e')));
+    }
+  }
+
+  Future<void> send() async {
+    final body=input.text.trim(); final u=supabase.auth.currentUser?.id;
+    if(body.isEmpty||u==null)return;
+    setState(()=>sending=true);
+    try {
+      await supabase.from('messages').insert({'conversation_id':widget.conversationId,'sender_id':u,'body':body});
+      input.clear(); await load();
+    } catch(e) { if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ارسال پیام: '+e.toString()))); }
+    finally { if(mounted)setState(()=>sending=false); }
+  }
+  @override Widget build(BuildContext c) {
+    final u=supabase.auth.currentUser?.id;
+    return Directionality(
+      textDirection:TextDirection.rtl,
+      child:Scaffold(
+        appBar:AppBar(
+          title:Text(widget.title),
+          actions:[
+            IconButton(
+              tooltip:'حذف گفتگو',
+              icon:const Icon(Icons.delete_outline),
+              onPressed:deleteConversation,
+            ),
+          ],
+        ),
+        body:Column(
+          children:[
+            Expanded(
+              child:loading
+                ? const Center(child:CircularProgressIndicator())
+                : ListView(
+                    padding:const EdgeInsets.all(12),
+                    children:rows.map((r){
+                      final mine=r['sender_id']==u;
+                      return Align(
+                        alignment:mine?Alignment.centerLeft:Alignment.centerRight,
+                        child:Card(child:Padding(padding:const EdgeInsets.all(10),child:Text(r['body']?.toString()??''))),
+                      );
+                    }).toList(),
+                  ),
+            ),
+            SafeArea(
+              child:Row(
+                children:[
+                  Expanded(child:TextField(controller:input,decoration:const InputDecoration(hintText:'پیام خود را بنویسید'))),
+                  IconButton(onPressed:sending?null:send,icon:const Icon(Icons.send)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
