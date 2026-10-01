@@ -665,49 +665,67 @@ class _AddAdPageState extends State<AddAdPage>{
 }
 class AdminPage extends StatefulWidget {
   const AdminPage({super.key});
-  @override State<AdminPage> createState() => _AdminPageState();
+  @override State<AdminPage> createState()=>_AdminPageState();
 }
-class _AdminPageState extends State<AdminPage> {
-  bool loading = true;
-  bool working = false;
-  List<Map<String,dynamic>> payments = [];
-  @override void initState() { super.initState(); loadPayments(); }
-  Future<void> loadPayments() async {
-    try {
-      final r = await supabase.from('payments').select('id,user_id,amount,status,payment_note,payment_code,created_at').inFilter('status',['pending','checking']).order('created_at',ascending:false);
-      if (mounted) setState(() { payments=List<Map<String,dynamic>>.from(r); loading=false; });
-    } catch(e) { if(mounted){ setState(()=>loading=false); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت پرداخت‌ها: $e'))); } }
+class _AdminPageState extends State<AdminPage>{
+  bool loading=true,working=false;
+  List<Map<String,dynamic>> payments=[];
+  Map<String,dynamic>? settings;
+  final price=TextEditingController(),days=TextEditingController(),limit=TextEditingController(),images=TextEditingController(),card=TextEditingController(),holder=TextEditingController(),bank=TextEditingController(),instructions=TextEditingController();
+  bool enabled=true;
+  @override void initState(){super.initState();load();}
+  @override void dispose(){for(final c in [price,days,limit,images,card,holder,bank,instructions])c.dispose();super.dispose();}
+  Future<void> load() async {
+    try{
+      final r=await supabase.from('subscription_settings').select('*').eq('id',true).maybeSingle();
+      final p=await supabase.from('payments').select('id,user_id,amount,status,payment_note,payment_code,created_at').inFilter('status',['pending','checking']).order('created_at',ascending:false);
+      if(r!=null){price.text=r['price'].toString();days.text=r['duration_days'].toString();limit.text=r['ad_limit'].toString();images.text=r['image_limit'].toString();card.text=r['destination_card']?.toString()??'';holder.text=r['card_holder']?.toString()??'';bank.text=r['bank_name']?.toString()??'';instructions.text=r['instructions']?.toString()??'';enabled=r['enabled']==true;}
+      if(mounted)setState(()=>{settings=r,payments=List<Map<String,dynamic>>.from(p),loading=false});
+    }catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('پنل مدیریت: $e')));}}
+  }
+  Future<void> saveSettings() async {
+    setState(()=>working=true);
+    try{
+      await supabase.rpc('update_subscription_settings',params:{
+        'p_price':int.parse(price.text),'p_duration_days':int.parse(days.text),'p_ad_limit':int.parse(limit.text),'p_image_limit':int.parse(images.text),
+        'p_destination_card':card.text.trim(),'p_card_holder':holder.text.trim(),'p_bank_name':bank.text.trim(),'p_instructions':instructions.text.trim(),'p_enabled':enabled
+      });
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تنظیمات ذخیره شد.')));
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تنظیمات: $e')));}
+    finally{if(mounted)setState(()=>working=false);}
   }
   Future<void> decide(String id,bool approve) async {
-    if(working)return;
-    setState(()=>working=true);
-    try {
-      await supabase.rpc('confirm_payment',params:{'p_payment_id':id,'p_approve':approve,'p_reason':approve?null:'تأیید نشد توسط مدیر'});
-      if(mounted){ ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(approve?'پرداخت تأیید و اشتراک فعال شد.':'پرداخت رد شد.'))); await loadPayments(); }
-    } catch(e) { if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('عملیات: $e'))); }
-    finally { if(mounted)setState(()=>working=false); }
+    if(working)return;setState(()=>working=true);
+    try{await supabase.rpc('confirm_payment',params:{'p_payment_id':id,'p_approve':approve,'p_reason':approve?null:'تأیید نشد توسط مدیر'});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(approve?'پرداخت تأیید و اشتراک فعال شد.':'پرداخت رد شد.')));await load();}}
+    catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('عملیات: $e')));}
+    finally{if(mounted)setState(()=>working=false);}
   }
-  @override Widget build(BuildContext context) {
+  Widget field(TextEditingController c,String label,{TextInputType type=TextInputType.text})=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:c,keyboardType:type,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
+  @override Widget build(BuildContext context){
+    if(loading)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:CircularProgressIndicator())));
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
-      appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:loadPayments,icon:const Icon(Icons.refresh))]),
-      body:loading?const Center(child:CircularProgressIndicator()):RefreshIndicator(
-        onRefresh:loadPayments,
-        child:ListView(padding:const EdgeInsets.all(16),children:[
-          Card(child:ListTile(leading:const Icon(Icons.payments_outlined),title:const Text('پرداخت‌های در انتظار'),subtitle:Text('${payments.length} پرداخت برای بررسی'))),
-          if(payments.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Text('پرداخت در انتظار بررسی وجود ندارد.')),
-          ...payments.map((p)=>Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-            Text('مبلغ: ${p['amount']??'-'} تومان',style:const TextStyle(fontWeight:FontWeight.bold)),
-            Text('کد پرداخت: ${p['payment_code']??'-'}'),
-            Text('توضیح: ${p['payment_note']??'-'}'),
-            const SizedBox(height:8),
-            Row(children:[
-              Expanded(child:FilledButton.icon(onPressed:working?null:()=>decide(p['id'].toString(),true),icon:const Icon(Icons.check),label:const Text('تأیید'))),
-              const SizedBox(width:8),
-              Expanded(child:OutlinedButton.icon(onPressed:working?null:()=>decide(p['id'].toString(),false),icon:const Icon(Icons.close),label:const Text('رد'))),
-            ])
-          ]))))
-        ])
-      )
+      appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),
+      body:ListView(padding:const EdgeInsets.all(16),children:[
+        Card(child:Padding(padding:const EdgeInsets.all(14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          const Text('تنظیمات اشتراک و کارت‌به‌کارت',style:TextStyle(fontSize:19,fontWeight:FontWeight.bold)),
+          const SizedBox(height:12),
+          field(price,'قیمت اشتراک (تومان)',type:TextInputType.number),field(days,'مدت اعتبار (روز)',type:TextInputType.number),field(limit,'سهمیه آگهی',type:TextInputType.number),field(images,'حداکثر عکس',type:TextInputType.number),
+          field(card,'شماره کارت مقصد'),field(holder,'نام صاحب کارت'),field(bank,'نام بانک'),field(instructions,'توضیحات پرداخت'),
+          SwitchListTile(value:enabled,onChanged:(v)=>setState(()=>enabled=v),title:const Text('فعال بودن فروش اشتراک')),
+          FilledButton(onPressed:working?null:saveSettings,child:const Text('ذخیره تنظیمات')),
+        ]))),
+        const SizedBox(height:12),
+        Card(child:ListTile(leading:const Icon(Icons.payments_outlined),title:const Text('پرداخت‌های در انتظار'),subtitle:Text('${payments.length} پرداخت برای بررسی'))),
+        if(payments.isEmpty)const Padding(padding:EdgeInsets.all(20),child:Text('پرداخت در انتظار بررسی وجود ندارد.')),
+        ...payments.map((p)=>Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Text('مبلغ: ${p['amount']??'-'} تومان',style:const TextStyle(fontWeight:FontWeight.bold)),
+          Text('کد پرداخت: ${p['payment_code']??'-'}'),Text('توضیح: ${p['payment_note']??'-'}'),
+          const SizedBox(height:8),Row(children:[
+            Expanded(child:FilledButton.icon(onPressed:working?null:()=>decide(p['id'].toString(),true),icon:const Icon(Icons.check),label:const Text('تأیید'))),
+            const SizedBox(width:8),Expanded(child:OutlinedButton.icon(onPressed:working?null:()=>decide(p['id'].toString(),false),icon:const Icon(Icons.close),label:const Text('رد'))),
+          ])
+        ])))),
+      ])
     ));
   }
 }
