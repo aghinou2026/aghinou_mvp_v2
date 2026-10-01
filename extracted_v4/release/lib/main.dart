@@ -216,7 +216,7 @@ class _HomePageState extends State<HomePage> {
         ],onChanged:(v)=>setSheet(() { sortMode=v??'newest'; }),decoration:const InputDecoration(labelText:'مرتب‌سازی',border:OutlineInputBorder())),
         const SizedBox(height:14),
         FilledButton(onPressed:(){setState(() { minPrice=int.tryParse(min.text); maxPrice=int.tryParse(max.text); });Navigator.pop(ctx);},child:const Text('اعمال فیلتر')),
-      ])));
+      ]))));
   }
 
   @override
