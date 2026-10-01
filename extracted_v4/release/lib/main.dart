@@ -558,7 +558,25 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   @override void dispose(){note.dispose();super.dispose();}
   Future<void> load() async { try{final r=await supabase.from('subscription_settings').select('price,duration_days,ad_limit,image_limit,destination_card,card_holder,bank_name,instructions,enabled').eq('id',true).maybeSingle();if(mounted)setState((){settings=r;loading=false;});}catch(_){if(mounted)setState(()=>loading=false);}}
   Future<void> submit() async {final u=supabase.auth.currentUser;if(u==null||settings==null||note.text.trim().isEmpty)return;setState(()=>sending=true);try{await supabase.from('payments').insert({'user_id':u.id,'amount':settings!['price'],'status':'checking','payment_note':note.text.trim(),'payment_code':u.id.substring(0,8)+'-'+DateTime.now().millisecondsSinceEpoch.toString()});if(mounted)showDialog(context:context,builder:(_)=>const AlertDialog(title:Text('درخواست ثبت شد'),content:Text('اشتراک فقط پس از تأیید واقعی پرداخت فعال می‌شود.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت پرداخت: '+e.toString())));}finally{if(mounted)setState(()=>sending=false);}}
-  @override Widget build(BuildContext c){if(loading)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:CircularProgressIndicator())));final s=settings;if(s==null||s['enabled']!=true)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:Text('فروش اشتراک فعال نیست.'))));return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('خرید اشتراک')),body:ListView(padding:const EdgeInsets.all(16),children:[Card(child:ListTile(title:Text(s['price'].toString()+' تومان'),subtitle:Text(s['duration_days'].toString()+' روز • '+s['ad_limit'].toString()+' آگهی • '+s['image_limit'].toString()+' عکس'))),Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[SelectableText('شماره کارت: '+(s['destination_card']?.toString()??'تنظیم نشده')),SelectableText('صاحب کارت: '+(s['card_holder']?.toString()??'-')),SelectableText('بانک: '+(s['bank_name']?.toString()??'-')),Text(s['instructions']?.toString()??'')]))),TextField(controller:note,decoration:const InputDecoration(labelText:'کد پیگیری / توضیح انتقال',border:OutlineInputBorder())),FilledButton(onPressed:sending?null:submit,child:sending?const CircularProgressIndicator():const Text('ثبت برای بررسی'))]));}
+  @override Widget build(BuildContext c){
+    if(loading)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:CircularProgressIndicator())));
+    final s=settings;
+    if(s==null||s['enabled']!=true)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:Text('فروش اشتراک فعال نیست.'))));
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+      appBar:AppBar(title:const Text('خرید اشتراک')),
+      body:ListView(padding:const EdgeInsets.all(16),children:[
+        Card(child:ListTile(title:Text(s['price'].toString()+' تومان'),subtitle:Text(s['duration_days'].toString()+' روز • '+s['ad_limit'].toString()+' آگهی • '+s['image_limit'].toString()+' عکس'))),
+        Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          SelectableText('شماره کارت: '+(s['destination_card']?.toString()??'تنظیم نشده')),
+          SelectableText('صاحب کارت: '+(s['card_holder']?.toString()??'-')),
+          SelectableText('بانک: '+(s['bank_name']?.toString()??'-')),
+          Text(s['instructions']?.toString()??''),
+        ]))),
+        TextField(controller:note,decoration:const InputDecoration(labelText:'کد پیگیری / توضیح انتقال',border:OutlineInputBorder())),
+        FilledButton(onPressed:sending?null:submit,child:sending?const CircularProgressIndicator():const Text('ثبت برای بررسی')),
+      ]),
+    ));
+  }
 }
 
 class AdDetailPage extends StatefulWidget {
