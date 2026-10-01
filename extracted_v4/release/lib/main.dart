@@ -854,7 +854,7 @@ class _AddAdPageState extends State<AddAdPage> {
         };
 
         final path =
-            '$userId/$adId/${DateTime.now().microsecondsSinceEpoch}_$i.$extension';
+            'public/$userId/$adId/${DateTime.now().microsecondsSinceEpoch}_$i.$extension';
 
         await supabase.storage.from('ad-images').uploadBinary(
               path,
