@@ -204,7 +204,7 @@ class _HomePageState extends State<HomePage> {
       child:Padding(padding:EdgeInsets.only(left:16,right:16,top:16,bottom:MediaQuery.of(ctx).viewInsets.bottom+16),child:ListView(shrinkWrap:true,children:[
         const Text('فیلتر آگهی‌ها',style:TextStyle(fontSize:21,fontWeight:FontWeight.bold)),
         const SizedBox(height:12),
-        DropdownButtonFormField<String>(value:selectedCity,items:[null,...['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز']].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه شهرها'))).toList(),onChanged:(v)=>setSheet(()=>selectedCity=v),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
+        DropdownButtonFormField<String>(value:selectedCity,items:[null,...['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز']].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه شهرها'))).toList(),onChanged:(v)=>setSheet(() { selectedCity=v; }),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
         const SizedBox(height:10),
         TextField(controller:min,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'حداقل قیمت',border:OutlineInputBorder())),
         const SizedBox(height:10),
@@ -214,10 +214,10 @@ class _HomePageState extends State<HomePage> {
           DropdownMenuItem(value:'newest',child:Text('جدیدترین')),
           DropdownMenuItem(value:'cheapest',child:Text('ارزان‌ترین')),
           DropdownMenuItem(value:'expensive',child:Text('گران‌ترین')),
-        ],onChanged:(v)=>setSheet(()=>sortMode=v??'newest'),decoration:const InputDecoration(labelText:'مرتب‌سازی',border:OutlineInputBorder())),
+        ],onChanged:(v)=>setSheet(() { sortMode=v??'newest'; }),decoration:const InputDecoration(labelText:'مرتب‌سازی',border:OutlineInputBorder())),
         const SizedBox(height:14),
         FilledButton(onPressed:(){setState(() { minPrice=int.tryParse(min.text); maxPrice=int.tryParse(max.text); });Navigator.pop(ctx);},child:const Text('اعمال فیلتر')),
-      ]))));
+      ])))));
   }
 
   @override
