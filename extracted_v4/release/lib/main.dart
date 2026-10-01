@@ -403,7 +403,7 @@ class _HomePageState extends State<HomePage> {
       final price = (ad['price'] as num?)?.toInt();
       final minOk = minPrice == null || (price != null && price >= minPrice!);
       final maxOk = maxPrice == null || (price != null && price <= maxPrice!);
-      final text = normalizeFa('${ad['title'] ?? ''} ${ad['edescription'] ?? ''} ${ad['city'] ?? ''} ${ad['category'] ?? ''}');
+      final text = normalizeFa('${ad['title'] ?? ''} ${ad['edescription'] ?? ''} ${ad['province'] ?? ''} ${ad['city'] ?? ''} ${ad['category'] ?? ''} ${ad['subcategory'] ?? ''}');
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && subcategoryOk && provinceOk && cityOk && minOk && maxOk && searchOk;
     }).toList();
@@ -420,7 +420,17 @@ class _HomePageState extends State<HomePage> {
       child:Padding(padding:EdgeInsets.only(left:16,right:16,top:16,bottom:MediaQuery.of(ctx).viewInsets.bottom+16),child:ListView(shrinkWrap:true,children:[
         const Text('فیلتر آگهی‌ها',style:TextStyle(fontSize:21,fontWeight:FontWeight.bold)),
         const SizedBox(height:12),
-        DropdownButtonFormField<String>(value:selectedCity,items:[null,...['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز']].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه شهرها'))).toList(),onChanged:(v)=>setSheet(() { selectedCity=v; }),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
+        DropdownButtonFormField<String>(
+          value:selectedProvince,
+          items:[null,...iranProvinceCities.keys].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه استان‌ها'))).toList(),
+          onChanged:(v)=>setSheet(() { selectedProvince=v; selectedCity=null; }),
+          decoration:const InputDecoration(labelText:'استان',border:OutlineInputBorder())),
+        const SizedBox(height:10),
+        DropdownButtonFormField<String>(
+          value:(selectedProvince!=null && iranProvinceCities[selectedProvince!]?.contains(selectedCity)==true)?selectedCity:null,
+          items:[null,...(selectedProvince==null?const <String>[]:(iranProvinceCities[selectedProvince!]??const <String>[]))].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه شهرهای استان'))).toList(),
+          onChanged:(v)=>setSheet(() { selectedCity=v; }),
+          decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
         const SizedBox(height:10),
         TextField(controller:min,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'حداقل قیمت',border:OutlineInputBorder())),
         const SizedBox(height:10),
@@ -655,8 +665,8 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> saveCurrentSearch() async {
     final uid=supabase.auth.currentUser?.id;if(uid==null)return;
-    if(searchQuery.trim().isEmpty&&selectedCategory==null&&selectedCity==null&&minPrice==null&&maxPrice==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ابتدا یک عبارت یا فیلتر برای ذخیره انتخاب کنید.')));return;}
-    try{await supabase.from('saved_searches').insert({'user_id':uid,'query':searchQuery.trim(),'filters':{'category':selectedCategory,'city':selectedCity,'min_price':minPrice,'max_price':maxPrice,'sort':sortMode}});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('جست‌وجو ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره جست‌وجو: $e')));}
+    if(searchQuery.trim().isEmpty&&selectedCategory==null&&selectedProvince==null&&selectedCity==null&&minPrice==null&&maxPrice==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ابتدا یک عبارت یا فیلتر برای ذخیره انتخاب کنید.')));return;}
+    try{await supabase.from('saved_searches').insert({'user_id':uid,'query':searchQuery.trim(),'filters':{'category':selectedCategory,'subcategory':selectedSubcategory,'province':selectedProvince,'city':selectedCity,'min_price':minPrice,'max_price':maxPrice,'sort':sortMode}});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('جست‌وجو ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره جست‌وجو: $e')));}
   }
 
   Future<void> buySubscription() async {
@@ -849,14 +859,13 @@ class _EditAdPageState extends State<EditAdPage>{
     }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تغییرات: '+e.toString())));}finally{if(mounted)setState(()=>saving=false);}
   }
   @override Widget build(BuildContext c)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('ویرایش آگهی')),body:ListView(padding:const EdgeInsets.all(16),children:[
-    DropdownButtonFormField<String>(value:category,items:_HomePageState.categories.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)setState(()=>category=v);},decoration:const InputDecoration(labelText:'دسته‌بندی',border:OutlineInputBorder())),
+    DropdownButtonFormField<String>(value:category,items:_HomePageState.categories.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)setState((){category=v;subcategory=HomeCategoryData.subsFor(v).isEmpty?'سایر':HomeCategoryData.subsFor(v).first;});},decoration:const InputDecoration(labelText:'دسته‌بندی',border:OutlineInputBorder())),
     const SizedBox(height:12),DropdownButtonFormField<String>(value:subs.contains(subcategory)?subcategory:subs.first,items:subs.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>subcategory=v??subs.first),decoration:const InputDecoration(labelText:'زیر‌دسته',border:OutlineInputBorder())),
     const SizedBox(height:12),TextField(controller:title,decoration:const InputDecoration(labelText:'عنوان',border:OutlineInputBorder())),
     const SizedBox(height:12),TextField(controller:desc,maxLines:5,decoration:const InputDecoration(labelText:'توضیحات',border:OutlineInputBorder())),
     const SizedBox(height:12),TextField(controller:price,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'قیمت (تومان)',border:OutlineInputBorder())),
     const SizedBox(height:12),DropdownButtonFormField<String>(value:const['نو','در حد نو','کارکرده'].contains(condition)?condition:'در حد نو',items:const['نو','در حد نو','کارکرده'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>condition=v??condition),decoration:const InputDecoration(labelText:'وضعیت',border:OutlineInputBorder())),
     const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities[province]?.contains(city)==true?city:iranProvinceCities[province]!.first,items:(iranProvinceCities[province]??const <String>[]).map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
-    const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities.containsKey(province)?province:iranProvinceCities.keys.first,items:iranProvinceCities.keys.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState((){province=v??province;city=iranProvinceCities[province]!.first;}),decoration:const InputDecoration(labelText:'استان',border:OutlineInputBorder())),
     const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities.containsKey(province)?province:iranProvinceCities.keys.first,items:iranProvinceCities.keys.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState((){province=v??province;city=iranProvinceCities[province]!.first;}),decoration:const InputDecoration(labelText:'استان',border:OutlineInputBorder())),
           const SizedBox(height:12),TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله',border:OutlineInputBorder())),
     const SizedBox(height:18),FilledButton(onPressed:saving?null:save,child:Text(saving?'در حال ذخیره...':'ذخیره تغییرات')),
