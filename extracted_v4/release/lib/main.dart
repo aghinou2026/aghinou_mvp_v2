@@ -245,7 +245,9 @@ class _HomePageState extends State<HomePage> {
   DateTime? subscriptionExpiresAt;
   String searchQuery = '';
   String? selectedCategory;
+  String? selectedSubcategory;
   String? selectedCity;
+  Map<String, List<String>> categorySubs = {};
   String sortMode = 'newest';
   int? minPrice;
   int? maxPrice;
@@ -260,8 +262,48 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     loadAds();
+    loadCategories();
     loadSubscription();
     loadAdmin();
+  }
+
+  Future<void> loadCategories() async {
+    try {
+      final cats = await supabase.from('categories').select('id,name');
+      final subs = await supabase.from('subcategories').select('category_id,name').eq('active', true).order('name');
+      final ids = <String, String>{};
+      for (final c in cats) { ids[c['id'].toString()] = c['name'].toString(); }
+      final map = <String, List<String>>{};
+      for (final s in subs) {
+        final cat = ids[s['category_id']?.toString() ?? ''];
+        final name = s['name']?.toString() ?? '';
+        if (cat.isNotEmpty && name.isNotEmpty) map.putIfAbsent(cat, () => []).add(name);
+      }
+      if (mounted) setState(() => categorySubs = map);
+    } catch (_) {}
+  }
+
+  Future<void> openCategory(String category) async {
+    final subs = categorySubs[category] ?? const <String>[];
+    setState(() {
+      selectedCategory = selectedCategory == category ? null : category;
+      selectedSubcategory = null;
+    });
+    if (subs.isEmpty) return;
+    final chosen = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: SafeArea(child: ListView(shrinkWrap: true, padding: const EdgeInsets.all(16), children: [
+          Text('زیرمجموعه‌های «$category»', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          ListTile(leading: const Icon(Icons.apps), title: const Text('همه زیرمجموعه‌ها'), onTap: () => Navigator.pop(context, '')),
+          ...subs.map((s) => ListTile(leading: const Icon(Icons.chevron_left), title: Text(s), onTap: () => Navigator.pop(context, s))),
+        ])),
+      ),
+    );
+    if (!mounted || chosen == null) return;
+    setState(() => selectedSubcategory = chosen.isEmpty ? null : chosen);
   }
 
   Future<void> loadAdmin() async {
@@ -331,13 +373,14 @@ class _HomePageState extends State<HomePage> {
     final q = normalizeFa(searchQuery);
     final result = ads.where((ad) {
       final categoryOk = selectedCategory == null || '${ad['category'] ?? ''}' == selectedCategory;
+      final subcategoryOk = selectedSubcategory == null || '${ad['subcategory'] ?? ''}' == selectedSubcategory;
       final cityOk = selectedCity == null || '${ad['city'] ?? ''}' == selectedCity;
       final price = (ad['price'] as num?)?.toInt();
       final minOk = minPrice == null || (price != null && price >= minPrice!);
       final maxOk = maxPrice == null || (price != null && price <= maxPrice!);
       final text = normalizeFa('${ad['title'] ?? ''} ${ad['edescription'] ?? ''} ${ad['city'] ?? ''} ${ad['category'] ?? ''}');
       final searchOk = q.isEmpty || text.contains(q);
-      return categoryOk && cityOk && minOk && maxOk && searchOk;
+      return categoryOk && subcategoryOk && cityOk && minOk && maxOk && searchOk;
     }).toList();
     if(sortMode=='cheapest') result.sort((a,b)=>((a['price'] as num?)??0).compareTo((b['price'] as num?)??0));
     if(sortMode=='expensive') result.sort((a,b)=>((b['price'] as num?)??0).compareTo((a['price'] as num?)??0));
@@ -509,17 +552,13 @@ class _HomePageState extends State<HomePage> {
               FilterChip(
                 label: const Text('همه'),
                 selected: selectedCategory == null,
-                onSelected: (_) => setState(() => selectedCategory = null),
+                onSelected: (_) => setState(() { selectedCategory = null; selectedSubcategory = null; }),
               ),
-              ...categories.map(
-                (item) => FilterChip(
-                  label: Text(item),
-                  selected: selectedCategory == item,
-                  onSelected: (_) => setState(() {
-                    selectedCategory = selectedCategory == item ? null : item;
-                  }),
-                ),
-              ),
+              ...categories.map((item) => FilterChip(
+                label: Text(selectedSubcategory != null && selectedCategory == item ? '$item • $selectedSubcategory' : item),
+                selected: selectedCategory == item,
+                onSelected: (_) => openCategory(item),
+              )),
             ],
           ),
           const SizedBox(height: 22),
@@ -538,6 +577,7 @@ class _HomePageState extends State<HomePage> {
           else
             ...filteredAds.map((ad) => Card(
                   child: ListTile(
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdDetailPage(ad: ad))),
                     leading: Builder(
                       builder: (context) {
                         final images = ad['ad_images'];
@@ -1297,6 +1337,26 @@ class _AdDetailPageState extends State<AdDetailPage>{
     }catch(e){if(mounted)setState(()=>loading=false);}
   }
 
+  void openImageViewer(int initial) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(backgroundColor: Colors.black, foregroundColor: Colors.white, title: Text('${images.length} عکس')),
+        body: PageView.builder(
+          controller: PageController(initialPage: initial),
+          itemCount: images.length,
+          itemBuilder: (_, i) => Center(child: InteractiveViewer(
+            minScale: 0.8, maxScale: 4.0,
+            child: Image.network(images[i]['image_url'].toString(), fit: BoxFit.contain,
+              loadingBuilder: (_, child, progress) => progress == null ? child : const CircularProgressIndicator(),
+              errorBuilder: (_, __, ___) => const Icon(Icons.broken_image_outlined, color: Colors.white, size: 70)),
+          )),
+        ),
+      ),
+    )));
+  }
+
   Future<void> toggle() async {
     final u=supabase.auth.currentUser?.id,id=widget.ad['idd']?.toString();
     if(u==null||id==null)return;
@@ -1359,7 +1419,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
       ]),
       body:loading?const Center(child:CircularProgressIndicator()):ListView(
         children:[
-          if(images.isNotEmpty)SizedBox(height:270,child:PageView.builder(itemCount:images.length,itemBuilder:(_,i)=>Image.network(images[i]['image_url'].toString(),fit:BoxFit.cover,errorBuilder:(_,__,___)=>const Center(child:Icon(Icons.broken_image_outlined,size:60))))),
+          if(images.isNotEmpty)SizedBox(height:270,child:PageView.builder(itemCount:images.length,itemBuilder:(_,i)=>GestureDetector(onTap:()=>openImageViewer(i),child:Image.network(images[i]['image_url'].toString(),fit:BoxFit.cover,errorBuilder:(_,__,___)=>const Center(child:Icon(Icons.broken_image_outlined,size:60))))))),
           Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             Text(title,style:const TextStyle(fontSize:23,fontWeight:FontWeight.bold)),
             const SizedBox(height:8),
