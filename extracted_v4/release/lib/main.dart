@@ -1753,17 +1753,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class AddAdPage extends StatefulWidget {
-  final Future<void> Function() onPublished;
 
-  const AddAdPage({
-    super.key,
-    required this.onPublished,
-  });
-
-  @override
-  State<AddAdPage> createState() => _AddAdPageState();
-}
 
 class _AddAdPageState extends State<AddAdPage> {
   final title = TextEditingController();
@@ -2759,10 +2749,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 
-class SubscriptionPage extends StatefulWidget {
-  const SubscriptionPage({super.key});
-  @override State<SubscriptionPage> createState() => _SubscriptionPageState();
-}
+
 class _SubscriptionPageState extends State<SubscriptionPage> {
   Map<String, dynamic>? settings;
   bool loading = true, submitting = false;
@@ -2838,17 +2825,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   }
 }
 
-class AddAdPage extends StatefulWidget {
-  final Future<void> Function() onPublished;
 
-  const AddAdPage({
-    super.key,
-    required this.onPublished,
-  });
-
-  @override
-  State<AddAdPage> createState() => _AddAdPageState();
-}
 
 class _AddAdPageState extends State<AddAdPage> {
   final title = TextEditingController();
@@ -3875,17 +3852,7 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class AddAdPage extends StatefulWidget {
-  final Future<void> Function() onPublished;
 
-  const AddAdPage({
-    super.key,
-    required this.onPublished,
-  });
-
-  @override
-  State<AddAdPage> createState() => _AddAdPageState();
-}
 
 class _AddAdPageState extends State<AddAdPage> {
   final title = TextEditingController();
