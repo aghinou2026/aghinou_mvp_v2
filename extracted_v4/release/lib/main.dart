@@ -33,7 +33,7 @@ class AghinouApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C3FE8),
+          seedColor: const Color(0xFF1F6FEB),
         ),
       ),
       home: supabase.auth.currentSession == null ? const LoginPage() : const HomePage(),
