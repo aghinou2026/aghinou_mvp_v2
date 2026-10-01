@@ -89,6 +89,8 @@ class _HomePageState extends State<HomePage> {
   bool loadingAds = true;
   bool loadingSubscription = true;
   bool hasActiveSubscription = false;
+  int adsUsed = 0;
+  int adLimit = 9;
   DateTime? subscriptionExpiresAt;
   String searchQuery = '';
   String? selectedCategory;
@@ -362,49 +364,18 @@ class _HomePageState extends State<HomePage> {
         Card(
           child: ListTile(
             leading: const Icon(Icons.workspace_premium),
-            title: const Text('اشتراک پایه'),
+            title: const Text('اشتراک'),
             subtitle: Text(
               hasActiveSubscription && subscriptionExpiresAt != null
                   ? 'فعال تا ${subscriptionExpiresAt!.toLocal().toString().split('.').first}'
-                  : 'غیرفعال • ۳۵,۰۰۰ تومان / ماه • حداکثر ۹ آگهی',
+                  : 'غیرفعال • ۳۹٬۰۰۰ تومان / ماه • حداکثر ۹ آگهی',
             ),
             trailing: FilledButton(
-              onPressed: () async {
-                try {
-                  final response = await supabase.functions.invoke(
-                    'zarinpal-payment',
-                    body: const {'action': 'create'},
-                  );
-                  final data = Map<String, dynamic>.from(response.data as Map);
-                  final paymentUrl = data['payment_url']?.toString();
-                  if (paymentUrl == null || paymentUrl.isEmpty) {
-                    throw Exception('لینک پرداخت از سرور دریافت نشد.');
-                  }
-                  final opened = await launchUrl(
-                    Uri.parse(paymentUrl),
-                    mode: LaunchMode.externalApplication,
-                  );
-                  if (!opened) throw Exception('باز کردن صفحه پرداخت انجام نشد.');
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('پس از تکمیل پرداخت، برنامه را بازخوانی کنید.'),
-                      ),
-                    );
-                  }
-                } on FunctionException catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('خطای ایجاد پرداخت: ${e.details ?? e.reasonPhrase}')),
-                  );
-                } catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('خطای پرداخت: $e')),
-                  );
-                }
-              },
-              child: const Text('خرید'),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SubscriptionPage()),
+              ),
+              child: const Text('خرید اشتراک'),
             ),
           ),
         ),
@@ -413,7 +384,7 @@ class _HomePageState extends State<HomePage> {
             leading: const Icon(Icons.campaign_outlined),
             title: const Text('سهمیه ثبت آگهی'),
             subtitle: Text(
-              '$count از ۹ آگهی استفاده شده • $remaining باقی‌مانده',
+              '$adsUsed از $adLimit آگهی استفاده شده • $remaining باقی‌مانده',
             ),
           ),
         ),
