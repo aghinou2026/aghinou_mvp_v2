@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -1074,7 +1073,13 @@ class _SellerProfilePageState extends State<SellerProfilePage>{
         const Text('آگهی‌های فعال',style:TextStyle(fontSize:19,fontWeight:FontWeight.bold)),
         const SizedBox(height:8),
         if(ads.isEmpty)const Text('آگهی فعالی ندارد.'),
-        ...ads.map((ad)=>Card(child:ListTile(title:Text(ad['title']?.toString()??''),subtitle:Text('${ad['price']??'توافقی'} تومان • ${ad['city']??''}'),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>AdDetailPage(ad:ad))))),
+        ...ads.map((ad)=>Card(
+          child:ListTile(
+            title:Text(ad['title']?.toString()??''),
+            subtitle:Text('${ad['price']??'توافقی'} تومان • ${ad['city']??''}'),
+            onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>AdDetailPage(ad:ad))),
+          ),
+        )),
       ]),
     ));
   }
