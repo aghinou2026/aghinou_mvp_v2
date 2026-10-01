@@ -989,9 +989,36 @@ class _ConversationPageState extends State<ConversationPage> {
   Future<void> load() async {
     try {
       final r=await supabase.from('messages').select('*').eq('conversation_id',widget.conversationId).order('created_at');
+      final uid=supabase.auth.currentUser?.id;
+      if(uid!=null){
+        await supabase.from('messages').update({'read_at':DateTime.now().toIso8601String()})
+          .eq('conversation_id',widget.conversationId).neq('sender_id',uid).isFilter('read_at',null);
+      }
       if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
     } catch(e) { if(mounted)setState(()=>loading=false); }
   }
+  Future<void> deleteConversation() async {
+    final ok=await showDialog<bool>(
+      context:context,
+      builder:(_)=>AlertDialog(
+        title:const Text('حذف گفتگو'),
+        content:const Text('این گفتگو برای شما حذف می‌شود. ادامه می‌دهید؟'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('انصراف')),
+          FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('حذف')),
+        ],
+      ),
+    );
+    if(ok!=true)return;
+    try{
+      await supabase.from('messages').delete().eq('conversation_id',widget.conversationId);
+      await supabase.from('conversations').delete().eq('id',widget.conversationId);
+      if(mounted)Navigator.pop(context,true);
+    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف گفتگو: $e')));
+    }
+  }
+
   Future<void> send() async {
     final body=input.text.trim(); final u=supabase.auth.currentUser?.id;
     if(body.isEmpty||u==null)return;
@@ -1007,7 +1034,16 @@ class _ConversationPageState extends State<ConversationPage> {
     return Directionality(
       textDirection:TextDirection.rtl,
       child:Scaffold(
-        appBar:AppBar(title:Text(widget.title)),
+        appBar:AppBar(
+          title:Text(widget.title),
+          actions:[
+            IconButton(
+              tooltip:'حذف گفتگو',
+              icon:const Icon(Icons.delete_outline),
+              onPressed:deleteConversation,
+            ),
+          ],
+        ),
         body:Column(
           children:[
             Expanded(
