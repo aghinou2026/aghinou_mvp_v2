@@ -597,7 +597,7 @@ class _EditAdPageState extends State<EditAdPage>{
   Future<void> save()async{
     final p=int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'),''));final uid=supabase.auth.currentUser?.id;if(p==null||uid==null)return;
     setState(()=>saving=true);try{
-      await supabase.from('ads').update({'title':title.text.trim(),'edescription':desc.text.trim(),'price':p,'city':city,'category':category,'subcategory':subcategory,'item_condition':condition,'neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim(),'publish_status':'pending'}).eq('idd',widget.ad['idd']).eq('seller_id',uid);
+      await supabase.rpc('update_own_ad',params:{'p_ad_id':widget.ad['idd'],'p_title':title.text.trim(),'p_description':desc.text.trim(),'p_price':p,'p_city':city,'p_category':category,'p_subcategory':subcategory,'p_condition':condition,'p_neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim()});
       if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تغییرات ذخیره شد و آگهی برای بررسی دوباره ارسال شد.')));Navigator.pop(context);}
     }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تغییرات: '+e.toString())));}finally{if(mounted)setState(()=>saving=false);}
   }
