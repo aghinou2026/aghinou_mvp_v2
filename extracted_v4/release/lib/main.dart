@@ -968,7 +968,7 @@ class _AdminPageState extends State<AdminPage>{
   Future<void> load() async {
     try{
       final r=await supabase.from('subscription_settings').select('*').eq('id',true).maybeSingle();
-      final p=await supabase.from('payments').select('id,user_id,amount,status,payment_note,payment_code,created_at').inFilter('status',['pending','checking']).order('created_at',ascending:false);
+      final p=await supabase.from('payments').select('id,user_id,amount,status,payment_note,payment_code,metadata,provider,created_at,paid_at,confirmed_at').inFilter('status',['pending','checking']).order('created_at',ascending:false);
       final st=await supabase.rpc('admin_dashboard_stats');
       final rr=await supabase.from('reports').select('id,reporter_id,ad_id,reason,details,status,created_at,ads(title,city)').order('created_at',ascending:false).limit(100);
       final aa=await supabase.from('ads').select('idd,title,price,city,category,seller_id,publish_status,created_at').order('created_at',ascending:false).limit(100);
@@ -994,7 +994,29 @@ class _AdminPageState extends State<AdminPage>{
       ExpansionTile(title:const Text('تنظیمات اشتراک و کارت‌به‌کارت'),children:[Padding(padding:const EdgeInsets.all(12),child:Column(children:[field(price,'قیمت اشتراک',type:TextInputType.number),field(days,'مدت (روز)',type:TextInputType.number),field(limit,'سهمیه آگهی',type:TextInputType.number),field(images,'حداکثر عکس',type:TextInputType.number),field(card,'شماره کارت مقصد'),field(holder,'صاحب کارت'),field(bank,'بانک'),field(instructions,'توضیحات'),SwitchListTile(value:enabled,onChanged:(v)=>setState(()=>enabled=v),title:const Text('فروش اشتراک فعال باشد')),FilledButton(onPressed:working?null:saveSettings,child:const Text('ذخیره'))]))]),
       ExpansionTile(title:Text('مدیریت کاربران (${fu.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text(u['name']?.toString()??'کاربر'),subtitle:Text(u['cphone']?.toString()??'-')))]),
       ExpansionTile(title:Text('مدیریت آگهی‌ها (${fa.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:adSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'عنوان یا شهر',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fa.take(50).map((ad)=>ListTile(title:Text(ad['title']?.toString()??'بدون عنوان'),subtitle:Text('${ad['city']??''} • ${ad['category']??''} • ${ad['price']??'توافقی'} تومان'),trailing:Wrap(children:[IconButton(tooltip:'تأیید',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'published'),icon:const Icon(Icons.check_circle_outline)),IconButton(tooltip:'رد',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'rejected'),icon:const Icon(Icons.cancel_outlined)),IconButton(tooltip:'توقف',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'paused'),icon:const Icon(Icons.pause_circle_outline)),IconButton(icon:const Icon(Icons.delete_outline),onPressed:working?null:()=>deleteAd(ad['idd'].toString()))])))]),
-      ExpansionTile(title:Text('پرداخت‌های در انتظار (${payments.length})'),children:[...payments.map((p)=>Card(child:ListTile(title:Text('${p['amount']??'-'} تومان'),subtitle:Text('کد: ${p['payment_code']??'-'}'),trailing:Wrap(children:[IconButton(onPressed:working?null:()=>decide(p['id'].toString(),true),icon:const Icon(Icons.check)),IconButton(onPressed:working?null:()=>decide(p['id'].toString(),false),icon:const Icon(Icons.close))]))))]),
+      ExpansionTile(title:Text('پرداخت‌های در انتظار (${payments.length})'),children:[
+        ...payments.map((p){
+          final meta=p['metadata'] is Map?Map<String,dynamic>.from(p['metadata']):<String,dynamic>{};
+          final refCode=p['payment_code']?.toString()??'-';
+          final last4=meta['payer_card_last4']?.toString()??'-';
+          final transferAt=meta['transfer_at']?.toString()??'-';
+          return Card(margin:const EdgeInsets.only(bottom:8),child:ListTile(
+            isThreeLine:true,
+            leading:const CircleAvatar(child:Icon(Icons.payments_outlined)),
+            title:Text('${p['amount']??'-'} تومان',style:const TextStyle(fontWeight:FontWeight.bold)),
+            subtitle:Text('شماره پیگیری: $refCode\\n۴ رقم آخر کارت: $last4\\nزمان انتقال: $transferAt'),
+            onTap:()=>showDialog(context:context,builder:(_)=>AlertDialog(
+              title:const Text('جزئیات پرداخت'),
+              content:SingleChildScrollView(child:Text('مبلغ: ${p['amount']??'-'} تومان\\nشماره پیگیری: $refCode\\n۴ رقم آخر کارت: $last4\\nزمان انتقال: $transferAt\\nیادداشت: ${p['payment_note']??'-'}')),
+              actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('بستن'))],
+            )),
+            trailing:Wrap(children:[
+              IconButton(tooltip:'تأیید پرداخت',onPressed:working?null:()=>decide(p['id'].toString(),true),icon:const Icon(Icons.check_circle_outline)),
+              IconButton(tooltip:'رد پرداخت',onPressed:working?null:()=>decide(p['id'].toString(),false),icon:const Icon(Icons.cancel_outlined)),
+            ]),
+          );
+        }),
+      ]),
       ExpansionTile(title:Text('گزارش‌های آگهی (${reports.length})'),children:[...reports.map((r)=>Card(child:ListTile(title:Text((r['ads'] is Map? r['ads']['title']?.toString():null)??'آگهی گزارش‌شده'),subtitle:Text('${r['reason']??''} • وضعیت: ${r['status']??'pending'}\n${r['details']??''}'),trailing:Wrap(children:[IconButton(tooltip:'در حال بررسی',onPressed:working?null:()=>setReportStatus(r['id'].toString(),'reviewing'),icon:const Icon(Icons.search)),IconButton(tooltip:'حل شد',onPressed:working?null:()=>setReportStatus(r['id'].toString(),'resolved'),icon:const Icon(Icons.check_circle_outline)),IconButton(tooltip:'رد گزارش',onPressed:working?null:()=>setReportStatus(r['id'].toString(),'rejected'),icon:const Icon(Icons.close))]))))]),
     ])));
   }
@@ -1052,26 +1074,181 @@ class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({super.key});
   @override State<SubscriptionPage> createState()=>_SubscriptionPageState();
 }
+
 class _SubscriptionPageState extends State<SubscriptionPage> {
-  Map<String,dynamic>? settings; final note=TextEditingController(); bool loading=true,sending=false;
+  Map<String,dynamic>? settings;
+  final reference=TextEditingController();
+  final payerLast4=TextEditingController();
+  final note=TextEditingController();
+  DateTime? transferAt;
+  bool loading=true,sending=false;
+
   @override void initState(){super.initState();load();}
-  @override void dispose(){note.dispose();super.dispose();}
-  Future<void> load() async { try{final r=await supabase.from('subscription_settings').select('price,duration_days,ad_limit,image_limit,destination_card,card_holder,bank_name,instructions,enabled').eq('id',true).maybeSingle();if(mounted)setState((){settings=r;loading=false;});}catch(_){if(mounted)setState(()=>loading=false);}}
-  Future<void> submit() async {final u=supabase.auth.currentUser;if(u==null||settings==null||note.text.trim().isEmpty)return;setState(()=>sending=true);try{await supabase.from('payments').insert({'user_id':u.id,'amount':settings!['price'],'status':'checking','payment_note':note.text.trim(),'payment_code':u.id.substring(0,8)+'-'+DateTime.now().millisecondsSinceEpoch.toString()});if(mounted)showDialog(context:context,builder:(_)=>const AlertDialog(title:Text('درخواست ثبت شد'),content:Text('اشتراک فقط پس از تأیید واقعی پرداخت فعال می‌شود.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت پرداخت: '+e.toString())));}finally{if(mounted)setState(()=>sending=false);}}
+  @override void dispose(){reference.dispose();payerLast4.dispose();note.dispose();super.dispose();}
+
+  Future<void> load() async {
+    try{
+      final r=await supabase.from('subscription_settings').select('price,duration_days,ad_limit,image_limit,destination_card,card_holder,bank_name,instructions,enabled').eq('id',true).maybeSingle();
+      if(mounted)setState((){settings=r;loading=false;});
+    }catch(e){
+      if(mounted){
+        setState(()=>loading=false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت اطلاعات اشتراک: $e')));
+      }
+    }
+  }
+
+  String two(int n)=>n.toString().padLeft(2,'0');
+  String formatDateTime(DateTime d)=>'${d.year}/${two(d.month)}/${two(d.day)} - ${two(d.hour)}:${two(d.minute)}';
+
+  Future<void> pickTransferTime() async {
+    final now=DateTime.now();
+    final date=await showDatePicker(
+      context:context,
+      initialDate:transferAt??now,
+      firstDate:DateTime(now.year-1),
+      lastDate:DateTime(now.year,now.month,now.day),
+      helpText:'تاریخ انتقال را انتخاب کنید',
+      confirmText:'تأیید',
+      cancelText:'لغو',
+    );
+    if(date==null||!mounted)return;
+    final time=await showTimePicker(
+      context:context,
+      initialTime:TimeOfDay.fromDateTime(transferAt??now),
+      helpText:'ساعت انتقال را انتخاب کنید',
+      confirmText:'تأیید',
+      cancelText:'لغو',
+    );
+    if(time==null||!mounted)return;
+    setState(()=>transferAt=DateTime(date.year,date.month,date.day,time.hour,time.minute));
+  }
+
+  Future<void> submit() async {
+    final u=supabase.auth.currentUser;
+    final s=settings;
+    final ref=reference.text.trim();
+    final last4=payerLast4.text.trim();
+
+    if(u==null||s==null||s['enabled']!=true)return;
+    if(ref.isEmpty){
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره پیگیری/مرجع انتقال را وارد کنید.')));
+      return;
+    }
+    if(last4.isNotEmpty&&!RegExp(r'^\d{4}$').hasMatch(last4)){
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('۴ رقم آخر کارت باید دقیقاً ۴ رقم باشد.')));
+      return;
+    }
+    if(transferAt==null){
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تاریخ و ساعت انتقال را انتخاب کنید.')));
+      return;
+    }
+
+    setState(()=>sending=true);
+    try{
+      final amount=(s['price'] as num).toInt();
+      await supabase.from('payments').insert({
+        'user_id':u.id,
+        'amount':amount,
+        'plan':'base_monthly',
+        'status':'checking',
+        'provider':'manual_card_to_card',
+        'payment_note':note.text.trim().isEmpty?null:note.text.trim(),
+        'payment_code':ref,
+        'metadata':{
+          'method':'card_to_card',
+          'payer_card_last4':last4.isEmpty?null:last4,
+          'transfer_at':transferAt!.toIso8601String(),
+          'submitted_at':DateTime.now().toIso8601String(),
+        },
+      });
+
+      if(!mounted)return;
+      await showDialog(
+        context:context,
+        builder:(_)=>AlertDialog(
+          title:const Text('درخواست ثبت شد'),
+          content:const Text('اطلاعات پرداخت برای بررسی مدیر ارسال شد. اشتراک فقط بعد از تطبیق انتقال با حساب مقصد و تأیید مدیر فعال می‌شود.'),
+          actions:[TextButton(onPressed:()=>Navigator.pop(context),child:const Text('متوجه شدم'))],
+        ),
+      );
+      if(mounted)Navigator.pop(context);
+    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت پرداخت: $e')));
+    }finally{
+      if(mounted)setState(()=>sending=false);
+    }
+  }
+
   @override Widget build(BuildContext c){
     if(loading)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:CircularProgressIndicator())));
     final s=settings;
     if(s==null||s['enabled']!=true)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:Text('فروش اشتراک فعال نیست.'))));
+
+    final card=s['destination_card']?.toString()??'';
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
       appBar:AppBar(title:const Text('خرید اشتراک')),
       body:ListView(padding:const EdgeInsets.all(16),children:[
-        Card(child:ListTile(title:Text(s['price'].toString()+' تومان'),subtitle:Text(s['duration_days'].toString()+' روز • '+s['ad_limit'].toString()+' آگهی • '+s['image_limit'].toString()+' عکس'))),
+        Container(
+          padding:const EdgeInsets.all(18),
+          decoration:BoxDecoration(
+            gradient:const LinearGradient(colors:[Color(0xFF006D77),Color(0xFF0A9396)],begin:Alignment.topRight,end:Alignment.bottomLeft),
+            borderRadius:BorderRadius.circular(20),
+          ),
+          child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            const Text('اشتراک آگهینو',style:TextStyle(color:Colors.white,fontSize:22,fontWeight:FontWeight.w800)),
+            const SizedBox(height:8),
+            Text('${s['price']} تومان',style:const TextStyle(color:Colors.white,fontSize:28,fontWeight:FontWeight.w900)),
+            const SizedBox(height:6),
+            Text('${s['duration_days']} روز • ${s['ad_limit']} آگهی • ${s['image_limit']} عکس برای هر آگهی',style:const TextStyle(color:Colors.white70)),
+          ]),
+        ),
+        const SizedBox(height:12),
         Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
-          SelectableText('شماره کارت: '+(s['destination_card']?.toString()??'تنظیم نشده')),
-          SelectableText('صاحب کارت: '+(s['card_holder']?.toString()??'-')),
-          SelectableText('بانک: '+(s['bank_name']?.toString()??'-')),
-          Text(s['instructions']?.toString()??''),
+          const Text('۱) انتقال کارت‌به‌کارت',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
+          const SizedBox(height:10),
+          Row(children:[
+            Expanded(child:SelectableText(card.isEmpty?'شماره کارت تنظیم نشده':card,style:const TextStyle(fontSize:18,fontWeight:FontWeight.bold))),
+            if(card.isNotEmpty)IconButton(tooltip:'کپی شماره کارت',onPressed:()async{await Clipboard.setData(ClipboardData(text:card));if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره کارت کپی شد.')));},icon:const Icon(Icons.copy_all_outlined)),
+          ]),
+          const SizedBox(height:8),
+          Text('صاحب کارت: ${s['card_holder']?.toString()??'-'}'),
+          Text('بانک: ${s['bank_name']?.toString()??'-'}'),
+          const SizedBox(height:10),
+          Text(s['instructions']?.toString()??'مبلغ دقیق اشتراک را به کارت مقصد انتقال دهید.'),
         ]))),
-        TextField(controller:note,decoration:const InputDecoration(labelText:'کد پیگیری / توضیح انتقال',border:OutlineInputBorder())),
-        FilledButton(onPressed:sending?null:submit,child:sending?const CircularProgressIndicator():const Text('ثبت برای بررسی')),
+        const SizedBox(height:6),
+        Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          const Text('۲) مشخصات انتقال',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
+          const SizedBox(height:10),
+          TextField(controller:reference,keyboardType:TextInputType.text,decoration:const InputDecoration(labelText:'شماره پیگیری / شماره مرجع انتقال *',hintText:'مثلاً 123456789',border:OutlineInputBorder())),
+          const SizedBox(height:10),
+          TextField(controller:payerLast4,keyboardType:TextInputType.number,maxLength:4,inputFormatters:[FilteringTextInputFormatter.digitsOnly],decoration:const InputDecoration(labelText:'۴ رقم آخر کارت پرداخت‌کننده (اختیاری)',counterText:'',border:OutlineInputBorder())),
+          const SizedBox(height:10),
+          InkWell(
+            onTap:pickTransferTime,
+            borderRadius:BorderRadius.circular(14),
+            child:InputDecorator(
+              decoration:const InputDecoration(labelText:'تاریخ و ساعت انتقال *',border:OutlineInputBorder()),
+              child:Text(transferAt==null?'انتخاب کنید':formatDateTime(transferAt!)),
+            ),
+          ),
+          const SizedBox(height:10),
+          TextField(controller:note,maxLines:3,decoration:const InputDecoration(labelText:'توضیح اضافی (اختیاری)',hintText:'مثلاً انتقال از کارت شخص دیگر انجام شده است.',border:OutlineInputBorder())),
+        ]))),
+        const SizedBox(height:8),
+        Card(child:ListTile(
+          leading:const Icon(Icons.verified_user_outlined),
+          title:const Text('فعال‌سازی امن'),
+          subtitle:const Text('ثبت درخواست به‌تنهایی اشتراک را فعال نمی‌کند. مدیر باید انتقال واقعی را با حساب مقصد تطبیق و تأیید کند.'),
+        )),
+        const SizedBox(height:10),
+        SizedBox(height:52,child:FilledButton.icon(
+          onPressed:sending?null:submit,
+          icon:sending?const SizedBox(width:20,height:20,child:CircularProgressIndicator(strokeWidth:2)):const Icon(Icons.send_rounded),
+          label:Text(sending?'در حال ثبت...':'ثبت اطلاعات برای بررسی'),
+        )),
       ]),
+    ));
+  }
+}
