@@ -64,7 +64,14 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> sendCode() async {
     final value = phone.text.trim().replaceAll(' ', '');
     final normalized = value.startsWith('0') ? '+98${value.substring(1)}' : value;
-    if (!RegExp(r'^\+98\d{10}
+    if (!RegExp(r'^\+98\d{10}$').hasMatch(normalized)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('شماره موبایل را به‌صورت 09123456789 وارد کنید.')),
+      );
+      return;
+    }
+
+    setState(() => loading = true);
     try {
       await supabase.auth.signInWithOtp(
         phone: normalized,
@@ -373,7 +380,7 @@ class _HomePageState extends State<HomePage> {
     return ads.where((ad) {
       final categoryOk = selectedCategory == null ||
           '${ad['category'] ?? ''}' == selectedCategory;
-      final text = '${ad['title'] ?? ''} ${ad['edescriptions'] ?? ''} '
+      final text = '${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
           '${ad['city'] ?? ''} ${ad['category'] ?? ''}'.toLowerCase();
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && searchOk;
@@ -1458,7 +1465,7 @@ class _HomePageState extends State<HomePage> {
     return ads.where((ad) {
       final categoryOk = selectedCategory == null ||
           '${ad['category'] ?? ''}' == selectedCategory;
-      final text = '${ad['title'] ?? ''} ${ad['edescriptions'] ?? ''} '
+      final text = '${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
           '${ad['city'] ?? ''} ${ad['category'] ?? ''}'.toLowerCase();
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && searchOk;
@@ -2481,7 +2488,7 @@ class _HomePageState extends State<HomePage> {
     return ads.where((ad) {
       final categoryOk = selectedCategory == null ||
           '${ad['category'] ?? ''}' == selectedCategory;
-      final text = '${ad['title'] ?? ''} ${ad['edescriptions'] ?? ''} '
+      final text = '${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
           '${ad['city'] ?? ''} ${ad['category'] ?? ''}'.toLowerCase();
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && searchOk;
@@ -3547,7 +3554,7 @@ class _HomePageState extends State<HomePage> {
     return ads.where((ad) {
       final categoryOk = selectedCategory == null ||
           '${ad['category'] ?? ''}' == selectedCategory;
-      final text = '${ad['title'] ?? ''} ${ad['edescriptions'] ?? ''} '
+      final text = '${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
           '${ad['city'] ?? ''} ${ad['category'] ?? ''}'.toLowerCase();
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && searchOk;
@@ -4605,7 +4612,7 @@ class _HomePageState extends State<HomePage> {
     return ads.where((ad) {
       final categoryOk = selectedCategory == null ||
           '${ad['category'] ?? ''}' == selectedCategory;
-      final text = '${ad['title'] ?? ''} ${ad['edescriptions'] ?? ''} '
+      final text = '${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
           '${ad['city'] ?? ''} ${ad['category'] ?? ''}'.toLowerCase();
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && searchOk;
@@ -5684,7 +5691,7 @@ class _HomePageState extends State<HomePage> {
     return ads.where((ad) {
       final categoryOk = selectedCategory == null ||
           '${ad['category'] ?? ''}' == selectedCategory;
-      final text = '${ad['title'] ?? ''} ${ad['edescriptions'] ?? ''} '
+      final text = '${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
           '${ad['city'] ?? ''} ${ad['category'] ?? ''}'.toLowerCase();
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && searchOk;
@@ -6707,7 +6714,7 @@ class _HomePageState extends State<HomePage> {
     return ads.where((ad) {
       final categoryOk = selectedCategory == null ||
           '${ad['category'] ?? ''}' == selectedCategory;
-      final text = '${ad['title'] ?? ''} ${ad['edescriptions'] ?? ''} '
+      final text = '${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
           '${ad['city'] ?? ''} ${ad['category'] ?? ''}'.toLowerCase();
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && searchOk;
@@ -7773,7 +7780,7 @@ class _HomePageState extends State<HomePage> {
     return ads.where((ad) {
       final categoryOk = selectedCategory == null ||
           '${ad['category'] ?? ''}' == selectedCategory;
-      final text = '${ad['title'] ?? ''} ${ad['edescriptions'] ?? ''} '
+      final text = '${ad['title'] ?? ''} ${ad['edescription'] ?? ''} '
           '${ad['city'] ?? ''} ${ad['category'] ?? ''}'.toLowerCase();
       final searchOk = q.isEmpty || text.contains(q);
       return categoryOk && searchOk;
@@ -8580,7 +8587,7 @@ class _AdDetailPageState extends State<AdDetailPage> {
     final price = widget.ad['price']?.toString() ?? 'توافقی';
     final city = widget.ad['city']?.toString() ?? '';
     final category = widget.ad['category']?.toString() ?? '';
-    final description = widget.ad['edescriptions']?.toString() ?? 'توضیحی ثبت نشده است.';
+    final description = widget.ad['edescription']?.toString() ?? 'توضیحی ثبت نشده است.';
     final images = widget.ad['ad_images'] is List
         ? List<Map<String, dynamic>>.from(
             (widget.ad['ad_images'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
