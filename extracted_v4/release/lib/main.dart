@@ -463,37 +463,140 @@ class _HomePageState extends State<HomePage> {
 }
 
 class AddAdPage extends StatefulWidget {
-  final Future<void> Function() onPublished; const AddAdPage({super.key,required this.onPublished});
+  final Future<void> Function() onPublished;
+  const AddAdPage({super.key, required this.onPublished});
   @override State<AddAdPage> createState()=>_AddAdPageState();
 }
+
 class _AddAdPageState extends State<AddAdPage>{
-  final title=TextEditingController(),desc=TextEditingController(),price=TextEditingController();
-  String category='موبایل و تبلت',city='تهران'; bool publishing=false; final picker=ImagePicker(); final List<XFile> selectedImages=[];
-  @override void dispose(){title.dispose();desc.dispose();price.dispose();super.dispose();}
-  Future<void> pickImages()async{if(selectedImages.length>=10)return;final xs=await picker.pickMultiImage(imageQuality:85);if(mounted)setState(()=>selectedImages.addAll(xs.take(10-selectedImages.length)));}
-  Future<void> publish()async{if(title.text.trim().isEmpty||desc.text.trim().isEmpty)return;final u=supabase.auth.currentUser;if(u==null)return;final p=int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'),''));if(p==null)return;setState(()=>publishing=true);try{final id=(await supabase.rpc('publish_ad',params:{'p_title':title.text.trim(),'p_description':desc.text.trim(),'p_price':p,'p_city':city,'p_category':category})).toString();for(var i=0;i<selectedImages.length;i++){final x=selectedImages[i];final bytes=await x.readAsBytes();final ext=x.name.contains('.')?x.name.split('.').last.toLowerCase():'jpg';final safe=<String>{'jpg','jpeg','png','webp'}.contains(ext)?ext:'jpg';final path='public/'+u.id+'/'+id+'/'+DateTime.now().microsecondsSinceEpoch.toString()+'_'+i.toString()+'.'+safe;await supabase.storage.from('ad-images').uploadBinary(path,bytes,fileOptions:FileOptions(contentType:safe=='png'?'image/png':safe=='webp'?'image/webp':'image/jpeg'));await supabase.from('ad_images').insert({'ad_id':id,'image_url':supabase.storage.from('ad-images').getPublicUrl(path)});}await widget.onPublished();if(mounted)Navigator.pop(context);}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت آگهی: '+e.toString())));}finally{if(mounted)setState(()=>publishing=false);}}
-  @override
-  Widget build(BuildContext c) {
+  final title=TextEditingController(),desc=TextEditingController(),price=TextEditingController(),neighborhood=TextEditingController();
+  String category='موبایل و تبلت',city='تهران',condition='در حد نو',subcategory='';
+  bool publishing=false;
+  final picker=ImagePicker();
+  final List<XFile> selectedImages=[];
+
+  List<String> get subcategories {
+    if(category=='موبایل و تبلت') return ['موبایل','تبلت','لوازم جانبی موبایل'];
+    if(category=='خودرو') return ['سواری','وانت','موتورسیکلت','قطعات خودرو'];
+    if(category=='املاک') return ['آپارتمان','خانه','زمین','مغازه'];
+    if(category=='لوازم دیجیتال') return ['لپ‌تاپ','کامپیوتر','دوربین','کنسول بازی'];
+    return ['سایر'];
+  }
+
+  @override void initState(){super.initState(); subcategory=subcategories.first;}
+  @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();super.dispose();}
+
+  Future<void> pickImages() async {
+    if(selectedImages.length>=10){
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('حداکثر ۱۰ عکس مجاز است.')));
+      return;
+    }
+    final xs=await picker.pickMultiImage(imageQuality:85,maxWidth:1800,maxHeight:1800);
+    if(!mounted)return;
+    setState(()=>selectedImages.addAll(xs.take(10-selectedImages.length)));
+  }
+
+  void removeImage(int i)=>setState(()=>selectedImages.removeAt(i));
+
+  Future<void> publish() async {
+    if(title.text.trim().isEmpty||desc.text.trim().isEmpty){
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('عنوان و توضیحات را کامل کنید.')));return;
+    }
+    final u=supabase.auth.currentUser;
+    if(u==null)return;
+    final p=int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'),''));
+    if(p==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('قیمت را صحیح وارد کنید.')));return;}
+    setState(()=>publishing=true);
+    try{
+      final id=(await supabase.rpc('publish_ad',params:{
+        'p_title':title.text.trim(),
+        'p_description':desc.text.trim(),
+        'p_price':p,
+        'p_city':city,
+        'p_category':category,
+        'p_subcategory':subcategory,
+        'p_condition':condition,
+        'p_neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim(),
+      })).toString();
+
+      for(var i=0;i<selectedImages.length;i++){
+        final x=selectedImages[i];
+        final bytes=await x.readAsBytes();
+        final ext=x.name.contains('.')?x.name.split('.').last.toLowerCase():'jpg';
+        final safe=<String>{'jpg','jpeg','png','webp'}.contains(ext)?ext:'jpg';
+        final path='public/'+u.id+'/'+id+'/'+i.toString()+'_'+DateTime.now().microsecondsSinceEpoch.toString()+'.'+safe;
+        await supabase.storage.from('ad-images').uploadBinary(path,bytes,fileOptions:FileOptions(
+          contentType:safe=='png'?'image/png':safe=='webp'?'image/webp':'image/jpeg'));
+        await supabase.from('ad_images').insert({'ad_id':id,'image_url':supabase.storage.from('ad-images').getPublicUrl(path)});
+      }
+      await widget.onPublished();
+      if(mounted){
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی با موفقیت ثبت شد.')));
+        Navigator.pop(context);
+      }
+    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت آگهی: '+e.toString())));
+    }finally{if(mounted)setState(()=>publishing=false);}
+  }
+
+  Future<void> preview() async {
+    if(title.text.trim().isEmpty||desc.text.trim().isEmpty){
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ابتدا عنوان و توضیحات را کامل کنید.')));return;
+    }
+    await showModalBottomSheet(context:context,isScrollControlled:true,builder:(_)=>Directionality(
+      textDirection:TextDirection.rtl,
+      child:SafeArea(child:Padding(padding:const EdgeInsets.all(18),child:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[
+        const Text('پیش‌نمایش آگهی',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),
+        const SizedBox(height:12),
+        Text(title.text,style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold)),
+        Text(price.text+' تومان'),
+        Text(city+' • '+subcategory+' • '+condition),
+        if(neighborhood.text.trim().isNotEmpty)Text('محله: '+neighborhood.text.trim()),
+        const SizedBox(height:10),
+        Text(desc.text,maxLines:5,overflow:TextOverflow.ellipsis),
+        const SizedBox(height:16),
+        Text('تعداد عکس: '+selectedImages.length.toString()+' از ۱۰'),
+        const SizedBox(height:12),
+        FilledButton(onPressed:publishing?null:(){Navigator.pop(context);publish();},child:const Text('تأیید و انتشار')),
+      ]))));
+  }
+
+  @override Widget build(BuildContext c) {
     return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        appBar: AppBar(title: const Text('ثبت آگهی')),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            DropdownButtonFormField<String>(value: category, items: _HomePageState.categories.map((x) => DropdownMenuItem(value: x, child: Text(x))).toList(), onChanged: (v) => setState(() => category = v!), decoration: const InputDecoration(labelText: 'دسته‌بندی', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: title, decoration: const InputDecoration(labelText: 'عنوان', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: desc, maxLines: 5, decoration: const InputDecoration(labelText: 'توضیحات', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'قیمت', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(onPressed: publishing ? null : pickImages, icon: const Icon(Icons.add_a_photo_outlined), label: Text('عکس ' + selectedImages.length.toString() + '/۱۰')),
-            const SizedBox(height: 20),
-            FilledButton(onPressed: publishing ? null : publish, child: publishing ? const CircularProgressIndicator() : const Text('ثبت و انتشار')),
-          ],
-        ),
+      textDirection:TextDirection.rtl,
+      child:Scaffold(
+        appBar:AppBar(title:const Text('ثبت آگهی')),
+        body:ListView(padding:const EdgeInsets.all(16),children:[
+          DropdownButtonFormField<String>(value:category,items:_HomePageState.categories.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
+            onChanged:(v){if(v==null)return;setState(()=>category=v);subcategory=subcategories.first;},decoration:const InputDecoration(labelText:'دسته‌بندی',border:OutlineInputBorder())),
+          const SizedBox(height:12),
+          DropdownButtonFormField<String>(value:subcategory,items:subcategories.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
+            onChanged:(v)=>setState(()=>subcategory=v??subcategories.first),decoration:const InputDecoration(labelText:'زیر‌دسته',border:OutlineInputBorder())),
+          const SizedBox(height:12),
+          TextField(controller:title,decoration:const InputDecoration(labelText:'عنوان آگهی',border:OutlineInputBorder())),
+          const SizedBox(height:12),
+          TextField(controller:desc,maxLines:5,decoration:const InputDecoration(labelText:'توضیحات',border:OutlineInputBorder())),
+          const SizedBox(height:12),
+          TextField(controller:price,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'قیمت (تومان)',border:OutlineInputBorder())),
+          const SizedBox(height:12),
+          DropdownButtonFormField<String>(value:condition,items:const ['نو','در حد نو','کارکرده'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
+            onChanged:(v)=>setState(()=>condition=v??condition),decoration:const InputDecoration(labelText:'وضعیت کالا',border:OutlineInputBorder())),
+          const SizedBox(height:12),
+          DropdownButtonFormField<String>(value:city,items:const ['تهران','آستارا','رشت','اردبیل','تبریز','مشهد','اصفهان','شیراز'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
+            onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
+          const SizedBox(height:12),
+          TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله (اختیاری)',border:OutlineInputBorder())),
+          const SizedBox(height:14),
+          OutlinedButton.icon(onPressed:publishing?null:pickImages,icon:const Icon(Icons.add_a_photo_outlined),label:Text('افزودن عکس '+selectedImages.length.toString()+'/۱۰')),
+          if(selectedImages.isNotEmpty)SizedBox(height:120,child:ListView.separated(scrollDirection:Axis.horizontal,itemCount:selectedImages.length,itemBuilder:(_,i)=>Stack(children:[
+            ClipRRect(borderRadius:BorderRadius.circular(12),child:Image.memory(Uint8List.fromList(selectedImages[i].readAsBytesSync()),width:110,height:110,fit:BoxFit.cover)),
+            Positioned(top:3,right:3,child:CircleAvatar(radius:14,child:IconButton(padding:EdgeInsets.zero,onPressed:()=>removeImage(i),icon:const Icon(Icons.close,size:16))))
+          ]),separatorBuilder:(_,__)=>const SizedBox(width:8))),
+          const SizedBox(height:16),
+          OutlinedButton(onPressed:publishing?null:preview,child:const Text('پیش‌نمایش')),
+          const SizedBox(height:8),
+          FilledButton(onPressed:publishing?null:publish,child:publishing?const SizedBox(width:22,height:22,child:CircularProgressIndicator(strokeWidth:2)):const Text('ثبت و انتشار')),
+        ]),
       ),
     );
   }
