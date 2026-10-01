@@ -1017,8 +1017,11 @@ class _AdminPageState extends State<AdminPage>{
           );
         }),
       ]),
-      ExpansionTile(
-        title:Text('گزارش‌های آگهی (${reports.length})'),
+    ])));
+  }
+}
+
+class NotificationsPage extends StatefulWidget { (${reports.length})'),
         children:[
           ...reports.map((r)=>Card(
             child:ListTile(
@@ -1035,11 +1038,7 @@ class _AdminPageState extends State<AdminPage>{
       ),
     ])));
   }
-}class NotificationsPage extends StatefulWidget {
-  const NotificationsPage({super.key});
-  @override State<NotificationsPage> createState() => _NotificationsPageState();
-}
-class _NotificationsPageState extends State<NotificationsPage> {
+}class _NotificationsPageState extends State<NotificationsPage> {
   bool loading=true; List<Map<String,dynamic>> rows=[];
   @override void initState(){super.initState();load();}
   Future<void> load() async {
