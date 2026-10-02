@@ -89,8 +89,40 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   String normalized() {
-    final v = phone.text.trim().replaceAll(' ', '').replaceAll('-', '');
-    return v.startsWith('0') ? '+98' + v.substring(1) : v;
+    var v = phone.text.trim()
+        .replaceAll(' ', '')
+        .replaceAll('-', '')
+        .replaceAll('(', '')
+        .replaceAll(')', '');
+    const fa = '۰۱۲۳۴۵۶۷۸۹';
+    const ar = '٠١٢٣٤٥٦٧٨٩';
+    for (var i = 0; i < 10; i++) {
+      v = v.replaceAll(fa[i], '$i').replaceAll(ar[i], '$i');
+    }
+    if (v.startsWith('0098')) v = '+98' + v.substring(4);
+    if (v.startsWith('98') && !v.startsWith('+')) v = '+$v';
+    if (v.startsWith('0')) v = '+98' + v.substring(1);
+    return v;
+  }
+
+  String authErrorMessage(AuthException e, {bool registerMode = false}) {
+    final m = e.message.toLowerCase();
+    if (m.contains('invalid login credentials')) {
+      return 'شماره موبایل یا رمز ورود نادرست است. اگر حساب را قبلاً با کد پیامکی ساخته‌اید، این حساب هنوز رمز ورود ندارد و باید یک حساب جدید با رمز بسازید.';
+    }
+    if (m.contains('phone') && (m.contains('disabled') || m.contains('not enabled'))) {
+      return 'ورود با شماره موبایل در تنظیمات احراز هویت Supabase فعال نیست.';
+    }
+    if (m.contains('user already registered') || m.contains('already registered')) {
+      return 'این شماره قبلاً ثبت شده است. از بخش «ورود» با رمز همان حساب استفاده کنید.';
+    }
+    if (m.contains('password') && m.contains('6')) {
+      return 'رمز ورود باید حداقل ۶ کاراکتر باشد.';
+    }
+    if (m.contains('email not confirmed') || m.contains('phone not confirmed')) {
+      return 'تأیید شماره تلفن برای این حساب کامل نشده است.';
+    }
+    return (registerMode ? 'ثبت‌نام: ' : 'ورود: ') + e.message;
   }
 
   Future<void> login() async {
@@ -124,7 +156,7 @@ class _LoginPageState extends State<LoginPage> {
       }
     } on AuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ورود: ${e.message}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(authErrorMessage(e))));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ورود انجام نشد: ${e}')));
@@ -167,7 +199,7 @@ class _LoginPageState extends State<LoginPage> {
       }
     } on AuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ثبت‌نام: ${e.message}')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(authErrorMessage(e, registerMode: true))));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ثبت‌نام انجام نشد: ${e}')));
