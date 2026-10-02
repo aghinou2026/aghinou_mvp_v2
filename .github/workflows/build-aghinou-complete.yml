@@ -24,8 +24,8 @@ jobs:
           AGHINOU_KEYSTORE_BASE64: ${{ secrets.AGHINOU_KEYSTORE_BASE64 }}
         run: |
           test -n "$AGHINOU_KEYSTORE_BASE64"
-          printf '%s' "$AGHINOU_KEYSTORE_BASE64" | base64 --decode > extracted_v4/release/android/app/aghinou-release.jks
-          test -s extracted_v4/release/android/app/aghinou-release.jks
+          printf '%s' "$AGHINOU_KEYSTORE_BASE64" | base64 --decode > extracted_v4/release/android/aghinou-release.jks
+          test -s extracted_v4/release/android/aghinou-release.jks
 
       - name: Analyze
         run: cd extracted_v4/release && flutter analyze --no-fatal-infos --no-fatal-warnings
