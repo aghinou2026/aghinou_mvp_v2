@@ -1016,6 +1016,28 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 18),
         Card(
           child: ListTile(
+            leading: const Icon(Icons.person_outline),
+            title: const Text('ویرایش پروفایل'),
+            subtitle: const Text('نام، نام خانوادگی و شماره موبایل'),
+            onTap: () async {
+              final changed = await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EditProfilePage(
+                    firstName: profileFirstName,
+                    lastName: profileLastName,
+                    phone: profilePhone,
+                  ),
+                ),
+              );
+              if (changed == true) {
+                await loadProfile();
+              }
+            },
+          ),
+        ),
+        Card(
+          child: ListTile(
             leading: const Icon(Icons.lock_outline),
             title: const Text('تغییر رمز ورود'),
             subtitle: const Text('رمز ورود حساب خود را تغییر دهید'),
@@ -1064,7 +1086,27 @@ class _HomePageState extends State<HomePage> {
             leading: const Icon(Icons.bookmark_outline),
             title: const Text('جست‌وجوهای ذخیره‌شده'),
             subtitle: const Text('مدیریت جست‌وجوهای ذخیره‌شده'),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SavedSearchesPage())),
+            onTap: () async {
+              final result = await Navigator.push<Map<String, dynamic>>(
+                context,
+                MaterialPageRoute(builder: (_) => const SavedSearchesPage()),
+              );
+              if (!mounted || result == null) return;
+              final f = result['filters'] is Map
+                  ? Map<String, dynamic>.from(result['filters'])
+                  : <String, dynamic>{};
+              setState(() {
+                searchQuery = result['query']?.toString() ?? '';
+                selectedCategory = f['category']?.toString();
+                selectedSubcategory = f['subcategory']?.toString();
+                selectedProvince = f['province']?.toString();
+                selectedCity = f['city']?.toString();
+                minPrice = (f['min_price'] as num?)?.toInt();
+                maxPrice = (f['max_price'] as num?)?.toInt();
+                sortMode = f['sort']?.toString() ?? 'newest';
+                tab = 0;
+              });
+            },
           ),
         ),
         Card(
@@ -1139,6 +1181,73 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+}
+
+class EditProfilePage extends StatefulWidget {
+  const EditProfilePage({
+    super.key,
+    required this.firstName,
+    required this.lastName,
+    required this.phone,
+  });
+  final String firstName;
+  final String lastName;
+  final String phone;
+  @override State<EditProfilePage> createState() => _EditProfilePageState();
+}
+class _EditProfilePageState extends State<EditProfilePage> {
+  late final TextEditingController firstName;
+  late final TextEditingController lastName;
+  late final TextEditingController phone;
+  bool saving = false;
+  @override void initState() {
+    super.initState();
+    firstName = TextEditingController(text: widget.firstName);
+    lastName = TextEditingController(text: widget.lastName);
+    phone = TextEditingController(text: widget.phone);
+  }
+  @override void dispose() {
+    firstName.dispose(); lastName.dispose(); phone.dispose(); super.dispose();
+  }
+  Future<void> save() async {
+    final fn=firstName.text.trim(), ln=lastName.text.trim(), ph=phone.text.trim();
+    if(fn.isEmpty||ln.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('نام و نام خانوادگی را کامل وارد کنید.')));return;}
+    if(ph.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره موبایل را وارد کنید.')));return;}
+    setState(()=>saving=true);
+    try {
+      final response=await supabase.functions.invoke('update-profile',body:{'first_name':fn,'last_name':ln,'phone':ph});
+      if(!mounted)return;
+      if(response.data is Map && response.data['success']==true){
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('پروفایل با موفقیت ذخیره شد.')));
+        Navigator.pop(context,true);
+      } else {
+        final message=response.data is Map?response.data['error']?.toString():null;
+        throw Exception(message??'ذخیره پروفایل انجام نشد.');
+      }
+    } on FunctionException catch(e) {
+      if(!mounted)return;
+      final data=e.details;
+      final message=data is Map?data['error']?.toString():null;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(message??'ذخیره پروفایل انجام نشد.')));
+    } catch(e) {
+      if(!mounted)return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره پروفایل انجام نشد: $e')));
+    } finally { if(mounted)setState(()=>saving=false); }
+  }
+  @override Widget build(BuildContext context) {
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+      appBar:AppBar(title:const Text('ویرایش پروفایل')),
+      body:ListView(padding:const EdgeInsets.all(16),children:[
+        TextField(controller:firstName,textInputAction:TextInputAction.next,decoration:const InputDecoration(labelText:'نام',border:OutlineInputBorder())),
+        const SizedBox(height:12),
+        TextField(controller:lastName,textInputAction:TextInputAction.next,decoration:const InputDecoration(labelText:'نام خانوادگی',border:OutlineInputBorder())),
+        const SizedBox(height:12),
+        TextField(controller:phone,keyboardType:TextInputType.phone,textDirection:TextDirection.ltr,decoration:const InputDecoration(labelText:'شماره موبایل',hintText:'09123456789',border:OutlineInputBorder())),
+        const SizedBox(height:18),
+        FilledButton.icon(onPressed:saving?null:save,icon:saving?const SizedBox(width:18,height:18,child:CircularProgressIndicator(strokeWidth:2)):const Icon(Icons.save_outlined),label:Text(saving?'در حال ذخیره...':'ذخیره تغییرات')),
+      ]),
+    ));
   }
 }
 
@@ -1690,9 +1799,14 @@ class _SavedSearchesPageState extends State<SavedSearchesPage>{
   Future<void> load() async {final uid=supabase.auth.currentUser?.id;if(uid==null){if(mounted)setState(()=>loading=false);return;}try{final r=await supabase.from('saved_searches').select('id,query,filters,created_at').eq('user_id',uid).order('created_at',ascending:false);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت جست‌وجوهای ذخیره‌شده: $e')));}}}
   Future<void> deleteSearch(String id) async {final uid=supabase.auth.currentUser?.id;if(uid==null)return;try{await supabase.from('saved_searches').delete().eq('id',id).eq('user_id',uid);await load();}catch(_){ }}
   Future<void> useSearch(Map<String,dynamic> r) async {
-    final f=r['filters'] is Map?Map<String,dynamic>.from(r['filters']):<String,dynamic>{};
+    final f = r['filters'] is Map
+        ? Map<String, dynamic>.from(r['filters'])
+        : <String, dynamic>{};
     if(!mounted)return;
-    Navigator.pop(context, f);
+    Navigator.pop(context, <String, dynamic>{
+      'query': r['query']?.toString() ?? '',
+      'filters': f,
+    });
   }
   @override Widget build(BuildContext context){return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('جست‌وجوهای ذخیره‌شده')),body:loading?const Center(child:CircularProgressIndicator()):rows.isEmpty?const Center(child:Text('جست‌وجوی ذخیره‌شده‌ای ندارید.')):ListView.builder(padding:const EdgeInsets.all(12),itemCount:rows.length,itemBuilder:(_,i){final r=rows[i];final f=r['filters'] is Map?Map<String,dynamic>.from(r['filters']):<String,dynamic>{};final d=<String>[if(f['city']!=null&&f['city'].toString().isNotEmpty)'شهر: ${f['city']}',if(f['category']!=null&&f['category'].toString().isNotEmpty)'دسته: ${f['category']}'].join(' • ');return Card(child:ListTile(title:Text(r['query']?.toString().isNotEmpty==true?r['query'].toString():'جست‌وجوی بدون کلمه'),subtitle:Text(d.isEmpty?'بدون فیلتر':d),trailing:Row(mainAxisSize:MainAxisSize.min,children:[
   IconButton(tooltip:'اجرای جست‌وجو',icon:const Icon(Icons.play_arrow_outlined),onPressed:()=>useSearch(r)),
