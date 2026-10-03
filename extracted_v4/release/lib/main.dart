@@ -3009,8 +3009,10 @@ class _ConversationPageState extends State<ConversationPage> {
       final r=await supabase.from('messages').select('*').eq('conversation_id',widget.conversationId).order('created_at');
       final uid=supabase.auth.currentUser?.id;
       if(uid!=null){
-        await supabase.from('messages').update({'read_at':DateTime.now().toIso8601String()})
-          .eq('conversation_id',widget.conversationId).neq('sender_id',uid).isFilter('read_at',null);
+        try{
+          await supabase.from('messages').update({'read_at':DateTime.now().toIso8601String()})
+            .eq('conversation_id',widget.conversationId).neq('sender_id',uid).isFilter('read_at',null);
+        }catch(_){}
       }
       if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
     } catch(e) { if(mounted)setState(()=>loading=false); }
