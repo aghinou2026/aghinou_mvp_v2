@@ -187,19 +187,129 @@ class _LoginPageState extends State<LoginPage> {
     finally{if(mounted)setState(()=>loading=false);}
   }
 
-  @override Widget build(BuildContext c){
-    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:SafeArea(child:SingleChildScrollView(padding:const EdgeInsets.all(24),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
-      const SizedBox(height:24),Container(width:82,height:82,decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFF006D77),Color(0xFF0A9396)]),borderRadius:BorderRadius.circular(24)),child:const Icon(Icons.storefront_rounded,size:46,color:Colors.white)),
-      const SizedBox(height:14),const Text('آگهینو',style:TextStyle(fontSize:34,fontWeight:FontWeight.w800,color:Color(0xFF17212B))),const SizedBox(height:6),Text(registerMode?'ساخت حساب جدید':'بازار ساده، امن و حرفه‌ای',style:const TextStyle(color:Color(0xFF60727A),fontSize:14)),const SizedBox(height:30),
-      if(registerMode)...[TextField(controller:firstName,decoration:const InputDecoration(labelText:'نام',border:OutlineInputBorder())),const SizedBox(height:12),TextField(controller:lastName,decoration:const InputDecoration(labelText:'نام خانوادگی',border:OutlineInputBorder())),const SizedBox(height:12)],
-      TextField(controller:phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'شماره موبایل',hintText:'09121234567',border:OutlineInputBorder())),const SizedBox(height:12),TextField(controller:password,obscureText:true,decoration:const InputDecoration(labelText:'رمز ورود',hintText:'حداقل ۶ کاراکتر',border:OutlineInputBorder())),
-      if(registerMode)...[const SizedBox(height:12),Card(child:Padding(padding:const EdgeInsets.all(8),child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Checkbox(value:acceptedTerms,onChanged:loading?null:(v)=>setState(()=>acceptedTerms=v==true)),Expanded(child:Padding(padding:const EdgeInsets.only(top:10),child:Wrap(children:[const Text('قوانین و مقررات آگهینو را مطالعه کرده‌ام و می‌پذیرم. '),InkWell(onTap:()=>Navigator.push(c,MaterialPageRoute(builder:(_)=>const TermsPage())),child:const Text('مشاهده قوانین',style:TextStyle(color:Color(0xFF006D77),fontWeight:FontWeight.bold,decoration:TextDecoration.underline)))])))])))],
-      const SizedBox(height:16),SizedBox(width:double.infinity,child:FilledButton(onPressed:loading?null:(registerMode?register:login),child:Text(loading?(registerMode?'در حال ساخت حساب...':'در حال ورود...'):(registerMode?'ساخت حساب':'ورود')))),const SizedBox(height:8),SizedBox(width:double.infinity,child:OutlinedButton(onPressed:loading?null:()=>setState(()=>registerMode=!registerMode),child:Text(registerMode?'بازگشت به ورود':'ساخت حساب جدید')))
-    ]))));
+  @override
+  Widget build(BuildContext c) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 24),
+                Container(
+                  width: 82,
+                  height: 82,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFF006D77), Color(0xFF0A9396)]),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const Icon(Icons.storefront_rounded, size: 46, color: Colors.white),
+                ),
+                const SizedBox(height: 14),
+                const Text('آگهینو', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: Color(0xFF17212B))),
+                const SizedBox(height: 6),
+                Text(registerMode ? 'ساخت حساب جدید' : 'بازار ساده، امن و حرفه‌ای', style: const TextStyle(color: Color(0xFF60727A), fontSize: 14)),
+                const SizedBox(height: 30),
+                if (registerMode) ...[
+                  TextField(controller: firstName, decoration: const InputDecoration(labelText: 'نام', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                  TextField(controller: lastName, decoration: const InputDecoration(labelText: 'نام خانوادگی', border: OutlineInputBorder())),
+                  const SizedBox(height: 12),
+                ],
+                TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'شماره موبایل', hintText: '09121234567', border: OutlineInputBorder())),
+                const SizedBox(height: 12),
+                TextField(controller: password, obscureText: true, decoration: const InputDecoration(labelText: 'رمز ورود', hintText: 'حداقل ۶ کاراکتر', border: OutlineInputBorder())),
+                if (registerMode) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Checkbox(value: acceptedTerms, onChanged: loading ? null : (v) => setState(() => acceptedTerms = v == true)),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Wrap(
+                                children: [
+                                  const Text('قوانین و مقررات آگهینو را مطالعه کرده‌ام و می‌پذیرم. '),
+                                  InkWell(
+                                    onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const TermsPage())),
+                                    child: const Text('مشاهده قوانین', style: TextStyle(color: Color(0xFF006D77), fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton(
+                    onPressed: loading ? null : (registerMode ? register : login),
+                    child: Text(loading ? (registerMode ? 'در حال ساخت حساب...' : 'در حال ورود...') : (registerMode ? 'ساخت حساب' : 'ورود')),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: loading ? null : () => setState(() => registerMode = !registerMode),
+                    child: Text(registerMode ? 'بازگشت به ورود' : 'ساخت حساب جدید'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
-}
 
-class TermsPage extends StatelessWidget{const TermsPage({super.key});@override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text(termsTitle)),body:ListView(padding:const EdgeInsets.all(16),children:[Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('نسخه 1.0',style:TextStyle(fontWeight:FontWeight.bold,color:Color(0xFF006D77))),const SizedBox(height:12),...List.generate(aghinouTerms.length,(i)=>Padding(padding:const EdgeInsets.only(bottom:12),child:Text((i+1).toString()+'. '+aghinouTerms[i],style:const TextStyle(height:1.7))))])))])));}
+class TermsPage extends StatelessWidget {
+  const TermsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text(termsTitle)),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('نسخه 1.0', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF006D77))),
+                    const SizedBox(height: 12),
+                    ...List.generate(
+                      aghinouTerms.length,
+                      (i) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text((i + 1).toString() + '. ' + aghinouTerms[i], style: const TextStyle(height: 1.7)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 const Map<String, IconData> aghinouCategoryIcons = {
