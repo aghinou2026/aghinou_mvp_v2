@@ -1049,7 +1049,7 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
               final typeLine = [category, subcategory].where((x) => x.trim().isNotEmpty).join(' • ');
 
               return Column(children:[
-              return Padding(
+              Padding(
                 padding: const EdgeInsets.only(bottom: 14),
                 child: Material(
                   color: Colors.white,
