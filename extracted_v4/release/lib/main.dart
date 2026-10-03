@@ -23,6 +23,11 @@ Future<void> main() async {
 
 final supabase = Supabase.instance.client;
 
+const String currentTermsVersion = '1.0';
+const String termsTitle = 'قوانین و مقررات آگهینو';
+const List<String> aghinouTerms = ['آگهینو بستری برای انتشار آگهی و ارتباط میان کاربران است و طرف معامله میان خریدار و فروشنده نیست.','مسئولیت صحت اطلاعات، قیمت، تصاویر و توضیحات هر آگهی بر عهده آگهی‌دهنده است.','انتشار کالا، خدمات یا فعالیت‌های غیرقانونی یا فاقد مجوز لازم ممنوع است.','کلاهبرداری، فریب، جعل هویت، کالای سرقتی یا تقلبی و اطلاعات گمراه‌کننده ممنوع است.','محتوای توهین‌آمیز، تهدیدآمیز، خشونت‌آمیز یا ناقض حقوق دیگران ممنوع است.','انتشار محتوایی که حقوق مالکیت فکری یا حقوق اشخاص دیگر را نقض کند ممنوع است.','آگهی‌دهنده باید مشخصات کالا یا خدمت را صادقانه، دقیق و روشن اعلام کند.','کاربران نباید رمز، کد تأیید بانکی یا اطلاعات حساس خود را در اختیار افراد ناشناس قرار دهند.','انجام معامله، پرداخت وجه، بررسی کالا و هویت طرف مقابل بر عهده خود کاربران است و آگهینو تضمین‌کننده معامله میان کاربران نیست.','آگهینو می‌تواند آگهی‌های مغایر با قوانین یا مقررات داخلی برنامه را حذف یا از انتشار آنها جلوگیری کند.','کاربران می‌توانند آگهی‌های مشکوک یا مغایر با قوانین را گزارش کنند.','هر کاربر مسئول فعالیت‌هایی است که با حساب خودش انجام می‌دهد و نباید حساب خود را در اختیار دیگران قرار دهد.','قوانین ممکن است به‌روزرسانی شوند و نسخه جدید آنها از طریق برنامه منتشر خواهد شد.'];
+
+
 const Map<String, List<String>> iranProvinceCities = {"اردبيل":["اصلاندوز","آبی بیگلو","بیله سوار","پارس آباد","تازه کند","تازه کندانگوت","جعفرآباد","خلخال","رضی","سرعین","عنبران","فخرآباد","کلور","کوراییم","گرمی","گیوی","لاهرود","مرادلو","مشگین شهر","نمین","نیر","هشتجین","هیر"],"اصفهان":["ابریشم","ابوزیدآباد","اردستان","اژیه","اصفهان","افوس","انارک","ایمانشهر","آران وبیدگل","بادرود","باغ بهادران","بافران","برزک","برف انبار","بوئین ومیاندشت","بهاران شهر","بهارستان","پیربکران","تودشک","تیران","جندق","جوزدان","جوشقان وکامو","چادگان","چرمهین","چمگردان","حبیب آباد","حسن آباد","حنا","خالدآباد","خمینی شهر","خوانسار","خور","خوراسگان","خورزوق","داران","دامنه","درچه پیاز","دستگرد","دولت آباد","دهاقان","دهق","دیزیچه","رزوه","رضوانشهر","زاینده رود","زرین شهر","زواره","زیباشهر","سده لنجان","سفیدشهر","سگزی","سمیرم","شاپورآباد","شاهین شهر","شهرضا","طالخونچه","عسگران","علویچه","فرخی","فریدونشهر","فلاورجان","فولادشهر","قمصر","قهجاورستان","قهدریجان","کاشان","کرکوند","کلیشادوسودرجان","کمشچه","کمه","کوشک","کوهپايه","کهریزسنگ","گرگاب","گزبرخوار","گلپایگان","گلدشت","گلشن","گلشهر","گوگد","لای بید","مبارکه","محمدآباد","مشکات","منظریه","مهاباد","میمه","نائین","نجف آباد","نصرآباد","نطنز","نوش آباد","نیاسر","نیک آباد","ورزنه","ورنامخواست","وزوان","ونک","هرند"],"البرز":["اشتهارد","آسارا","تنکمان","چهارباغ","سیف آباد","شهرجدید هشتگرد","طالقان","کرج","کمال شهر","کوهسار","گرمدره","ماهدشت","محمدشهر","مشكين دشت","نظرآباد","هشتگرد"],"ايلام":["ارکواز","ایلام","ایوان","آبدانان","آسمان آباد","بدره","پهله","توحید","چوار","دره شهر","دلگشا","دهلران","زرنه","سراب باغ","سرابله","صالح آباد","لومار","مورموری","موسیان","مهران","میمه"],"آذربايجان شرقي":["اسکو","اهر","ايلخچی","آبش احمد","آذرشهر","آقکند","باسمنج","بخشایش","بستان آباد","بناب","بناب جدید","تبریز","ترک","ترکمانچای","تسوج","تيكمه داش","جلفا","خاروانا","خامنه","خراجو","خسروشهر","خمارلو","خواجه","دوزدوزان","زرنق","زنوز","سراب","سردرود","سيس","سيه رود","شبستر","شربيان","شرفخانه","شندآباد","شهرجدیدسهند","صوفيان","عجب شير","قره آغاج","كشكسرای","كلوانق","كليبر","كوزه كنان","گوگان","ليلان","مراغه","مرند","ملكان","ممقان","مهربان","ميانه","نظركهريزي","وايقان","ورزقان","هاديشهر","هريس","هشترود","هوراند","يامچی"],"آذربايجان غربي":["ارومیه","اشنویه","ایواوغلی","آواجیق","باروق","بازرگان","بوکان","پلدشت","پیرانشهر","تازه شهر","تکاب","چهاربرج","خلیفان","خوی","دیزج دیز","ربط","سردشت","سرو","سلماس","سیلوانه","سیمینه","سیه چشمه","شاهین دژ","شوط","فیرورق","قره ضیاءالدین","قطور","قوشچی","کشاورز","گردکشانه","ماکو","محمدیار","محمودآباد","مهاباد","میاندوآب","میرآباد","نالوس","نقده","نوشین"],"بوشهر":["امام حسن","انارستان","اهرم","آبپخش","آبدان","برازجان","بردخون","بردستان","بندردير","بندرديلم","بندرريگ","بندركنگان","بندرگناوه","بنک","بوشهر","تنگ ارم","جم","چغادک","خارک","خورموج","دالکی","دلوار","ریز","سعدآباد","سیراف","شبانکاره","شنبه","عسلویه","کاکی","کلمه","نخل تقی","وحدتیه"],"تهران":["ارجمند","اسلامشهر","انديشه","آبسرد","آبعلي","باغستان","باقرشهر","بومهن","پاكدشت","پرديس","پيشوا","تجريش","تهران","جوادآباد","چهاردانگه","حسن آباد","دماوند","رباط كريم","رودهن","ري","شاهدشهر","شريف آباد","شهريار","صالح آباد","صباشهر","صفادشت","فردوسيه","فرون آباد","فشم","فيروزكوه","قدس","قرچك","كهريزك","كيلان","گلستان","لواسان","ملارد","نسيم شهر","نصيرآباد","وحيديه","ورامين"],"چهارمحال و بختياري":["اردل","آلونی","باباحیدر","بروجن","بلداجی","بن","جونقان","چلگرد","سامان","سفیددشت","سودجان","سورشجان","شلمزار","شهرکرد","طاقانک","فارسان","فرادنبه","فرخ شهر","کیان","گندمان","گهرو","لردگان","مال خلیفه","ناغان","نافچ","نقنه","هفشجان"],"خراسان جنوبي":["ارسک","اسديه","اسفدن","اسلاميه","آرين شهر","آیسک","بشرويه","بيرجند","حاجي آباد","خضري دشت بياض","خوسف","زهان","سرايان","سربيشه","سه قلعه","شوسف","طبس مسينا","فردوس","قائن","قهستان","گزیک","محمد شهر","مود","نهبندان","نیمبلوک"],"خراسان رضوي":["احمد‌آبادصولت","انابد","باجگیران","باخرز","بار","بایگ","بجستان","بردسکن","بیدخت","تایباد","تربت جام","تربت حیدریه","جغتای","جنگل","چاپشلو","چکنه","چناران","خرو","خلیل‌آباد","خواف","داورزن","درگز","درود","دولت‌آباد","رباط سنگ","رشتخوار","رضویه","روداب","ریوش","سبزوار","سرخس","سفیدسنگ","سلامی","سلطان‌آباد","سنگان","شادمهر","شاندیز","ششتمد","شهرآباد","شهرزو","صالح‌آباد","طرقبه","عشق‌آباد","فرهادگرد","فریمان","فیروزه","فیض‌آباد","قاسم‌آباد","قدمگاه","قلندرآباد","قوچان","کاخک","کاریز","کاشمر","کدکن","کلات","کندر","گلمکان","گناباد","لطف‌آباد","مزدآوند","مشهد","مشهدریزه","ملک‌آباد","نشتیفان","نصرآباد","نقاب","نوخندان","نیشابور","نیل‌شهر","همت‌آباد","یونسی"],"خراسان شمالي":["اسفراين","ايور","آشخانه","بجنورد","پيش قلعه","تيتكانلو","جاجرم","حصارگرمخان","درق","راز","سنخواست","شوقان","شيروان","صفي آباد","فاروج","قاضي","گرمه","لوجلی"],"خوزستان":["اروندکنار","الوان","امیدیه","اندیمشک","اهواز","ایذه","آبادان","آغاجاری","باغ ملک","بستان","بندرامام خمینی","بندرماهشهر","بهبهان","ترکالکی","جایزان","جنت مکان","چغامیش","چمران","چوئبده","حر","حسینیه","حمزه","حمیدیه","خرمشهر","دارخوین","دزآب","دزفول","دهدز","رامشیر","رامهرمز","رفیع","زهره","سالند","سردشت","سماله","سوسنگرد","شادگان","شاوور","شرافت","شوش","شوشتر","شیبان","صالح‌شهر","صالح مشطط","صفی‌آباد","صیدون","قلعه‌تل","قلعه‌خواجه","گتوند","گوریه","لالی","مسجدسلیمان","مشراگه","مقاومت","ملاثانی","میانرود","میداود","مینوشهر","ویس","هفتگل","هندیجان","هویزه"],"زنجان":["ابهر","ارمغانخانه","آب بر","چورزق","حلب","خرمدره","دندی","زرین آباد","زرین رود","زنجان","سجاس","سلطانیه","سهرورد","صائین قلعه","قیدار","گرماب","ماه نشان","هیدج"],"سمنان":["امیریه","ایوانکی","آرادان","بسطام","بیارجمند","دامغان","درجزین","دیباج","سرخه","سمنان","شاهرود","شهمیرزاد","کلاته خیج","گرمسار","مجن","مهدی شهر","میامی"],"سيستان وبلوچستان":["ادیمی","اسپکه","ایرانشهر","بزمان","بمپور","بنت","بنجار","پیشین","جالق","چاه بهار","خاش","دوست محمد","راسک","زابل","زابلی","زاهدان","زرآباد","زهک","سراوان","سرباز","سوران","سیرکان","علی اکبر","فنوج","قصرقند","کنارک","گشت","گلمورتی","محمدان","محمد آباد","محمدی","میرجاوه","نصرت آباد","نگور","نوک آباد","نیک شهر","هیدوج"],"فارس":["اردکان","ارسنجان","استهبان","اسیر","اشکنان","افزر","اقلید","امام شهر","اوز","اهل","ایج","ایزدخواست","آباده","آباده طشک","باب انار","بالاده","بنارویه","بوانات","بهمن","بیرم","بیضا","جنت شهر","جویم","جهرم","حاجی آباد","حسامی","حسن آباد","خانه زنیان","خاوران","خرامه","خشت","خنج","خور","خومه زار","داراب","داریان","دبیران","دژکرد","دوبرجی","دوزه","دهرم","رامجرد","رونیز","زاهدشهر","زرقان","سده","سروستان","سعادت شهر","سورمق","سیدان","ششده","شهر جدید صدرا","شهرپیر","شیراز","صغاد","صفاشهر","علامرودشت","عمادده","فدامی","فراشبند","فسا","فیروزآباد","قادرآباد","قائمیه","قطب آباد","قطرویه","قیر","کارزین","کازرون","کامفیروز","کره ای","کنارتخته","کوار","کوهنجان","گراش","گله دار","لار","لامرد","لپوئی","لطیفی","مبارک آباد","مرودشت","مشکان","مصیری","مهر","میمند","نوبندگان","نوجین","نودان","نورآباد","نی ریز","وراوی","هماشهر"],"قزوين":["ارداق","اسفرورین","اقبالیه","الوند","آبگرم","آبیک","آوج","بوئین زهرا","بیدستان","تاکستان","خاکعلی","خرمدشت","دانسفهان","رازمیان","سگزآباد","سیردان","شال","شریفیه","ضیاءآباد","قزوین","کوهین","محمدیه","محمودآبادنمونه","معلم کلايه","نرجه"],"قم":["جعفریه","دستجرد","سلفچگان","قم","قنوات","کهک"],"كردستان":["آرمرده","بابارشانی","بانه","بلبان آباد","بوئین سفلی","بیجار","چناره","دزج","دلبران","دهگلان","دیواندره","زرینه","سروآباد","سریش آباد","سقز","سنندج","شویشه","صاحب","قروه","کامیاران","کانی دینار","کانی سور","مریوان","موچش","یاسوکند"],"کرمان":["اختیارآباد","ارزوئیه","امین شهر","انار","اندوهجرد","باغین","بافت","بردسیر","بروات","بزنجان","بم","بهرمان","پاریز","جبالبارز","جوپار","جوزم","جیرفت","چترود","خاتون آباد","خانوک","خورسند","درب بهشت","دوساری","دهج","رابر","راور","راین","رفسنجان","رودبار","ریحان شهر","زرند","زنگی آباد","زیدآباد","سرچشمه","سیرجان","شهداد","شهربابک","صفائیه","عنبرآباد","فاریاب","فهرج","قلعه گنج","کاظم آباد","کرمان","کشکوئیه","کوهبنان","کهنوج","کیانشهر","گلباف","گلزار","لاله زار","ماهان","محمد آباد","محی آباد","مردهک","منوجان","نجف شهر","نرماشیر","نظام شهر","نگار","نودژ","هجدک","هماشهر","یزدان شهر"],"کرمانشاه":["ازگله","اسلام‌آبادغرب","باینگان","بیستون","پاوه","تازه‌آباد","جوانرود","حمیل","رباط","روانسر","سرپل‌ذهاب","سرمست","سطر","سنقر","سومار","شاهو","صحنه","قصرشیرین","کرمانشاه","کرندغرب","کنگاور","کوزران","گهواره","گیلان غرب","میان‌راهان","نودشه","نوسود","هرسین","هلشی"],"کهگلویه و بويراحمد":["باشت","پاتاوه","چرام","چیتاب","دوگنبدان","دهدشت","دیشموک","سوق","سی‌سخت","قلعه‌رئیسی","گراب‌سفلی","لنده","لیکک","مادوان","مارگون","یاسوج"],"گلستان":["انبارآلوم","اینچه برون","آزادشهر","آق‌قلا","بندرگز","ترکمن","جلین","خان‌ببین","دلند","رامیان","سرخنکلاته","سیمین‌شهر","علی‌آباد","فاضل‌آباد","کردکوی","کلاله","گالیکش","گرگان","گمیش‌تپه","گنبدکاووس","مراوه‌تپه","مینودشت","نگین‌شهر","نوده‌خاندوز"],"گيلان":["احمدسرگوراب","اسالم","اطاقور","املش","آستارا","آستانه اشرفیه","بازارجمعه","بره سر","بندرانزلی","پره سر","توتکابن","جیرنده","چابکسر","چاف وچمخاله","چوبر","حویق","خشکبیجار","خمام","دیلمان","رانکوه","رحیم آباد","رستم آباد","رشت","رضوانشهر","رودبار","رودبنه","رودسر","سنگر","سیاهکل","شفت","شلمان","صومعه سرا","فومن","کلاچای","کوچصفهان","کومله","کیاشهر","گوراب زرمیخ","لاهیجان","لشت نشاء","لنگرود","لوشان","لولمان","لوندویل","لیسار","ماسال","ماسوله","مرجقل","منجیل","واجارگاه","هشتپر"],"لرستان":["ازنا","اشترینان","الشتر","الیگودرز","بروجرد","پلدختر","چالانچولان","چغلوندی","چقابل","خرم آباد","درب گنبد","دورود","زاغه","سپیددشت","سراب دوره","شول آباد","فیروز آباد","کونانی","کوهدشت","گراب","معمولان","مؤمن آباد","نور آباد","ویسیان","هفت چشمه"],"مازندران":["امیرکلا","ایزدشهر","آلاشت","آمل","بابل","بابلسر","بلده","بهشهر","بهنمیر","پل سفید","پول","تنکابن","جویبار","چالوس","چمستان","خرم آباد","خلیل شهر","خوش رودپی","دابودشت","رامسر","رستمکلا","رویان","رینه","زرگر محله","زیرآب","ساری","سرخرود","سلمان شهر","سورک","شیرگاه","شیرود","عباس آباد","فریدونکنار","فریم","قائم شهر","کتالم وسادات شهر","کلارآباد","کلاردشت","کله بست","کوهی خیل","کیاسر","کیاکلا","گتاب","گزنک","گلوگاه","محمود آباد","مرزن آباد","مرزیکلا","نشتارود","نکا","نور"],"مركزي":["اراک","آستانه","آشتیان","پرندک","تفرش","توره","جاورسیان","خشکرود","خمین","خنداب","داودآباد","دلیجان","رازقان","زاویه","ساروق","ساوه","سنجان","شازند","شهرجدیدمهاجران","غرق آباد","فرمهین","قورچی باشی","کرهرود","کمیجان","مأمونیه","محلات","میلاجرد","نراق","نوبران","نیمور","هندودر"],"هرمزگان":["ابوموسی","بستک","بندرجاسک","بندرچارک","بندرعباس","بندرلنگه","بیکاه","پارسیان","تخت","جناح","حاجی آباد","خمیر","درگهان","دهبارز","رویدر","زیارتعلی","سردشت بشاگرد","سرگز","سندرک","سوزا","سیریک","فارغان","فین","قشم","قلعه قاضی","کنگ","کوشکنار","کیش","گوهران","میناب","هرمز","هشتبندی"],"همدان":["ازندریان","اسدآباد","برزول","بهار","تویسرکان","جورقان","جوکار","دمق","رزن","زنگنه","سامن","سرکان","شیرین سو","صالح آباد","فامنین","فرسفج","فیروزان","قروه در جزین","قهاوند","کبودرآهنگ","گل تپه","گیان","لالجین","مریانج","ملایر","نهاوند","همدان"],"يزد":["ابرکوه","احمدآباد","اردکان","اشکذر","بافق","بفروئیه","بهاباد","تفت","حمیدیا","خضرآباد","دیهوک","زارچ","شاهدیه","طبس","عشق‌آباد","عقدا","مروست","مهردشت","مهریز","میبد","ندوشن","نیر","هرات","یزد"]};
 
 class AghinouApp extends StatelessWidget {
@@ -80,12 +85,12 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final phone = TextEditingController();
   final password = TextEditingController();
-  bool loading = false;
+  final firstName = TextEditingController(); final lastName = TextEditingController();
+  bool loading = false; bool registerMode = false; bool acceptedTerms = false;
 
   @override
   void dispose() {
-    phone.dispose();
-    password.dispose();
+    phone.dispose(); password.dispose(); firstName.dispose(); lastName.dispose();
     super.dispose();
   }
 
@@ -149,11 +154,8 @@ class _LoginPageState extends State<LoginPage> {
       final r = await supabase.auth.signInWithPassword(email: authEmailForPhone(v), password: p);
       final u = r.user;
       if (u == null) throw Exception('ورود انجام نشد.');
-      await supabase.from('profiles').upsert({
-        'iidd': u.id,
-        'cphone': v,
-        'name': 'کاربر آگهینو',
-      }, onConflict: 'iidd');
+      final existing=await supabase.from('profiles').select('iidd').eq('iidd',u.id).maybeSingle();
+      if(existing==null){await supabase.from('profiles').insert({'iidd':u.id,'cphone':v,'name':'کاربر آگهینو'});}else{await supabase.from('profiles').update({'cphone':v}).eq('iidd',u.id);}
       if (mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
       }
@@ -169,99 +171,35 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> register() async {
-    final v = normalized();
-    final p = password.text;
-    if (!RegExp(r'^\+98\d{10}$').hasMatch(v)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('شماره موبایل را صحیح وارد کنید.')),
-      );
-      return;
-    }
-    if (p.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('رمز ورود باید حداقل ۶ کاراکتر باشد.')),
-      );
-      return;
-    }
-
-    setState(() => loading = true);
-    try {
-      final r = await supabase.auth.signUp(email: authEmailForPhone(v), password: p);
-      final u = r.user;
-      if (u == null) throw Exception('ساخت حساب انجام نشد.');
-      if (r.session == null) {
-        throw Exception('حساب ساخته شد، اما تأیید ایمیل فعال است. در تنظیمات Auth باید Confirm Email خاموش باشد.');
-      }
-      await supabase.from('profiles').upsert({
-        'iidd': u.id,
-        'cphone': v,
-        'name': 'کاربر آگهینو',
-      }, onConflict: 'iidd');
-      if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
-      }
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(authErrorMessage(e, registerMode: true))));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ثبت‌نام انجام نشد: ${e}')));
-    } finally {
-      if (mounted) setState(() => loading = false);
-    }
+    final v=normalized(), p=password.text, fn=firstName.text.trim(), ln=lastName.text.trim();
+    if(!RegExp(r'^\+98\d{10}$').hasMatch(v)){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره موبایل را صحیح وارد کنید.')));return;}
+    if(fn.isEmpty||ln.isEmpty){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('نام و نام خانوادگی را وارد کنید.')));return;}
+    if(p.length<6){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('رمز ورود باید حداقل ۶ کاراکتر باشد.')));return;}
+    if(!acceptedTerms){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('برای ساخت حساب باید قوانین و مقررات آگهینو را بپذیرید.')));return;}
+    setState(()=>loading=true);
+    try{
+      final r=await supabase.auth.signUp(email:authEmailForPhone(v),password:p); final u=r.user;
+      if(u==null)throw Exception('ساخت حساب انجام نشد.'); if(r.session==null)throw Exception('حساب ساخته شد، اما تأیید ایمیل فعال است.');
+      await supabase.from('profiles').upsert({'iidd':u.id,'cphone':v,'first_name':fn,'last_name':ln,'name':'$fn $ln','accepted_terms_version':currentTermsVersion,'accepted_terms_at':DateTime.now().toUtc().toIso8601String()},onConflict:'iidd');
+      if(mounted)Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const HomePage()));
+    }on AuthException catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(authErrorMessage(e,registerMode:true))));}
+    catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت‌نام انجام نشد: $e')));}
+    finally{if(mounted)setState(()=>loading=false);}
   }
 
-  @override
-  Widget build(BuildContext c) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 82,
-                  height: 82,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF006D77), Color(0xFF0A9396)],
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: const Icon(Icons.storefront_rounded, size: 46, color: Colors.white),
-                ),
-                const SizedBox(height: 14),
-                const Text('آگهینو', style: TextStyle(fontSize: 34, fontWeight: FontWeight.w800, color: Color(0xFF17212B))),
-                const SizedBox(height: 6),
-                const Text('بازار ساده، امن و حرفه‌ای', style: TextStyle(color: Color(0xFF60727A), fontSize: 14)),
-                const SizedBox(height: 30),
-                TextField(
-                  controller: phone,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'شماره موبایل', hintText: '09121234567', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: password,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'رمز ورود', hintText: 'حداقل ۶ کاراکتر', border: OutlineInputBorder()),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(width: double.infinity, child: FilledButton(onPressed: loading ? null : login, child: Text(loading ? 'در حال ورود...' : 'ورود'))),
-                const SizedBox(height: 8),
-                SizedBox(width: double.infinity, child: OutlinedButton(onPressed: loading ? null : register, child: const Text('ساخت حساب جدید'))),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  @override Widget build(BuildContext c){
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:SafeArea(child:SingleChildScrollView(padding:const EdgeInsets.all(24),child:Column(mainAxisAlignment:MainAxisAlignment.center,children:[
+      const SizedBox(height:24),Container(width:82,height:82,decoration:BoxDecoration(gradient:const LinearGradient(colors:[Color(0xFF006D77),Color(0xFF0A9396)]),borderRadius:BorderRadius.circular(24)),child:const Icon(Icons.storefront_rounded,size:46,color:Colors.white)),
+      const SizedBox(height:14),const Text('آگهینو',style:TextStyle(fontSize:34,fontWeight:FontWeight.w800,color:Color(0xFF17212B))),const SizedBox(height:6),Text(registerMode?'ساخت حساب جدید':'بازار ساده، امن و حرفه‌ای',style:const TextStyle(color:Color(0xFF60727A),fontSize:14)),const SizedBox(height:30),
+      if(registerMode)...[TextField(controller:firstName,decoration:const InputDecoration(labelText:'نام',border:OutlineInputBorder())),const SizedBox(height:12),TextField(controller:lastName,decoration:const InputDecoration(labelText:'نام خانوادگی',border:OutlineInputBorder())),const SizedBox(height:12)],
+      TextField(controller:phone,keyboardType:TextInputType.phone,decoration:const InputDecoration(labelText:'شماره موبایل',hintText:'09121234567',border:OutlineInputBorder())),const SizedBox(height:12),TextField(controller:password,obscureText:true,decoration:const InputDecoration(labelText:'رمز ورود',hintText:'حداقل ۶ کاراکتر',border:OutlineInputBorder())),
+      if(registerMode)...[const SizedBox(height:12),Card(child:Padding(padding:const EdgeInsets.all(8),child:Row(crossAxisAlignment:CrossAxisAlignment.start,children:[Checkbox(value:acceptedTerms,onChanged:loading?null:(v)=>setState(()=>acceptedTerms=v==true)),Expanded(child:Padding(padding:const EdgeInsets.only(top:10),child:Wrap(children:[const Text('قوانین و مقررات آگهینو را مطالعه کرده‌ام و می‌پذیرم. '),InkWell(onTap:()=>Navigator.push(c,MaterialPageRoute(builder:(_)=>const TermsPage())),child:const Text('مشاهده قوانین',style:TextStyle(color:Color(0xFF006D77),fontWeight:FontWeight.bold,decoration:TextDecoration.underline)))])))])))],
+      const SizedBox(height:16),SizedBox(width:double.infinity,child:FilledButton(onPressed:loading?null:(registerMode?register:login),child:Text(loading?(registerMode?'در حال ساخت حساب...':'در حال ورود...'):(registerMode?'ساخت حساب':'ورود')))),const SizedBox(height:8),SizedBox(width:double.infinity,child:OutlinedButton(onPressed:loading?null:()=>setState(()=>registerMode=!registerMode),child:Text(registerMode?'بازگشت به ورود':'ساخت حساب جدید')))
+    ]))));
   }
+}
+
+class TermsPage extends StatelessWidget{const TermsPage({super.key});@override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text(termsTitle)),body:ListView(padding:const EdgeInsets.all(16),children:[Card(child:Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[const Text('نسخه 1.0',style:TextStyle(fontWeight:FontWeight.bold,color:Color(0xFF006D77))),const SizedBox(height:12),...List.generate(aghinouTerms.length,(i)=>Padding(padding:const EdgeInsets.only(bottom:12),child:Text((i+1).toString()+'. '+aghinouTerms[i],style:const TextStyle(height:1.7))))])))])));}
 }
 
 const Map<String, IconData> aghinouCategoryIcons = {
@@ -348,7 +286,7 @@ class _HomePageState extends State<HomePage> {
   int? minPrice;
   int? maxPrice;
   List<String> recentSearches = [];
-  List<Map<String, dynamic>> ads = [];
+  List<Map<String, dynamic>> ads = []; String profileFirstName=''; String profileLastName=''; String profilePhone='';
 
   static const categories = <String>[
     'خودرو','املاک','موبایل و تبلت','لوازم دیجیتال','لوازم خانگی','مبلمان و دکوراسیون','پوشاک و کیف و کفش','وسایل نقلیه','خدمات','استخدام و کاریابی','لوازم شخصی','سرگرمی و ورزش','کشاورزی و دامداری','ابزار و تجهیزات','حیوانات','سایر',
@@ -360,9 +298,10 @@ class _HomePageState extends State<HomePage> {
     loadAds();
     loadCategories();
     loadSubscription();
-    loadAdmin();
+    loadAdmin(); loadProfile();
   }
 
+  Future<void> loadProfile() async{final uid=supabase.auth.currentUser?.id;if(uid==null)return;try{final p=await supabase.from('profiles').select('first_name,last_name,cphone,name').eq('iidd',uid).maybeSingle();if(!mounted||p==null)return;setState((){profileFirstName=p['first_name']?.toString()??'';profileLastName=p['last_name']?.toString()??'';profilePhone=p['cphone']?.toString()??'';});}catch(_){}}
   Future<void> loadCategories() async {
     try {
       final cats = await supabase.from('categories').select('id,name');
@@ -944,17 +883,10 @@ class _HomePageState extends State<HomePage> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const CircleAvatar(
-          radius: 38,
-          child: Icon(Icons.person, size: 42),
-        ),
-        const SizedBox(height: 10),
-        Center(
-          child: Text(
-            supabase.auth.currentUser?.email ?? 'کاربر آگهینو',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ),
+        Center(child:CircleAvatar(radius:38,backgroundColor:const Color(0xFFD7F0F1),child:Text(profileFirstName.isNotEmpty?profileFirstName.substring(0,1):'آ',style:const TextStyle(fontSize:34,fontWeight:FontWeight.bold,color:Color(0xFF006D77))))),
+        const SizedBox(height:10),
+        Center(child:Text((profileFirstName.isNotEmpty?profileFirstName:'کاربر')+' '+profileLastName,style:const TextStyle(fontSize:18,fontWeight:FontWeight.bold))),
+        if(profilePhone.isNotEmpty)Center(child:Padding(padding:const EdgeInsets.only(top:4),child:Text(profilePhone,style:const TextStyle(color:Color(0xFF60727A))))),
         const SizedBox(height: 18),
         Card(
           child: ListTile(
@@ -1531,7 +1463,7 @@ class _AdminPageState extends State<AdminPage>{
       final st=await supabase.rpc('admin_dashboard_stats');
       final rr=await supabase.from('reports').select('id,reporter_id,ad_id,reason,details,status,created_at,ads(title,city)').order('created_at',ascending:false).limit(100);
       final aa=await supabase.from('ads').select('idd,title,price,city,category,seller_id,publish_status,created_at').order('created_at',ascending:false).limit(100);
-      final uu=await supabase.from('profiles').select('iidd,name,cphone,created_at').order('created_at',ascending:false).limit(100);
+      final uu=await supabase.from('profiles').select('iidd,name,first_name,last_name,cphone,created_at').order('created_at',ascending:false).limit(100);
       if(r!=null){price.text=r['price'].toString();days.text=r['duration_days'].toString();limit.text=r['ad_limit'].toString();images.text=r['image_limit'].toString();card.text=r['destination_card']?.toString()??'';holder.text=r['card_holder']?.toString()??'';bank.text=r['bank_name']?.toString()??'';instructions.text=r['instructions']?.toString()??'';enabled=r['enabled']==true;}
       if(mounted)setState(() { stats=Map<String,dynamic>.from(st); payments=List<Map<String,dynamic>>.from(p); ads=List<Map<String,dynamic>>.from(aa); users=List<Map<String,dynamic>>.from(uu); reports=List<Map<String,dynamic>>.from(rr); loading=false; });
     }catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('پنل مدیریت: $e')));}}
@@ -1546,12 +1478,12 @@ class _AdminPageState extends State<AdminPage>{
   @override Widget build(BuildContext context){
     if(loading)return const Directionality(textDirection:TextDirection.rtl,child:Scaffold(body:Center(child:CircularProgressIndicator())));
     final uq=userSearch.text.trim().toLowerCase(),aq=adSearch.text.trim().toLowerCase();
-    final fu=users.where((x)=>uq.isEmpty||x['name'].toString().toLowerCase().contains(uq)||x['cphone'].toString().contains(uq)).toList();
+    final fu=users.where((x){final full=((x['first_name']??'').toString()+' '+(x['last_name']??'').toString()).trim();return uq.isEmpty||full.toLowerCase().contains(uq)||x['name'].toString().toLowerCase().contains(uq)||x['cphone'].toString().contains(uq);}).toList();
     final fa=ads.where((x)=>aq.isEmpty||x['title'].toString().toLowerCase().contains(aq)||x['city'].toString().toLowerCase().contains(aq)).toList();
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),body:ListView(padding:const EdgeInsets.all(12),children:[
       const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),Row(children:[stat('کاربران',stats?['users'],Icons.people),stat('آگهی‌ها',stats?['ads'],Icons.list_alt)]),Row(children:[stat('پرداخت موفق',stats?['paid_payments'],Icons.payments),stat('درآمد',stats?['revenue'],Icons.account_balance_wallet)]),
       ExpansionTile(title:const Text('تنظیمات اشتراک و کارت‌به‌کارت'),children:[Padding(padding:const EdgeInsets.all(12),child:Column(children:[field(price,'قیمت اشتراک',type:TextInputType.number),field(days,'مدت (روز)',type:TextInputType.number),field(limit,'سهمیه آگهی',type:TextInputType.number),field(images,'حداکثر عکس',type:TextInputType.number),field(card,'شماره کارت مقصد'),field(holder,'صاحب کارت'),field(bank,'بانک'),field(instructions,'توضیحات'),SwitchListTile(value:enabled,onChanged:(v)=>setState(()=>enabled=v),title:const Text('فروش اشتراک فعال باشد')),FilledButton(onPressed:working?null:saveSettings,child:const Text('ذخیره'))]))]),
-      ExpansionTile(title:Text('مدیریت کاربران (${fu.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text(u['name']?.toString()??'کاربر'),subtitle:Text(u['cphone']?.toString()??'-')))]),
+      ExpansionTile(title:Text('مدیریت کاربران (${stats?['users'] ?? users.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text((((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim().isNotEmpty)?((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim():(u['name']?.toString()??'کاربر')),subtitle:Text(u['cphone']?.toString()??'-')))]),
       ExpansionTile(title:Text('مدیریت آگهی‌ها (${fa.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:adSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'عنوان یا شهر',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fa.take(50).map((ad)=>ListTile(title:Text(ad['title']?.toString()??'بدون عنوان'),subtitle:Text('${ad['city']??''} • ${ad['category']??''} • ${ad['price']??'توافقی'} تومان'),trailing:Wrap(children:[IconButton(tooltip:'تأیید',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'published'),icon:const Icon(Icons.check_circle_outline)),IconButton(tooltip:'رد',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'rejected'),icon:const Icon(Icons.cancel_outlined)),IconButton(tooltip:'توقف',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'paused'),icon:const Icon(Icons.pause_circle_outline)),IconButton(icon:const Icon(Icons.delete_outline),onPressed:working?null:()=>deleteAd(ad['idd'].toString()))])))]),
       ExpansionTile(
         title:Text('پرداخت‌های در انتظار (${payments.length})'),
