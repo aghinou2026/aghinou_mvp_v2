@@ -1887,6 +1887,35 @@ class _AdminPageState extends State<AdminPage>{
   Future<void> moderateAd(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('moderate_ad',params:{'p_ad_id':id,'p_status':status,'p_reason':status=='rejected'?'آگهی مطابق قوانین تأیید نشد.':null});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(status=='published'?'آگهی تأیید شد.':status=='paused'?'آگهی متوقف شد.':'آگهی رد شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تغییر وضعیت آگهی: $e')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> setReportStatus(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('admin_set_report_status',params:{'p_report_id':id,'p_status':status});if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('وضعیت گزارش به‌روزرسانی شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('گزارش: $e')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> deleteAd(String id) async {if(working)return;setState(()=>working=true);try{final deleted=await supabase.from('ads').delete().eq('idd',id).select('idd');if(deleted.isEmpty)throw Exception('آگهی حذف نشد یا دسترسی کافی وجود ندارد.');if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی حذف شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی: $e')));}finally{if(mounted)setState(()=>working=false);}}
+  Future<void> deleteUser(String id) async {
+    if(working)return;
+    final ok=await showDialog<bool>(
+      context:context,
+      builder:(_) => AlertDialog(
+        title:const Text('حذف کامل کاربر'),
+        content:const Text('با حذف این کاربر، حساب کاربری، آگهی‌ها، عکس‌های آگهی، اشتراک، پرداخت‌ها، پیام‌ها و اطلاعات مرتبط او نیز حذف می‌شود. این کار قابل برگشت نیست. ادامه می‌دهید؟'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('انصراف')),
+          FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('حذف کامل')),
+        ],
+      ),
+    );
+    if(ok!=true)return;
+    setState(()=>working=true);
+    try{
+      await supabase.rpc('admin_delete_user',params:{'p_user_id':id});
+      if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('کاربر به‌طور کامل حذف شد.')));await load();}
+    }catch(e){
+      if(mounted){
+        final raw=e.toString();
+        String msg='حذف کاربر انجام نشد.';
+        if(raw.contains('CANNOT_DELETE_SELF'))msg='حساب مدیر فعلی قابل حذف نیست.';
+        else if(raw.contains('CANNOT_DELETE_ADMIN'))msg='حساب مدیر دیگری قابل حذف نیست.';
+        else if(raw.contains('USER_NOT_FOUND'))msg='کاربر پیدا نشد.';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(msg)));
+      }
+    }finally{if(mounted)setState(()=>working=false);}
+  }
   Widget field(TextEditingController c,String label,{TextInputType type=TextInputType.text})=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:c,keyboardType:type,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
   Widget stat(String label,dynamic value,IconData icon)=>Expanded(child:Card(child:Padding(padding:const EdgeInsets.all(10),child:Column(children:[Icon(icon,size:24),Text(value?.toString()??'0',style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold)),Text(label)]))));
   @override Widget build(BuildContext context){
@@ -1897,7 +1926,7 @@ class _AdminPageState extends State<AdminPage>{
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),body:ListView(padding:const EdgeInsets.all(12),children:[
       const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),Row(children:[stat('کاربران',stats?['users'],Icons.people),stat('آگهی‌ها',stats?['ads'],Icons.list_alt)]),Row(children:[stat('در انتظار پرداخت',stats?['pending_payments'],Icons.hourglass_top),stat('پرداخت موفق',stats?['paid_payments'],Icons.payments)]),Row(children:[stat('درآمد',stats?['revenue'],Icons.account_balance_wallet),const Spacer()]),
       ExpansionTile(title:const Text('تنظیمات اشتراک و کارت‌به‌کارت'),children:[Padding(padding:const EdgeInsets.all(12),child:Column(children:[field(price,'قیمت اشتراک',type:TextInputType.number),field(days,'مدت (روز)',type:TextInputType.number),field(limit,'سهمیه آگهی',type:TextInputType.number),field(images,'حداکثر عکس',type:TextInputType.number),field(card,'شماره کارت مقصد'),field(holder,'صاحب کارت'),field(bank,'بانک'),field(instructions,'توضیحات'),SwitchListTile(value:enabled,onChanged:(v)=>setState(()=>enabled=v),title:const Text('فروش اشتراک فعال باشد')),FilledButton(onPressed:working?null:saveSettings,child:const Text('ذخیره'))]))]),
-      ExpansionTile(title:Text('مدیریت کاربران (${stats?['users'] ?? users.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text((((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim().isNotEmpty)?((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim():(u['name']?.toString()??'کاربر')),subtitle:Text(u['cphone']?.toString()??'-')))]),
+      ExpansionTile(title:Text('مدیریت کاربران (${stats?['users'] ?? users.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text((((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim().isNotEmpty)?((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim():(u['name']?.toString()??'کاربر')),subtitle:Text(u['cphone']?.toString()??'-'),trailing:IconButton(tooltip:'حذف کامل کاربر',onPressed:working?null:()=>deleteUser(u['iidd'].toString()),icon:const Icon(Icons.delete_forever_outlined))))] ),
       ExpansionTile(title:Text('مدیریت آگهی‌ها (${fa.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:adSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'عنوان یا شهر',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fa.take(50).map((ad)=>ListTile(title:Text(ad['title']?.toString()??'بدون عنوان'),subtitle:Text('${ad['city']??''} • ${ad['category']??''} • ${ad['price']??'توافقی'} تومان'),trailing:Wrap(children:[IconButton(tooltip:'تأیید',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'published'),icon:const Icon(Icons.check_circle_outline)),IconButton(tooltip:'رد',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'rejected'),icon:const Icon(Icons.cancel_outlined)),IconButton(tooltip:'توقف',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'paused'),icon:const Icon(Icons.pause_circle_outline)),IconButton(icon:const Icon(Icons.delete_outline),onPressed:working?null:()=>deleteAd(ad['idd'].toString()))])))]),
       ExpansionTile(
         title:Text('پرداخت‌های در انتظار (${payments.length})'),
