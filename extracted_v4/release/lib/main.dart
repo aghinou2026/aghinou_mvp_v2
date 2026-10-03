@@ -36,7 +36,7 @@ class AghinouApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         fontFamily: 'sans',
-        scaffoldBackgroundColor: const Color(0xFFF5F8FA),
+        scaffoldBackgroundColor: const Color(0xFFEEF8F8),
         colorScheme: const ColorScheme(
           brightness: Brightness.light,
           primary: Color(0xFF006D77),
@@ -49,9 +49,10 @@ class AghinouApp extends StatelessWidget {
           onSurface: Color(0xFF17212B),
         ),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF5F8FA),
+          backgroundColor: Color(0xFFE1F3F3),
           foregroundColor: Color(0xFF17212B),
           elevation: 0,
+          surfaceTintColor: Colors.transparent,
           centerTitle: false,
         ),
         cardTheme: CardThemeData(
