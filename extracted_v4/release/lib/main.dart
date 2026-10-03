@@ -84,6 +84,20 @@ class _AghinouAppState extends State<AghinouApp> with WidgetsBindingObserver {
   }
 
   @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'آگهینو',
+      theme: ThemeData(
+        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF006D77)),
+        scaffoldBackgroundColor: const Color(0xFFEEF8F8),
+      ),
+      home: supabase.auth.currentSession == null ? const LoginPage() : const HomePage(),
+    );
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _setupAdminPaymentNotifications();
