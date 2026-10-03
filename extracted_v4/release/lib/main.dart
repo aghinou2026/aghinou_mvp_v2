@@ -580,7 +580,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         .trim();
   }
 
-  String relativeTime(dynamic raw) {
+  String persianDate(DateTime date) {
+  final gYear=date.year, gMonth=date.month, gDay=date.day;
+  int gy=gYear-1600, gm=gMonth-1, gd=gDay-1;
+  const md=[31,28,31,30,31,30,31,31,30,31,30,31];
+  int gDayNo=365*gy+((gy+3)~/4)-((gy+99)~/100)+((gy+399)~/400);
+  for(int i=0;i<gm;i++) gDayNo+=md[i];
+  if(gMonth>2 && ((gYear%4==0&&gYear%100!=0)||gYear%400==0)) gDayNo++;
+  gDayNo+=gd;
+  int jDayNo=gDayNo-79;
+  int jNp=jDayNo~/12053;
+  int jDay=jDayNo%12053;
+  int jy=979+33*jNp+4*(jDay~/1461);
+  jDay%=1461;
+  if(jDay>=366){jy+=(jDay-1)~/365;jDay=(jDay-1)%365;}
+  int jm, jd;
+  if(jDay<186){jm=1+jDay~/31; jd=1+jDay%31;} else {jm=7+(jDay-186)~/30; jd=1+(jDay-186)%30;}
+  String d(int n)=>n.toString().padLeft(2,'0');
+  return '${jy}/${d(jm)}/${d(jd)}';
+}
+
+String relativeTime(dynamic raw) {
     final d = DateTime.tryParse(raw?.toString() ?? '');
     if (d == null) return '';
     final now = DateTime.now();
@@ -1099,7 +1119,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             title: const Text('اشتراک'),
             subtitle: Text(
               hasActiveSubscription && subscriptionExpiresAt != null
-                  ? 'فعال تا ${subscriptionExpiresAt!.toLocal().toString().split('.').first}'
+                  ? 'فعال تا ${persianDate(subscriptionExpiresAt!.toLocal())}'
                   : 'غیرفعال • ۳۹٬۰۰۰ تومان / ماه • حداکثر ۹ آگهی',
             ),
             trailing: FilledButton(
