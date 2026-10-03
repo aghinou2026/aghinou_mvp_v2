@@ -351,22 +351,43 @@ const Map<String, IconData> aghinouCategoryIcons = {
 };
 
 const Map<String,List<String>> categoryDetailFields = {
-  'خودرو':['برند','مدل','سال ساخت','کارکرد (کیلومتر)','رنگ','گیربکس','وضعیت بدنه','سوخت','معاوضه','وضعیت بیمه','بیمه شخص ثالث','مدت اعتبار شخص ثالث','بیمه بدنه','مدت اعتبار بیمه بدنه'],
-  'املاک':['متراژ (متر)','تعداد اتاق','طبقه','تعداد طبقات','سال ساخت','پارکینگ','انباری','آسانسور','سند','نوع کاربری'],
-  'موبایل و تبلت':['برند','مدل','حافظه داخلی','رم','رنگ','وضعیت باتری','گارانتی','رجیستری','دو سیم‌کارت'],
-  'لوازم دیجیتال':['برند','مدل','سال تولید','وضعیت','گارانتی','مشخصات فنی'],
-  'لوازم خانگی':['برند','مدل','سال تولید','رنگ','وضعیت','گارانتی','مصرف انرژی'],
-  'مبلمان و دکوراسیون':['برند/سازنده','جنس','رنگ','ابعاد','تعداد نفرات','وضعیت','سن کالا'],
-  'پوشاک و کیف و کفش':['برند','سایز','جنس','رنگ','مناسب برای','وضعیت','کشور سازنده'],
-  'وسایل نقلیه':['برند','مدل','سال ساخت','کارکرد','رنگ','وضعیت','سوخت','مشخصات فنی'],
-  'خدمات':['نوع خدمت','مدت/زمان انجام','محدوده ارائه','سابقه کار','قیمت پایه','شرایط انجام'],
-  'استخدام و کاریابی':['عنوان شغلی','نوع همکاری','سابقه موردنیاز','حقوق','ساعت کاری','محدوده کاری','مزایا'],
-  'لوازم شخصی':['برند','مدل','جنس','رنگ','سایز','وضعیت','گارانتی'],
-  'سرگرمی و ورزش':['برند/سازنده','مدل','نوع','سن مناسب','وضعیت','لوازم همراه'],
-  'کشاورزی و دامداری':['نوع محصول/دام','نژاد/رقم','سن/وزن','مقدار','محل تولید','وضعیت','توضیحات فنی'],
-  'ابزار و تجهیزات':['برند','مدل','توان/ظرفیت','سال تولید','وضعیت','گارانتی','لوازم همراه'],
-  'حیوانات':['نوع','نژاد','سن','جنسیت','رنگ','وضعیت سلامت','واکسیناسیون','شناسنامه'],
-  'سایر':['برند/سازنده','مدل','سال تولید','رنگ','ابعاد','وضعیت','گارانتی','مشخصات تکمیلی'],
+'خودرو':['برند','مدل','سال ساخت','کارکرد (کیلومتر)','رنگ','رنگ داخلی','کشور سازنده','وضعیت شاسی','وضعیت موتور','وضعیت بدنه','گیربکس','سوخت','معاوضه','نوع آگهی‌دهنده','وضعیت بیمه','بیمه شخص ثالث','مدت اعتبار شخص ثالث','بیمه بدنه','مدت اعتبار بیمه بدنه'],
+'املاک':['نوع معامله','متراژ (متر)','تعداد اتاق','سن بنا','طبقه','تعداد طبقات','تعداد واحد در هر طبقه','پارکینگ','انباری','آسانسور','بالکن','بازسازی شده','مبله','سند','نوع کاربری','ودیعه (تومان)','اجاره ماهانه (تومان)','امکانات و توضیحات'],
+'موبایل و تبلت':['برند','مدل','حافظه داخلی','رم','رنگ','وضعیت دستگاه','وضعیت باتری','گارانتی','رجیستری','دو سیم‌کارت','شبکه','5G','اندازه صفحه','نوع صفحه‌نمایش','پردازنده','دوربین','لوازم همراه'],
+'لوازم دیجیتال':['برند','مدل','نوع دستگاه','سال تولید','حافظه داخلی','رم','رنگ','وضعیت','گارانتی','سیستم‌عامل','اندازه صفحه','مشخصات فنی','لوازم همراه'],
+'لوازم خانگی':['برند','مدل','نوع دستگاه','سال تولید','رنگ','وضعیت','گارانتی','مصرف انرژی','ظرفیت','نوع موتور','هوشمند','لوازم همراه'],
+'مبلمان و دکوراسیون':['برند/سازنده','نوع مبلمان','جنس','رنگ','ابعاد','تعداد نفرات','وضعیت','سن کالا','نو یا کارکرده','تعداد قطعات','قابل شست‌وشو','لوازم همراه'],
+'پوشاک و کیف و کفش':['برند','نوع کالا','سایز','جنس','رنگ','مناسب برای','وضعیت','کشور سازنده','فصل','نو یا کارکرده','جنسیت'],
+'وسایل نقلیه':['برند','مدل','نوع وسیله','سال ساخت','کارکرد','رنگ','وضعیت','سوخت','گیربکس','ظرفیت/توان','گارانتی','مشخصات فنی'],
+'خدمات':['نوع خدمت','مدت/زمان انجام','محدوده ارائه','سابقه کار','قیمت پایه','نوع قیمت','شرایط انجام','حضوری/غیرحضوری','فوری','ضمانت خدمت','نوع آگهی‌دهنده'],
+'استخدام و کاریابی':['عنوان شغلی','نوع همکاری','سابقه موردنیاز','حقوق','نوع حقوق','ساعت کاری','محدوده کاری','مزایا','بیمه','دورکاری','مدرک تحصیلی','جنسیت','سن موردنیاز'],
+'لوازم شخصی':['برند','مدل','نوع کالا','جنس','رنگ','سایز','وضعیت','گارانتی','کشور سازنده','جنسیت','نو یا کارکرده'],
+'سرگرمی و ورزش':['برند/سازنده','مدل','نوع','سن مناسب','وضعیت','لوازم همراه','جنس','رنگ','سطح استفاده','قابل استفاده برای'],
+'کشاورزی و دامداری':['نوع محصول/دام','نژاد/رقم','سن/وزن','مقدار','واحد مقدار','محل تولید','وضعیت','فصل برداشت','کاربری','تعداد','قیمت واحد','توضیحات فنی'],
+'ابزار و تجهیزات':['برند','مدل','نوع ابزار','توان/ظرفیت','سال تولید','وضعیت','گارانتی','منبع تغذیه','کاربری','لوازم همراه','مشخصات فنی'],
+'حیوانات':['نوع','نژاد','سن','جنسیت','رنگ','وضعیت سلامت','واکسیناسیون','شناسنامه','عقیم شده','نوع نگهداری','وزن','سابقه پزشکی'],
+'سایر':['برند/سازنده','مدل','نوع کالا','سال تولید','رنگ','ابعاد','وضعیت','گارانتی','کشور سازنده','جنس','نو یا کارکرده','مشخصات تکمیلی'],
+};
+const Map<String,Map<String,List<String>>> categoryFilterOptions = {
+'خودرو':{'رنگ':['سفید','مشکی','خاکستری','نقره‌ای','آبی','قرمز','زرد','سبز','قهوه‌ای','سایر'],'رنگ داخلی':['مشکی','کرم','طوسی','قهوه‌ای','سایر'],'کشور سازنده':['ایرانی','چینی','کره‌ای','ژاپنی','آلمانی','فرانسوی','ایتالیایی','انگلیسی','سایر'],'وضعیت شاسی':['سالم','ضربه‌خورده','تعویضی','رنگ‌شده'],'وضعیت موتور':['سالم','نیاز به تعمیر','تعویضی'],'وضعیت بدنه':['سالم','بدون رنگ','رنگ‌شده','تصادفی','تعویض قطعه'],'گیربکس':['دستی','اتوماتیک','نیمه‌اتوماتیک'],'سوخت':['بنزینی','دوگانه‌سوز','دیزلی','هیبریدی','برقی'],'معاوضه':['دارد','ندارد'],'نوع آگهی‌دهنده':['شخصی','فروشگاه/کسب‌وکار'],'وضعیت بیمه':['دارد','ندارد'],'بیمه شخص ثالث':['دارد','ندارد'],'بیمه بدنه':['دارد','ندارد']},
+'املاک':{'نوع معامله':['فروش','رهن و اجاره','اجاره'],'تعداد اتاق':['بدون اتاق','۱','۲','۳','۴','۵ و بیشتر'],'پارکینگ':['دارد','ندارد'],'انباری':['دارد','ندارد'],'آسانسور':['دارد','ندارد'],'بالکن':['دارد','ندارد'],'بازسازی شده':['دارد','ندارد'],'مبله':['دارد','ندارد'],'سند':['تک‌برگ','شش‌دانگ','قولنامه‌ای','اوقافی','سایر'],'نوع کاربری':['مسکونی','تجاری','اداری','کشاورزی','صنعتی']},
+'موبایل و تبلت':{'حافظه داخلی':['۳۲ گیگ','۶۴ گیگ','۱۲۸ گیگ','۲۵۶ گیگ','۵۱۲ گیگ','۱ ترابایت'],'رم':['۲ گیگ','۳ گیگ','۴ گیگ','۶ گیگ','۸ گیگ','۱۲ گیگ','۱۶ گیگ و بیشتر'],'وضعیت دستگاه':['نو','در حد نو','کارکرده'],'وضعیت باتری':['عالی','خوب','متوسط','نیازمند تعویض'],'گارانتی':['دارد','ندارد'],'رجیستری':['رجیستر شده','رجیستر نشده'],'دو سیم‌کارت':['دارد','ندارد'],'5G':['دارد','ندارد'],'نوع صفحه‌نمایش':['LCD','OLED','AMOLED','IPS']},
+'لوازم دیجیتال':{'وضعیت':['نو','در حد نو','کارکرده'],'گارانتی':['دارد','ندارد'],'سیستم‌عامل':['Android','Windows','macOS','iOS','سایر']},
+'لوازم خانگی':{'وضعیت':['نو','در حد نو','کارکرده'],'گارانتی':['دارد','ندارد'],'مصرف انرژی':['A+++','A++','A+','A','B و پایین‌تر'],'هوشمند':['دارد','ندارد']},
+'مبلمان و دکوراسیون':{'وضعیت':['نو','در حد نو','کارکرده'],'جنس':['چوب','MDF','فلز','پارچه','چرم','ترکیبی'],'قابل شست‌وشو':['دارد','ندارد']},
+'پوشاک و کیف و کفش':{'سایز':['XS','S','M','L','XL','XXL','سایر'],'مناسب برای':['زنانه','مردانه','بچگانه','یونیسکس'],'وضعیت':['نو','در حد نو','کارکرده'],'فصل':['بهار','تابستان','پاییز','زمستان'],'جنسیت':['زنانه','مردانه','بچگانه']},
+'وسایل نقلیه':{'نوع وسیله':['دوچرخه','اسکوتر','موتورسیکلت','سه‌چرخه','قایق','سایر'],'وضعیت':['نو','در حد نو','کارکرده'],'سوخت':['بنزینی','برقی','دیزلی'],'گیربکس':['دستی','اتوماتیک']},
+'خدمات':{'نوع قیمت':['توافقی','ثابت','از قیمت پایه'],'حضوری/غیرحضوری':['حضوری','غیرحضوری','هر دو'],'فوری':['دارد','ندارد'],'ضمانت خدمت':['دارد','ندارد'],'نوع آگهی‌دهنده':['شخصی','شرکت/کسب‌وکار']},
+'استخدام و کاریابی':{'نوع همکاری':['تمام‌وقت','پاره‌وقت','پروژه‌ای','کارآموزی'],'نوع حقوق':['ماهانه','ساعتی','پروژه‌ای','پورسانتی'],'بیمه':['دارد','ندارد'],'دورکاری':['دارد','ندارد'],'مدرک تحصیلی':['دیپلم','کاردانی','کارشناسی','کارشناسی ارشد','دکتری','بدون مدرک'],'جنسیت':['مهم نیست','مرد','زن']},
+'لوازم شخصی':{'وضعیت':['نو','در حد نو','کارکرده'],'گارانتی':['دارد','ندارد'],'جنسیت':['زنانه','مردانه','بچگانه'],'نو یا کارکرده':['نو','کارکرده']},
+'سرگرمی و ورزش':{'وضعیت':['نو','در حد نو','کارکرده'],'سطح استفاده':['مبتدی','متوسط','حرفه‌ای'],'قابل استفاده برای':['کودک','نوجوان','بزرگسال','همه']},
+'کشاورزی و دامداری':{'نوع محصول/دام':['دام زنده','طیور','محصول کشاورزی','بذر','نهال','خوراک دام','تجهیزات'],'وضعیت':['نو','کارکرده','تازه'],'واحد مقدار':['کیلوگرم','تن','عدد','لیتر','راس']},
+'ابزار و تجهیزات':{'وضعیت':['نو','در حد نو','کارکرده'],'گارانتی':['دارد','ندارد'],'منبع تغذیه':['برق','باتری','بنزین','دیزل','دستی'],'کاربری':['خانگی','نیمه‌صنعتی','صنعتی']},
+'حیوانات':{'جنسیت':['نر','ماده'],'وضعیت سلامت':['سالم','نیازمند درمان'],'واکسیناسیون':['کامل','ناقص','ندارد'],'شناسنامه':['دارد','ندارد'],'عقیم شده':['دارد','ندارد'],'نوع نگهداری':['خانگی','پرورشی']},
+'سایر':{'وضعیت':['نو','در حد نو','کارکرده'],'گارانتی':['دارد','ندارد'],'نو یا کارکرده':['نو','کارکرده']},
+};
+const Map<String,List<String>> categoryRangeFields = {
+'خودرو':['سال ساخت','کارکرد (کیلومتر)'],'املاک':['متراژ (متر)','سن بنا','طبقه','تعداد طبقات','تعداد واحد در هر طبقه','ودیعه (تومان)','اجاره ماهانه (تومان)'],'موبایل و تبلت':['اندازه صفحه'],'لوازم دیجیتال':['سال تولید'],'لوازم خانگی':['سال تولید','ظرفیت'],'مبلمان و دکوراسیون':['سن کالا','تعداد نفرات'],'وسایل نقلیه':['سال ساخت','کارکرد'],'خدمات':['سابقه کار','قیمت پایه'],'استخدام و کاریابی':['سابقه موردنیاز','حقوق','سن موردنیاز'],'کشاورزی و دامداری':['سن/وزن','مقدار','تعداد','قیمت واحد'],'ابزار و تجهیزات':['توان/ظرفیت','سال تولید'],'حیوانات':['سن','وزن'],'سایر':['سال تولید'],
 };
 class HomeCategoryData {
   static const Map<String,List<String>> categorySubs={
@@ -414,6 +435,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String sortMode = 'newest';
   int? minPrice;
   int? maxPrice;
+  final Map<String,String> advancedFilters = {};
+  String? listingStatusFilter;
+  String? sellerTypeFilter;
+  String publishedWithin = 'all';
+  bool onlyWithPhotos = false;
   List<String> recentSearches = [];
   List<Map<String, dynamic>> ads = []; String profileFirstName=''; String profileLastName=''; String profilePhone='';
 
@@ -615,82 +641,31 @@ String relativeTime(dynamic raw) {
     return '\${(diff.inDays / 365).floor()} سال پیش';
   }
 
-  List<Map<String, dynamic>> get filteredAds {
-    final q = normalizeFa(searchQuery);
-    final result = ads.where((ad) {
-      final categoryOk = selectedCategory == null || '${ad['category'] ?? ''}' == selectedCategory;
-      final subcategoryOk = selectedSubcategory == null || '${ad['subcategory'] ?? ''}' == selectedSubcategory;
-      final provinceOk = selectedProvince == null || '${ad['province'] ?? ''}' == selectedProvince;
-    final cityOk = selectedCity == null || '${ad['city'] ?? ''}' == selectedCity;
-      final price = (ad['price'] as num?)?.toInt();
-      final minOk = minPrice == null || (price != null && price >= minPrice!);
-      final maxOk = maxPrice == null || (price != null && price <= maxPrice!);
-      final text = normalizeFa('${ad['title'] ?? ''} ${ad['edescription'] ?? ''} ${ad['province'] ?? ''} ${ad['city'] ?? ''} ${ad['category'] ?? ''} ${ad['subcategory'] ?? ''}');
-      final searchOk = q.isEmpty || text.contains(q);
-      return categoryOk && subcategoryOk && provinceOk && cityOk && minOk && maxOk && searchOk;
-    }).toList();
-    if(sortMode=='cheapest') result.sort((a,b)=>((a['price'] as num?)??0).compareTo((b['price'] as num?)??0));
-    if(sortMode=='expensive') result.sort((a,b)=>((b['price'] as num?)??0).compareTo((a['price'] as num?)??0));
-    return result;
-  }
+  Map<String,dynamic> _details(Map<String,dynamic> ad){final d=ad['details'];return d is Map?Map<String,dynamic>.from(d):<String,dynamic>{};}
+  String _detailValue(Map<String,dynamic> ad,String key){final d=_details(ad);if(key=='برند')return ad['vehicle_brand']?.toString()??d[key]?.toString()??'';if(key=='مدل')return ad['vehicle_model']?.toString()??d[key]?.toString()??'';if(key=='سال ساخت')return ad['vehicle_year']?.toString()??d[key]?.toString()??'';if(key=='کارکرد (کیلومتر)'||key=='کارکرد')return ad['vehicle_mileage']?.toString()??d[key]?.toString()??'';if(key=='رنگ')return ad['vehicle_color']?.toString()??d[key]?.toString()??'';if(key=='گیربکس')return ad['vehicle_transmission']?.toString()??d[key]?.toString()??'';if(key=='وضعیت بدنه')return ad['vehicle_body_condition']?.toString()??d[key]?.toString()??'';if(key=='سوخت')return ad['vehicle_fuel']?.toString()??d[key]?.toString()??'';if(key=='معاوضه')return ad['vehicle_exchange']==true?'دارد':(d[key]?.toString()??'ندارد');return d[key]?.toString()??'';}
+  int? _number(String? value){if(value==null)return null;var v=value.replaceAll('۰','0').replaceAll('۱','1').replaceAll('۲','2').replaceAll('۳','3').replaceAll('۴','4').replaceAll('۵','5').replaceAll('۶','6').replaceAll('۷','7').replaceAll('۸','8').replaceAll('۹','9');v=v.replaceAll(RegExp(r'[^0-9]'),'');return int.tryParse(v);}
+  bool _matchesAdvanced(Map<String,dynamic> ad){for(final e in advancedFilters.entries){final wanted=normalizeFa(e.value);if(wanted.isEmpty)continue;final key=e.key;if(key.endsWith('__min')||key.endsWith('__max')){final field=key.replaceFirst(RegExp(r'__(min|max)$'),'');final actual=_number(_detailValue(ad,field));final bound=_number(e.value);if(actual==null||bound==null)return false;if(key.endsWith('__min')&&actual<bound)return false;if(key.endsWith('__max')&&actual>bound)return false;}else{final actual=normalizeFa(_detailValue(ad,key));if(actual!=wanted&&!actual.contains(wanted))return false;}}return true;}
+  List<Map<String,dynamic>> get filteredAds {final q=normalizeFa(searchQuery);final result=ads.where((ad){final categoryOk=selectedCategory==null||'${ad['category']??''}'==selectedCategory;final subcategoryOk=selectedSubcategory==null||'${ad['subcategory']??''}'==selectedSubcategory;final provinceOk=selectedProvince==null||'${ad['province']??''}'==selectedProvince;final cityOk=selectedCity==null||'${ad['city']??''}'==selectedCity;final price=(ad['price'] as num?)?.toInt();final minOk=minPrice==null||(price!=null&&price>=minPrice!);final maxOk=maxPrice==null||(price!=null&&price<=maxPrice!);final statusOk=listingStatusFilter==null||'${ad['listing_status']??'available'}'==listingStatusFilter;final photoOk=!onlyWithPhotos||((ad['ad_images'] is List)&&(ad['ad_images'] as List).isNotEmpty);final sellerOk=sellerTypeFilter==null||normalizeFa(_detailValue(ad,'نوع آگهی‌دهنده'))==normalizeFa(sellerTypeFilter!);final created=DateTime.tryParse(ad['created_at']?.toString()??'');final age=created==null?null:DateTime.now().difference(created);final withinOk=publishedWithin=='all'||(age!=null&&((publishedWithin=='today'&&age.inHours<24)||(publishedWithin=='3d'&&age.inHours<72)||(publishedWithin=='7d'&&age.inDays<7)||(publishedWithin=='30d'&&age.inDays<30)));final text=normalizeFa('${ad['title']??''} ${ad['edescription']??''} ${ad['province']??''} ${ad['city']??''} ${ad['category']??''} ${ad['subcategory']??''}');final searchOk=q.isEmpty||text.contains(q);return categoryOk&&subcategoryOk&&provinceOk&&cityOk&&minOk&&maxOk&&statusOk&&photoOk&&sellerOk&&withinOk&&searchOk&&_matchesAdvanced(ad);}).toList();if(sortMode=='cheapest')result.sort((a,b)=>((a['price'] as num?)??0).compareTo((b['price'] as num?)??0));if(sortMode=='expensive')result.sort((a,b)=>((b['price'] as num?)??0).compareTo((a['price'] as num?)??0));return result;}
 
-  void openFilters() {
-    final min=TextEditingController(text:minPrice?.toString()??'');
-    final max=TextEditingController(text:maxPrice?.toString()??'');
-    showModalBottomSheet(context:context,isScrollControlled:true,builder:(_)=>StatefulBuilder(builder:(ctx,setSheet)=>Directionality(
-      textDirection:TextDirection.rtl,
-      child:Padding(padding:EdgeInsets.only(left:16,right:16,top:16,bottom:MediaQuery.of(ctx).viewInsets.bottom+16),child:ListView(shrinkWrap:true,children:[
-        const Text('فیلتر آگهی‌ها',style:TextStyle(fontSize:21,fontWeight:FontWeight.bold)),
-        const SizedBox(height:12),
-        DropdownButtonFormField<String>(
-          value:selectedProvince,
-          items:[null,...iranProvinceCities.keys].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه استان‌ها'))).toList(),
-          onChanged:(v)=>setSheet(() { selectedProvince=v; selectedCity=null; }),
-          decoration:const InputDecoration(labelText:'استان',border:OutlineInputBorder())),
-        const SizedBox(height:10),
-        DropdownButtonFormField<String>(
-          value:(selectedProvince!=null && iranProvinceCities[selectedProvince!]?.contains(selectedCity)==true)?selectedCity:null,
-          items:[null,...(selectedProvince==null?const <String>[]:(iranProvinceCities[selectedProvince!]??const <String>[]))].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه شهرهای استان'))).toList(),
-          onChanged:(v)=>setSheet(() { selectedCity=v; }),
-          decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
-        const SizedBox(height:10),
-        TextField(controller:min,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'حداقل قیمت',border:OutlineInputBorder())),
-        const SizedBox(height:10),
-        TextField(controller:max,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'حداکثر قیمت',border:OutlineInputBorder())),
-        const SizedBox(height:10),
-        DropdownButtonFormField<String>(value:sortMode,items:const [
-          DropdownMenuItem(value:'newest',child:Text('جدیدترین')),
-          DropdownMenuItem(value:'cheapest',child:Text('ارزان‌ترین')),
-          DropdownMenuItem(value:'expensive',child:Text('گران‌ترین')),
-        ],onChanged:(v)=>setSheet(() { sortMode=v??'newest'; }),decoration:const InputDecoration(labelText:'مرتب‌سازی',border:OutlineInputBorder())),
-        const SizedBox(height:14),
-        Row(children:[
-          Expanded(child:OutlinedButton.icon(
-            onPressed:(){
-              setState((){
-                selectedProvince=null;
-                selectedCity=null;
-                minPrice=null;
-                maxPrice=null;
-                sortMode='newest';
-              });
-              Navigator.pop(ctx);
-            },
-            icon:const Icon(Icons.clear_all),
-            label:const Text('پاک کردن فیلترها'),
-          )),
-          const SizedBox(width:10),
-          Expanded(child:FilledButton(
-            onPressed:(){
-              setState(() { minPrice=int.tryParse(min.text); maxPrice=int.tryParse(max.text); });
-              Navigator.pop(ctx);
-            },
-            child:const Text('اعمال فیلتر'),
-          )),
-        ]),
-      ])))));
-  }
-
+  void openFilters(){final min=TextEditingController(text:minPrice?.toString()??'');final max=TextEditingController(text:maxPrice?.toString()??'');final temp=Map<String,String>.from(advancedFilters);String? tc=selectedCategory,tsc=selectedSubcategory,status=listingStatusFilter,seller=sellerTypeFilter;String pub=publishedWithin;bool photos=onlyWithPhotos;showModalBottomSheet(context:context,isScrollControlled:true,builder:(_)=>StatefulBuilder(builder:(ctx,setSheet)=>Directionality(textDirection:TextDirection.rtl,child:Padding(padding:EdgeInsets.only(left:16,right:16,top:16,bottom:MediaQuery.of(ctx).viewInsets.bottom+16),child:ListView(shrinkWrap:true,children:[
+const Text('فیلتر آگهی‌ها',style:TextStyle(fontSize:21,fontWeight:FontWeight.bold)),const SizedBox(height:12),
+DropdownButtonFormField<String>(value:tc,items:[null,..._HomePageState.categories].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه دسته‌ها'))).toList(),onChanged:(v)=>setSheet((){tc=v;tsc=null;temp.clear();}),decoration:const InputDecoration(labelText:'دسته‌بندی',border:OutlineInputBorder())),
+const SizedBox(height:10),
+DropdownButtonFormField<String>(value:(tc!=null&&HomeCategoryData.subsFor(tc!).contains(tsc))?tsc:null,items:[null,...(tc==null?const <String>[]:HomeCategoryData.subsFor(tc!))].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه زیر‌دسته‌ها'))).toList(),onChanged:(v)=>setSheet(()=>tsc=v),decoration:const InputDecoration(labelText:'زیر‌دسته',border:OutlineInputBorder())),
+const SizedBox(height:10),
+DropdownButtonFormField<String>(value:status,items:const[DropdownMenuItem<String>(value:null,child:Text('همه وضعیت‌های آگهی')),DropdownMenuItem<String>(value:'available',child:Text('موجود')),DropdownMenuItem<String>(value:'reserved',child:Text('رزرو شده')),DropdownMenuItem<String>(value:'sold',child:Text('فروخته شده'))],onChanged:(v)=>setSheet(()=>status=v),decoration:const InputDecoration(labelText:'وضعیت آگهی',border:OutlineInputBorder())),
+const SizedBox(height:10),
+DropdownButtonFormField<String>(value:seller,items:const[DropdownMenuItem<String>(value:null,child:Text('همه آگهی‌دهنده‌ها')),DropdownMenuItem<String>(value:'شخصی',child:Text('شخصی')),DropdownMenuItem<String>(value:'فروشگاه/کسب‌وکار',child:Text('فروشگاه/کسب‌وکار'))],onChanged:(v)=>setSheet(()=>seller=v),decoration:const InputDecoration(labelText:'آگهی‌دهنده',border:OutlineInputBorder())),
+const SizedBox(height:10),
+DropdownButtonFormField<String>(value:pub,items:const[DropdownMenuItem<String>(value:'all',child:Text('هر زمان')),DropdownMenuItem<String>(value:'today',child:Text('۲۴ ساعت اخیر')),DropdownMenuItem<String>(value:'3d',child:Text('۳ روز اخیر')),DropdownMenuItem<String>(value:'7d',child:Text('۷ روز اخیر')),DropdownMenuItem<String>(value:'30d',child:Text('۳۰ روز اخیر'))],onChanged:(v)=>setSheet(()=>pub=v??'all'),decoration:const InputDecoration(labelText:'زمان انتشار آگهی',border:OutlineInputBorder())),
+SwitchListTile(value:photos,onChanged:(v)=>setSheet(()=>photos=v),title:const Text('فقط دارای عکس'),contentPadding:EdgeInsets.zero),
+TextField(controller:min,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'قیمت از',border:OutlineInputBorder())),const SizedBox(height:10),TextField(controller:max,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'قیمت تا',border:OutlineInputBorder())),
+if(tc!=null)...[const SizedBox(height:18),Text('فیلترهای تخصصی ${tc!}',style:const TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),
+...(categoryDetailFields[tc!]??const <String>[]).map((field){final ranges=categoryRangeFields[tc!]??const <String>[];if(ranges.contains(field)){return Padding(padding:const EdgeInsets.only(bottom:10),child:Row(children:[Expanded(child:TextField(controller:TextEditingController(text:temp['${field}__min']??''),keyboardType:TextInputType.number,onChanged:(v)=>temp['${field}__min']=v,decoration:InputDecoration(labelText:'${field} از',border:const OutlineInputBorder()))),const SizedBox(width:8),Expanded(child:TextField(controller:TextEditingController(text:temp['${field}__max']??''),keyboardType:TextInputType.number,onChanged:(v)=>temp['${field}__max']=v,decoration:InputDecoration(labelText:'${field} تا',border:const OutlineInputBorder()))) ]));}final opts=categoryFilterOptions[tc!]?[field]??const <String>[];if(opts.isNotEmpty){final current=temp[field];return Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(value:opts.contains(current)?current:null,items:[null,...opts].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه'))).toList(),onChanged:(v){if(v==null)temp.remove(field);else temp[field]=v;setSheet((){});},decoration:InputDecoration(labelText:field,border:const OutlineInputBorder())));}return Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:TextEditingController(text:temp[field]??''),onChanged:(v){if(v.trim().isEmpty)temp.remove(field);else temp[field]=v.trim();},decoration:InputDecoration(labelText:field,border:const OutlineInputBorder())) ;}),
+],
+const SizedBox(height:8),DropdownButtonFormField<String>(value:sortMode,items:const[DropdownMenuItem(value:'newest',child:Text('جدیدترین')),DropdownMenuItem(value:'cheapest',child:Text('ارزان‌ترین')),DropdownMenuItem(value:'expensive',child:Text('گران‌ترین'))],onChanged:(v)=>setSheet(()=>sortMode=v??'newest'),decoration:const InputDecoration(labelText:'مرتب‌سازی',border:OutlineInputBorder())),
+const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPressed:(){setState((){selectedCategory=null;selectedSubcategory=null;selectedProvince=null;selectedCity=null;minPrice=null;maxPrice=null;sortMode='newest';advancedFilters.clear();listingStatusFilter=null;sellerTypeFilter=null;publishedWithin='all';onlyWithPhotos=false;});Navigator.pop(ctx);},icon:const Icon(Icons.clear_all),label:const Text('پاک کردن فیلترها'))),const SizedBox(width:10),Expanded(child:FilledButton(onPressed:(){setState((){selectedCategory=tc;selectedSubcategory=tsc;minPrice=_number(min.text);maxPrice=_number(max.text);advancedFilters..clear()..addAll(temp);listingStatusFilter=status;sellerTypeFilter=seller;publishedWithin=pub;onlyWithPhotos=photos;});Navigator.pop(ctx);},child:const Text('اعمال فیلتر')))])
+])))));}
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -1097,8 +1072,8 @@ String relativeTime(dynamic raw) {
 
   Future<void> saveCurrentSearch() async {
     final uid=supabase.auth.currentUser?.id;if(uid==null)return;
-    if(searchQuery.trim().isEmpty&&selectedCategory==null&&selectedProvince==null&&selectedCity==null&&minPrice==null&&maxPrice==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ابتدا یک عبارت یا فیلتر برای ذخیره انتخاب کنید.')));return;}
-    try{await supabase.from('saved_searches').insert({'user_id':uid,'query':searchQuery.trim(),'filters':{'category':selectedCategory,'subcategory':selectedSubcategory,'province':selectedProvince,'city':selectedCity,'min_price':minPrice,'max_price':maxPrice,'sort':sortMode}});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('جست‌وجو ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره جست‌وجو انجام نشد. لطفاً دوباره تلاش کنید.')));}
+    if(searchQuery.trim().isEmpty&&selectedCategory==null&&selectedProvince==null&&selectedCity==null&&minPrice==null&&maxPrice==null&&advancedFilters.isEmpty&&listingStatusFilter==null&&sellerTypeFilter==null&&publishedWithin=='all'&&!onlyWithPhotos){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ابتدا یک عبارت یا فیلتر برای ذخیره انتخاب کنید.')));return;}
+    try{await supabase.from('saved_searches').insert({'user_id':uid,'query':searchQuery.trim(),'filters':{'category':selectedCategory,'subcategory':selectedSubcategory,'province':selectedProvince,'city':selectedCity,'min_price':minPrice,'max_price':maxPrice,'sort':sortMode,'advanced':Map<String,String>.from(advancedFilters),'listing_status':listingStatusFilter,'seller_type':sellerTypeFilter,'published_within':publishedWithin,'only_with_photos':onlyWithPhotos}});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('جست‌وجو ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره جست‌وجو انجام نشد. لطفاً دوباره تلاش کنید.')));}
   }
 
   Future<void> buySubscription() async {
@@ -1208,6 +1183,11 @@ String relativeTime(dynamic raw) {
                 minPrice = (f['min_price'] as num?)?.toInt();
                 maxPrice = (f['max_price'] as num?)?.toInt();
                 sortMode = f['sort']?.toString() ?? 'newest';
+                advancedFilters..clear()..addAll(f['advanced'] is Map ? f['advanced'].map((k,v)=>MapEntry(k.toString(),v.toString())) : <String,String>{});
+                listingStatusFilter = f['listing_status']?.toString();
+                sellerTypeFilter = f['seller_type']?.toString();
+                publishedWithin = f['published_within']?.toString() ?? 'all';
+                onlyWithPhotos = f['only_with_photos'] == true;
                 tab = 0;
               });
             },
