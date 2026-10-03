@@ -1593,6 +1593,17 @@ class _AddAdPageState extends State<AddAdPage>{
     }
     final u=supabase.auth.currentUser;
     if(u==null)return;
+    final activeSub=await supabase.from('subscriptions').select('id,ads_used,ad_limit,expires_at').eq('user_id',u.id).eq('status','active').gt('expires_at',DateTime.now().toUtc().toIso8601String()).order('expires_at',ascending:false).limit(1).maybeSingle();
+    if(activeSub==null){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('برای ثبت آگهی، اشتراک فعال لازم است. از بخش اشتراک آن را فعال کنید.')));
+      return;
+    }
+    final used=(activeSub['ads_used'] as num?)?.toInt()??0;
+    final limit=(activeSub['ad_limit'] as num?)?.toInt()??0;
+    if(limit>0&&used>=limit){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('سهمیه ثبت آگهی این اشتراک تکمیل شده است.')));
+      return;
+    }
     final p=int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'),''));
     if(p==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('قیمت را صحیح وارد کنید.')));return;}
     setState(()=>publishing=true);
@@ -1644,7 +1655,9 @@ class _AddAdPageState extends State<AddAdPage>{
         try{await supabase.from('ad_images').delete().eq('ad_id',createdAdId!);}catch(_){ }
         try{await supabase.from('ads').delete().eq('idd',createdAdId!);}catch(_){ }
       }
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت آگهی انجام نشد و تغییرات ناقص پاک شد: '+e.toString())));
+      final raw=e.toString();
+      final message=raw.contains('SUBSCRIPTION_REQUIRED')?'اشتراک فعال برای ثبت آگهی پیدا نشد.':raw.contains('AUTH_REQUIRED')?'نشست ورود معتبر نیست؛ دوباره وارد شوید.':raw.contains('storage')||raw.contains('Storage')?'آپلود عکس انجام نشد؛ دسترسی ذخیره‌سازی را بررسی کنید.':'ثبت آگهی انجام نشد و تغییرات ناقص پاک شد.';
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(message)));
     }finally{if(mounted)setState(()=>publishing=false);}
   }
   Future<void> preview() async {
@@ -1696,7 +1709,12 @@ class _AddAdPageState extends State<AddAdPage>{
           DropdownButtonFormField<String>(value:iranProvinceCities[province]?.contains(city)==true?city:iranProvinceCities[province]!.first,items:(iranProvinceCities[province]??const <String>[]).map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
             onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
           const SizedBox(height:12),
-          TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله (اختیاری)',border:OutlineInputBorder())),          const SizedBox(height:12),
+          TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله (اختیاری)',border:OutlineInputBorder())),
+          const SizedBox(height:14),
+          const Text('موقعیت مکانی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
+          const SizedBox(height:6),
+          const Text('برای املاک، خودرو و سایر آگهی‌ها می‌توانید محل دقیق را روی نقشه انتخاب کنید.',style:TextStyle(color:Colors.black54)),
+          const SizedBox(height:8),
           OutlinedButton.icon(
             onPressed:publishing?null:() async {
               final result=await Navigator.push<LatLng>(context,MaterialPageRoute(builder:(_)=>MapPickerPage(initialLatitude:latitude,initialLongitude:longitude)));
@@ -1805,7 +1823,7 @@ class _AdminPageState extends State<AdminPage>{
   Future<void> decide(String id,bool approve) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('confirm_payment',params:{'p_payment_id':id,'p_approve':approve,'p_reason':approve?null:'تأیید نشد توسط مدیر'});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(approve?'پرداخت تأیید و اشتراک فعال شد.':'پرداخت رد شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('عملیات: $e')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> moderateAd(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('moderate_ad',params:{'p_ad_id':id,'p_status':status,'p_reason':status=='rejected'?'آگهی مطابق قوانین تأیید نشد.':null});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(status=='published'?'آگهی تأیید شد.':status=='paused'?'آگهی متوقف شد.':'آگهی رد شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تغییر وضعیت آگهی: $e')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> setReportStatus(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('admin_set_report_status',params:{'p_report_id':id,'p_status':status});if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('وضعیت گزارش به‌روزرسانی شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('گزارش: $e')));}finally{if(mounted)setState(()=>working=false);}}
-  Future<void> deleteAd(String id) async {if(working)return;setState(()=>working=true);try{await supabase.from('ads').delete().eq('idd',id);if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی حذف شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی: $e')));}finally{if(mounted)setState(()=>working=false);}}
+  Future<void> deleteAd(String id) async {if(working)return;setState(()=>working=true);try{final deleted=await supabase.from('ads').delete().eq('idd',id).select('idd');if(deleted.isEmpty)throw Exception('آگهی حذف نشد یا دسترسی کافی وجود ندارد.');if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی حذف شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی: $e')));}finally{if(mounted)setState(()=>working=false);}}
   Widget field(TextEditingController c,String label,{TextInputType type=TextInputType.text})=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:c,keyboardType:type,decoration:InputDecoration(labelText:label,border:const OutlineInputBorder())));
   Widget stat(String label,dynamic value,IconData icon)=>Expanded(child:Card(child:Padding(padding:const EdgeInsets.all(10),child:Column(children:[Icon(icon,size:24),Text(value?.toString()??'0',style:const TextStyle(fontSize:19,fontWeight:FontWeight.bold)),Text(label)]))));
   @override Widget build(BuildContext context){
