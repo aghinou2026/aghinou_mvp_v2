@@ -263,6 +263,25 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
+const Map<String, IconData> aghinouCategoryIcons = {
+  'خودرو': Icons.directions_car_filled_outlined,
+  'املاک': Icons.home_work_outlined,
+  'موبایل و تبلت': Icons.phone_android_outlined,
+  'لوازم دیجیتال': Icons.devices_other_outlined,
+  'لوازم خانگی': Icons.kitchen_outlined,
+  'مبلمان و دکوراسیون': Icons.chair_outlined,
+  'پوشاک و کیف و کفش': Icons.checkroom_outlined,
+  'وسایل نقلیه': Icons.pedal_bike_outlined,
+  'خدمات': Icons.handyman_outlined,
+  'استخدام و کاریابی': Icons.work_outline,
+  'لوازم شخصی': Icons.watch_outlined,
+  'سرگرمی و ورزش': Icons.sports_soccer_outlined,
+  'کشاورزی و دامداری': Icons.agriculture_outlined,
+  'ابزار و تجهیزات': Icons.build_outlined,
+  'حیوانات': Icons.pets_outlined,
+  'سایر': Icons.category_outlined,
+};
+
 class HomeCategoryData {
   static const Map<String,List<String>> categorySubs={
     'خودرو':['سواری','شاسی‌بلند','وانت','موتورسیکلت'],
@@ -491,6 +510,12 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           actions: [
+            if (isAdmin)
+              IconButton(
+                tooltip: 'پنل مدیریت',
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPage())),
+                icon: const Icon(Icons.admin_panel_settings_outlined),
+              ),
             IconButton(
               onPressed: loadAds,
               icon: const Icon(Icons.refresh),
@@ -614,21 +639,92 @@ class _HomePageState extends State<HomePage> {
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              FilterChip(
-                label: const Text('همه'),
-                selected: selectedCategory == null,
-                onSelected: (_) => setState(() { selectedCategory = null; selectedSubcategory = null; }),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: categories.length + 1,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 2.45,
+                ),
+                itemBuilder: (_, index) {
+                  if (index == 0) {
+                    final selected = selectedCategory == null;
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => setState(() { selectedCategory = null; selectedSubcategory = null; }),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: selected ? const Color(0xFFD7F0F1) : const Color(0xFFF5F8FA),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: selected ? const Color(0xFF0A9396) : const Color(0xFFE1E8EA),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.apps_outlined, color: Color(0xFF006D77)),
+                            SizedBox(width: 7),
+                            Text('همه دسته‌ها', style: TextStyle(fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+                  final item = categories[index - 1];
+                  final selected = selectedCategory == item;
+                  final sub = selectedSubcategory != null && selected ? selectedSubcategory! : '';
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: () => openCategory(item),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      decoration: BoxDecoration(
+                        color: selected ? const Color(0xFFD7F0F1) : const Color(0xFFF5F8FA),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: selected ? const Color(0xFF0A9396) : const Color(0xFFE1E8EA),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: selected ? const Color(0xFF006D77) : Colors.white,
+                              borderRadius: BorderRadius.circular(11),
+                            ),
+                            child: Icon(
+                              aghinouCategoryIcons[item] ?? Icons.category_outlined,
+                              size: 21,
+                              color: selected ? Colors.white : const Color(0xFF006D77),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              sub.isEmpty ? item : '$item\n$sub',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-              ...categories.map((item) => FilterChip(
-                label: Text(selectedSubcategory != null && selectedCategory == item ? '$item • $selectedSubcategory' : item),
-                selected: selectedCategory == item,
-                onSelected: (_) => openCategory(item),
-              )),
-            ],
+            ),
           ),
           const SizedBox(height: 22),
           const Text(
@@ -1343,6 +1439,14 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
           ]),
           const SizedBox(height:8),
           Text('صاحب کارت: ${s['card_holder']?.toString()??'-'}'),
+          if (card.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 10),
+              child: Text(
+                'شماره کارت مقصد هنوز توسط مدیر تنظیم نشده است.',
+                style: TextStyle(color: Color(0xFFBA1A1A), fontWeight: FontWeight.w600),
+              ),
+            ),
           Text('بانک: ${s['bank_name']?.toString()??'-'}'),
           const SizedBox(height:10),
           Text(s['instructions']?.toString()??'مبلغ دقیق اشتراک را به کارت مقصد انتقال دهید.'),
@@ -1374,7 +1478,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         )),
         const SizedBox(height:10),
         SizedBox(height:52,child:FilledButton.icon(
-          onPressed:sending?null:submit,
+          onPressed:sending || card.isEmpty ? null : submit,
           icon:sending?const SizedBox(width:20,height:20,child:CircularProgressIndicator(strokeWidth:2)):const Icon(Icons.send_rounded),
           label:Text(sending?'در حال ثبت...':'ثبت اطلاعات برای بررسی'),
         )),
@@ -1398,19 +1502,41 @@ class _AdDetailPageState extends State<AdDetailPage>{
     final u=supabase.auth.currentUser?.id;
     final id=widget.ad['idd']?.toString();
     if(id==null){if(mounted)setState(()=>loading=false);return;}
-    try{
-      await supabase.rpc('increment_ad_view',params:{'p_ad_id':id});
-      if(u!=null){
+
+    try { await supabase.rpc('increment_ad_view',params:{'p_ad_id':id}); } catch (_) {}
+    if(u!=null){
+      try{
         final fav=await supabase.from('favorites').select('ad_id').eq('user_id',u).eq('ad_id',id).maybeSingle();
         if(mounted)setState(()=>saved=fav!=null);
-      }
+      }catch(_){}
+    }
+
+    List<Map<String,dynamic>> loadedImages=[];
+    Map<String,dynamic>? sp;
+    List<Map<String,dynamic>> sims=[];
+    try{
       final imgs=await supabase.from('ad_images').select('image_url,sort_order,is_primary').eq('ad_id',id).order('sort_order',ascending:true);
+      loadedImages=List<Map<String,dynamic>>.from(imgs);
+    }catch(_){}
+
+    try{
       final sellerId=widget.ad['seller_id']?.toString();
-      Map<String,dynamic>? sp;
-      if(sellerId!=null) sp=Map<String,dynamic>.from((await supabase.from('profiles').select('iidd,name,cphone,created_at').eq('iidd',sellerId).maybeSingle())??{});
-      final sims=await supabase.from('ads').select('idd,title,price,city,category,publish_status').eq('category',widget.ad['category']?.toString()??'').eq('publish_status','published').neq('idd',id).limit(6);
-      if(mounted)setState((){images=List<Map<String,dynamic>>.from(imgs);seller=sp;similar=List<Map<String,dynamic>>.from(sims);loading=false;});
-    }catch(e){if(mounted)setState(()=>loading=false);}
+      if(sellerId!=null){
+        sp=Map<String,dynamic>.from((await supabase.from('profiles').select('iidd,name,cphone,created_at').eq('iidd',sellerId).maybeSingle())??{});
+      }
+    }catch(_){}
+
+    try{
+      final r=await supabase.from('ads').select('idd,title,price,city,category,subcategory,publish_status,ad_images(image_url,sort_order,is_primary)').eq('category',widget.ad['category']?.toString()??'').eq('publish_status','published').neq('idd',id).limit(6);
+      sims=List<Map<String,dynamic>>.from(r);
+    }catch(_){}
+
+    if(mounted)setState((){
+      images=loadedImages;
+      seller=sp;
+      similar=sims;
+      loading=false;
+    });
   }
 
   void openImageViewer(int initial) {
@@ -1480,6 +1606,38 @@ class _AdDetailPageState extends State<AdDetailPage>{
     await launchUrl(Uri.parse('tel:$phone'));
   }
 
+  Widget _specRow(String label, String value, IconData icon, {bool emphasize=false}) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 118,
+            child: Row(
+              children: [
+                Icon(icon, size: 19, color: const Color(0xFF006D77)),
+                const SizedBox(width: 7),
+                Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                fontSize: emphasize ? 16.5 : 14.5,
+                fontWeight: emphasize ? FontWeight.w800 : FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override Widget build(BuildContext c){
     final title=widget.ad['title']?.toString()??'بدون عنوان';
     final price=widget.ad['price']?.toString()??'توافقی';
@@ -1514,14 +1672,35 @@ class _AdDetailPageState extends State<AdDetailPage>{
             ),
           Padding(padding:const EdgeInsets.all(16),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
             Text(title,style:const TextStyle(fontSize:23,fontWeight:FontWeight.bold)),
-            const SizedBox(height:8),
-            Text(price+' تومان',style:const TextStyle(fontSize:20,fontWeight:FontWeight.bold)),
-            Text([city,neighborhood,cat,condition].where((x)=>x.isNotEmpty).join(' • ')),
-            const SizedBox(height:10),
-            Text('بازدید: ${widget.ad['view_count']??0}'),
-            const Divider(height:28),
-            const Text('توضیحات',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
-            const SizedBox(height:6),Text(desc),
+            const SizedBox(height:14),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  children: [
+                    _specRow('قیمت', price == 'توافقی' ? 'توافقی' : '$price تومان', Icons.payments_outlined, emphasize: true),
+                    _specRow('دسته‌بندی', cat, Icons.category_outlined),
+                    _specRow('زیرمجموعه', widget.ad['subcategory']?.toString() ?? '', Icons.account_tree_outlined),
+                    _specRow('وضعیت', condition, Icons.verified_outlined),
+                    _specRow('استان', widget.ad['province']?.toString() ?? '', Icons.map_outlined),
+                    _specRow('شهر', city, Icons.location_on_outlined),
+                    _specRow('محله', neighborhood, Icons.place_outlined),
+                    _specRow('بازدید', '${widget.ad['view_count'] ?? 0}', Icons.visibility_outlined),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height:18),
+            const Text('توضیحات آگهی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
+            const SizedBox(height:6),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Text(desc, style: const TextStyle(fontSize: 15.5, height: 1.8)),
+              ),
+            ),
             const SizedBox(height:20),
             if(seller!=null)Card(child:ListTile(
               leading:const CircleAvatar(child:Icon(Icons.person)),
