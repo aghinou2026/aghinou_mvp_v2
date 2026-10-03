@@ -956,6 +956,7 @@ String relativeTime(dynamic raw) {
                   ? 'توافقی'
                   : '${ad['price']} تومان';
               final time = relativeTime(ad['created_at']);
+              final imageCount = images is List ? images.length : 0;
               final typeLine = [category, subcategory].where((x) => x.trim().isNotEmpty).join(' • ');
 
               return Padding(
@@ -1010,6 +1011,29 @@ String relativeTime(dynamic raw) {
                               ),
                             ),
                           ),
+                          if (imageCount > 0)
+                            Positioned(
+                              right: 12,
+                              top: 12,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.48),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.photo_library_outlined, color: Colors.white, size: 17),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      '$imageCount عکس',
+                                      style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           Positioned(
                             left: 12,
                             top: 12,
