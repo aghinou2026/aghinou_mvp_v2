@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -1455,8 +1458,10 @@ class _EditAdPageState extends State<EditAdPage>{
   bool vehicleExchange=false;
   bool saving=false;
   final Map<String,TextEditingController> detailControllers={};
+  double? latitude;
+  double? longitude;
   void resetDetailControllers(Map<String,dynamic>? values){for(final x in detailControllers.values)x.dispose();detailControllers.clear();final d=values?['details'] is Map?Map<String,dynamic>.from(values!['details']):<String,dynamic>{};for(final f in categoryDetailFields[category]??const <String>[]){detailControllers[f]=TextEditingController(text:d[f]?.toString()??'');}}
-  @override void initState(){super.initState();final a=widget.ad;title=TextEditingController(text:a['title']?.toString()??'');desc=TextEditingController(text:a['edescription']?.toString()??'');price=TextEditingController(text:(a['price'] as num?)?.toInt().toString()??'');neighborhood=TextEditingController(text:a['neighborhood']?.toString()??'');vehicleBrand=TextEditingController(text:a['vehicle_brand']?.toString()??'');vehicleModel=TextEditingController(text:a['vehicle_model']?.toString()??'');vehicleYear=TextEditingController(text:a['vehicle_year']?.toString()??'');vehicleMileage=TextEditingController(text:a['vehicle_mileage']?.toString()??'');vehicleColor=TextEditingController(text:a['vehicle_color']?.toString()??'');category=a['category']?.toString()??'سایر';province=a['province']?.toString()??'تهران';city=a['city']?.toString()??(iranProvinceCities['تهران']?.first??'تهران');condition=a['item_condition']?.toString()??'در حد نو';subcategory=a['subcategory']?.toString()??'سایر';vehicleTransmission=a['vehicle_transmission']?.toString()??'دستی';vehicleBodyCondition=a['vehicle_body_condition']?.toString()??'سالم';vehicleFuel=a['vehicle_fuel']?.toString()??'بنزینی';vehicleExchange=a['vehicle_exchange']==true;resetDetailControllers(a);}
+  @override void initState(){super.initState();final a=widget.ad;title=TextEditingController(text:a['title']?.toString()??'');desc=TextEditingController(text:a['edescription']?.toString()??'');price=TextEditingController(text:(a['price'] as num?)?.toInt().toString()??'');neighborhood=TextEditingController(text:a['neighborhood']?.toString()??'');vehicleBrand=TextEditingController(text:a['vehicle_brand']?.toString()??'');vehicleModel=TextEditingController(text:a['vehicle_model']?.toString()??'');vehicleYear=TextEditingController(text:a['vehicle_year']?.toString()??'');vehicleMileage=TextEditingController(text:a['vehicle_mileage']?.toString()??'');vehicleColor=TextEditingController(text:a['vehicle_color']?.toString()??'');category=a['category']?.toString()??'سایر';province=a['province']?.toString()??'تهران';city=a['city']?.toString()??(iranProvinceCities['تهران']?.first??'تهران');condition=a['item_condition']?.toString()??'در حد نو';subcategory=a['subcategory']?.toString()??'سایر';vehicleTransmission=a['vehicle_transmission']?.toString()??'دستی';vehicleBodyCondition=a['vehicle_body_condition']?.toString()??'سالم';vehicleFuel=a['vehicle_fuel']?.toString()??'بنزینی';vehicleExchange=a['vehicle_exchange']==true;latitude=(a['latitude'] as num?)?.toDouble();longitude=(a['longitude'] as num?)?.toDouble();resetDetailControllers(a);}
   @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();vehicleBrand.dispose();vehicleModel.dispose();vehicleYear.dispose();vehicleMileage.dispose();vehicleColor.dispose();for(final x in detailControllers.values)x.dispose();super.dispose();}
   List<String> get subs {
   final list=HomeCategoryData.subsFor(category);
@@ -1466,6 +1471,7 @@ class _EditAdPageState extends State<EditAdPage>{
     final p=int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'),''));final uid=supabase.auth.currentUser?.id;if(p==null||uid==null)return;
     setState(()=>saving=true);try{
       await supabase.rpc('update_own_ad',params:{'p_ad_id':widget.ad['idd'],'p_details':Map<String,String>.fromEntries(detailControllers.entries.where((e)=>e.value.text.trim().isNotEmpty).map((e)=>MapEntry(e.key,e.value.text.trim()))),'p_title':title.text.trim(),'p_description':desc.text.trim(),'p_price':p,'p_city':city,'p_province':province,'p_category':category,'p_subcategory':subcategory,'p_condition':condition,'p_neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim(),'p_vehicle_brand':category=='خودرو'&&vehicleBrand.text.trim().isNotEmpty?vehicleBrand.text.trim():null,'p_vehicle_model':category=='خودرو'&&vehicleModel.text.trim().isNotEmpty?vehicleModel.text.trim():null,'p_vehicle_year':category=='خودرو'?int.tryParse(vehicleYear.text.trim()):null,'p_vehicle_mileage':category=='خودرو'?int.tryParse(vehicleMileage.text.trim()):null,'p_vehicle_color':category=='خودرو'&&vehicleColor.text.trim().isNotEmpty?vehicleColor.text.trim():null,'p_vehicle_transmission':category=='خودرو'?vehicleTransmission:null,'p_vehicle_body_condition':category=='خودرو'?vehicleBodyCondition:null,'p_vehicle_fuel':category=='خودرو'?vehicleFuel:null,'p_vehicle_exchange':category=='خودرو'?vehicleExchange:false});
+      if(latitude!=null&&longitude!=null){await supabase.rpc('update_own_ad_location',params:{'p_ad_id':widget.ad['idd'],'p_latitude':latitude,'p_longitude':longitude});}
       if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تغییرات ذخیره شد و آگهی برای بررسی دوباره ارسال شد.')));Navigator.pop(context);}
     }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تغییرات: '+e.toString())));}finally{if(mounted)setState(()=>saving=false);}
   }
@@ -1489,7 +1495,7 @@ class _EditAdPageState extends State<EditAdPage>{
           ],
     const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities[province]?.contains(city)==true?city:iranProvinceCities[province]!.first,items:(iranProvinceCities[province]??const <String>[]).map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
     const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities.containsKey(province)?province:iranProvinceCities.keys.first,items:iranProvinceCities.keys.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState((){province=v??province;city=iranProvinceCities[province]!.first;}),decoration:const InputDecoration(labelText:'استان',border:OutlineInputBorder())),
-          const SizedBox(height:12),TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله',border:OutlineInputBorder())),
+          const SizedBox(height:12),TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله',border:OutlineInputBorder())),          const SizedBox(height:12),OutlinedButton.icon(onPressed:saving?null:() async {final result=await Navigator.push<LatLng>(context,MaterialPageRoute(builder:(_)=>MapPickerPage(initialLatitude:latitude,initialLongitude:longitude)));if(result!=null&&mounted)setState((){latitude=result.latitude;longitude=result.longitude;});},icon:Icon(latitude!=null?Icons.location_on:Icons.map_outlined),label:Text(latitude!=null?'موقعیت روی نقشه انتخاب شد':'انتخاب موقعیت روی نقشه (اختیاری)')),
     if((categoryDetailFields[category]??const <String>[]).isNotEmpty) ...[
       const SizedBox(height:14),const Text('جزئیات آگهی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),
       ...(categoryDetailFields[category]??const <String>[]).map((f)=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:detailControllers[f],decoration:InputDecoration(labelText:f,border:const OutlineInputBorder())))),
@@ -1497,6 +1503,45 @@ class _EditAdPageState extends State<EditAdPage>{
     const SizedBox(height:18),FilledButton(onPressed:saving?null:save,child:Text(saving?'در حال ذخیره...':'ذخیره تغییرات')),
   ])));
 }
+
+class MapPickerPage extends StatefulWidget {
+  final double? initialLatitude;
+  final double? initialLongitude;
+  const MapPickerPage({super.key,this.initialLatitude,this.initialLongitude});
+  @override State<MapPickerPage> createState()=>_MapPickerPageState();
+}
+class _MapPickerPageState extends State<MapPickerPage>{
+  late LatLng selected;
+  bool locating=false;
+  @override void initState(){super.initState();selected=LatLng(widget.initialLatitude??32.4279,widget.initialLongitude??53.6880);}
+  Future<void> locateMe() async {
+    setState(()=>locating=true);
+    try{
+      var permission=await Geolocator.checkPermission();
+      if(permission==LocationPermission.denied) permission=await Geolocator.requestPermission();
+      if(permission==LocationPermission.denied||permission==LocationPermission.deniedForever) throw Exception('دسترسی موقعیت مکانی داده نشد.');
+      if(!await Geolocator.isLocationServiceEnabled()) throw Exception('موقعیت مکانی گوشی خاموش است.');
+      final p=await Geolocator.getCurrentPosition(locationSettings:const LocationSettings(accuracy:LocationAccuracy.high));
+      if(mounted)setState(()=>selected=LatLng(p.latitude,p.longitude));
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(e.toString().replaceFirst('Exception: ',''))));}
+    finally{if(mounted)setState(()=>locating=false);}
+  }
+  @override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+    appBar:AppBar(title:const Text('انتخاب موقعیت روی نقشه'),actions:[IconButton(onPressed:locating?null:locateMe,tooltip:'موقعیت فعلی من',icon:locating?const SizedBox(width:20,height:20,child:CircularProgressIndicator(strokeWidth:2)):const Icon(Icons.my_location))]),
+    body:Stack(children:[
+      FlutterMap(options:MapOptions(initialCenter:selected,initialZoom:15,onTap:(tapPosition,point)=>setState(()=>selected=point)),children:[
+        TileLayer(urlTemplate:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',userAgentPackageName:'com.aghinou.app'),
+        MarkerLayer(markers:[Marker(point:selected,width:52,height:52,child:const Icon(Icons.location_pin,size:52,color:Color(0xFFD62828)))])
+      ]),
+      Positioned(left:16,right:16,bottom:18,child:Card(child:Padding(padding:const EdgeInsets.all(12),child:Column(children:[
+        const Text('روی محل دقیق ملک یا کالا بزنید؛ سپس موقعیت را تأیید کنید.',textAlign:TextAlign.center),
+        const SizedBox(height:8),
+        FilledButton.icon(onPressed:()=>Navigator.pop(context,selected),icon:const Icon(Icons.check),label:const Text('تأیید موقعیت')),
+      ]))))
+    ]),
+  ));
+}
+
 class AddAdPage extends StatefulWidget {
   final Future<void> Function() onPublished;
   const AddAdPage({super.key, required this.onPublished});
@@ -1512,6 +1557,8 @@ class _AddAdPageState extends State<AddAdPage>{
   final picker=ImagePicker();
   final List<XFile> selectedImages=[];
   final Map<String,TextEditingController> detailControllers={};
+  double? latitude;
+  double? longitude;
   void resetDetailControllers(){ for(final x in detailControllers.values)x.dispose(); detailControllers.clear(); for(final f in categoryDetailFields[category]??const <String>[]){ detailControllers[f]=TextEditingController(); } }
 
   List<String> get subcategories {
@@ -1572,6 +1619,7 @@ class _AddAdPageState extends State<AddAdPage>{
         'p_vehicle_body_condition':category=='خودرو'?vehicleBodyCondition:null,
         'p_vehicle_fuel':category=='خودرو'?vehicleFuel:null,
         'p_vehicle_exchange':category=='خودرو'?vehicleExchange:false,
+        'p_latitude':latitude,'p_longitude':longitude,
       })).toString();
 
       for(var i=0;i<selectedImages.length;i++){
@@ -1648,7 +1696,16 @@ class _AddAdPageState extends State<AddAdPage>{
           DropdownButtonFormField<String>(value:iranProvinceCities[province]?.contains(city)==true?city:iranProvinceCities[province]!.first,items:(iranProvinceCities[province]??const <String>[]).map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
             onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
           const SizedBox(height:12),
-          TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله (اختیاری)',border:OutlineInputBorder())),
+          TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله (اختیاری)',border:OutlineInputBorder())),          const SizedBox(height:12),
+          OutlinedButton.icon(
+            onPressed:publishing?null:() async {
+              final result=await Navigator.push<LatLng>(context,MaterialPageRoute(builder:(_)=>MapPickerPage(initialLatitude:latitude,initialLongitude:longitude)));
+              if(result!=null&&mounted)setState((){latitude=result.latitude;longitude=result.longitude;});
+            },
+            icon:Icon(latitude!=null?Icons.location_on:Icons.map_outlined),
+            label:Text(latitude!=null?'موقعیت روی نقشه انتخاب شد':'انتخاب موقعیت روی نقشه (اختیاری)'),
+          ),
+
           if((categoryDetailFields[category]??const <String>[]).isNotEmpty) ...[
             const SizedBox(height:14),const Text('جزئیات آگهی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),
             ...(categoryDetailFields[category]??const <String>[]).map((f)=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:detailControllers[f],decoration:InputDecoration(labelText:f,border:const OutlineInputBorder())))),
@@ -2054,7 +2111,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
     }catch(_){}
 
     try{
-      final r=await supabase.from('ads').select('idd,title,price,city,category,subcategory,publish_status,details,ad_images(image_url,sort_order,is_primary)').eq('category',widget.ad['category']?.toString()??'').eq('publish_status','published').neq('idd',id).limit(6);
+      final r=await supabase.from('ads').select('idd,title,price,city,category,subcategory,publish_status,details,latitude,longitude,ad_images(image_url,sort_order,is_primary)').eq('category',widget.ad['category']?.toString()??'').eq('publish_status','published').neq('idd',id).limit(6);
       sims=List<Map<String,dynamic>>.from(r);
     }catch(_){}
 
