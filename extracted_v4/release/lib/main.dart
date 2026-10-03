@@ -89,6 +89,7 @@ class _AghinouAppState extends State<AghinouApp> with WidgetsBindingObserver {
       _setupAdminPaymentNotifications();
     }
   }
+}
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
