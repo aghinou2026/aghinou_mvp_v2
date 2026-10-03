@@ -666,7 +666,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     const Text('جای تبلیغ شما در آگهینو',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold),textAlign:TextAlign.center),
     const SizedBox(height:5),Text(commercialContactText,textAlign:TextAlign.center),const SizedBox(height:10),
     FilledButton.icon(onPressed:callForAdvertising,icon:const Icon(Icons.phone),label:const Text('تماس با ما برای تبلیغات')),
-  ]));
+  ])));
   Future<void> loadAds() async {
     try {
       final rows = await supabase
