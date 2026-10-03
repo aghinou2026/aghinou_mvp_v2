@@ -361,7 +361,11 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> openCategory(String category) async {
-    final subs = categorySubs[category] ?? const <String>[];
+    // Prefer database categories, but always fall back to the built-in catalog
+    // so a temporary RLS/network issue can never make a category appear empty.
+    final dbSubs = categorySubs[category] ?? const <String>[];
+    final fallbackSubs = HomeCategoryData.subsFor(category);
+    final subs = dbSubs.isNotEmpty ? dbSubs : fallbackSubs;
     setState(() {
       selectedCategory = selectedCategory == category ? null : category;
       selectedSubcategory = null;
