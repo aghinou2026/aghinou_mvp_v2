@@ -997,8 +997,7 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
                       ),
                       child: Row(
                         children: [
-                          Container(
-                            width: 38,
+                          Container(                            width: 38,
                             height: 38,
                             decoration: BoxDecoration(
                               color: selected ? const Color(0xFF006D77) : _categoryColor(item).withValues(alpha: 0.12),
@@ -1195,7 +1194,7 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
               if(commercialAds.any((x)=>x['slot']==2)) commercialAds.where((x)=>x['slot']==2).map(commercialAdCard).first,
               if(!commercialAds.any((x)=>x['slot']==2)) advertisingContactCard(),
             ]);
-            });
+            }),
         ],
       ),
     );
@@ -1997,8 +1996,7 @@ class _AddAdPageState extends State<AddAdPage>{
         'p_neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim(),
         'p_details':Map<String,String>.fromEntries(detailControllers.entries.where((e)=>e.value.text.trim().isNotEmpty).map((e)=>MapEntry(e.key,e.value.text.trim()))),
         'p_vehicle_brand':category=='خودرو'&&vehicleBrand.text.trim().isNotEmpty?vehicleBrand.text.trim():null,
-        'p_vehicle_model':category=='خودرو'&&vehicleModel.text.trim().isNotEmpty?vehicleModel.text.trim():null,
-        'p_vehicle_year':category=='خودرو'?int.tryParse(vehicleYear.text.trim()):null,
+        'p_vehicle_model':category=='خودرو'&&vehicleModel.text.trim().isNotEmpty?vehicleModel.text.trim():null,        'p_vehicle_year':category=='خودرو'?int.tryParse(vehicleYear.text.trim()):null,
         'p_vehicle_mileage':category=='خودرو'?int.tryParse(vehicleMileage.text.trim()):null,
         'p_vehicle_color':category=='خودرو'&&vehicleColor.text.trim().isNotEmpty?vehicleColor.text.trim():null,
         'p_vehicle_transmission':category=='خودرو'?vehicleTransmission:null,
