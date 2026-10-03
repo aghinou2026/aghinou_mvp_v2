@@ -284,7 +284,7 @@ const Map<String, IconData> aghinouCategoryIcons = {
 
 class HomeCategoryData {
   static const Map<String,List<String>> categorySubs={
-    'خودرو':['سواری','شاسی‌بلند','وانت','موتورسیکلت'],
+    'خودرو':['سواری','شاسی‌بلند','وانت','پیکاپ','موتورسیکلت','کامیون','کامیونت','کشنده','اتوبوس','مینی‌بوس','ون','خودرو کلاسیک','خودرو برقی و هیبریدی','خودرو کار و خدماتی','ماشین‌آلات سنگین'],
     'املاک':['آپارتمان','خانه و ویلا','زمین','مغازه و تجاری'],
     'موبایل و تبلت':['موبایل','تبلت','لوازم جانبی'],
     'لوازم دیجیتال':['لپ‌تاپ','کامپیوتر','تلویزیون','دوربین'],
@@ -391,8 +391,8 @@ class _HomePageState extends State<HomePage> {
     final uid = supabase.auth.currentUser?.id;
     if (uid == null) return;
     try {
-      final row = await supabase.from('admin_users').select('user_id').eq('user_id', uid).maybeSingle();
-      if (mounted) setState(() => isAdmin = row != null);
+      final result = await supabase.rpc('is_current_user_admin');
+      if (mounted) setState(() => isAdmin = result == true);
     } catch (_) {}
   }
 
@@ -982,7 +982,8 @@ class _HomePageState extends State<HomePage> {
             child: ListTile(
               leading: const Icon(Icons.admin_panel_settings_outlined),
               title: const Text('پنل مدیریت'),
-              subtitle: const Text('بررسی و تأیید پرداخت‌ها'),
+              subtitle: const Text('مدیریت آگهی‌ها، کاربران، پرداخت‌ها و تنظیمات'),
+              trailing: const Icon(Icons.chevron_left),
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminPage())),
             ),
           ),
@@ -1240,11 +1241,12 @@ class EditAdPage extends StatefulWidget{
   @override State<EditAdPage> createState()=>_EditAdPageState();
 }
 class _EditAdPageState extends State<EditAdPage>{
-  late TextEditingController title,desc,price,neighborhood;
-  late String category,province,city,condition,subcategory;
+  late TextEditingController title,desc,price,neighborhood,vehicleBrand,vehicleModel,vehicleYear,vehicleMileage,vehicleColor;
+  late String category,province,city,condition,subcategory,vehicleTransmission,vehicleBodyCondition,vehicleFuel;
+  bool vehicleExchange=false;
   bool saving=false;
-  @override void initState(){super.initState();final a=widget.ad;title=TextEditingController(text:a['title']?.toString()??'');desc=TextEditingController(text:a['edescription']?.toString()??'');price=TextEditingController(text:(a['price'] as num?)?.toInt().toString()??'');neighborhood=TextEditingController(text:a['neighborhood']?.toString()??'');category=a['category']?.toString()??'سایر';province=a['province']?.toString()??'تهران';city=a['city']?.toString()??(iranProvinceCities['تهران']?.first??'تهران');condition=a['item_condition']?.toString()??'در حد نو';subcategory=a['subcategory']?.toString()??'سایر';}
-  @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();super.dispose();}
+  @override void initState(){super.initState();final a=widget.ad;title=TextEditingController(text:a['title']?.toString()??'');desc=TextEditingController(text:a['edescription']?.toString()??'');price=TextEditingController(text:(a['price'] as num?)?.toInt().toString()??'');neighborhood=TextEditingController(text:a['neighborhood']?.toString()??'');vehicleBrand=TextEditingController(text:a['vehicle_brand']?.toString()??'');vehicleModel=TextEditingController(text:a['vehicle_model']?.toString()??'');vehicleYear=TextEditingController(text:a['vehicle_year']?.toString()??'');vehicleMileage=TextEditingController(text:a['vehicle_mileage']?.toString()??'');vehicleColor=TextEditingController(text:a['vehicle_color']?.toString()??'');category=a['category']?.toString()??'سایر';province=a['province']?.toString()??'تهران';city=a['city']?.toString()??(iranProvinceCities['تهران']?.first??'تهران');condition=a['item_condition']?.toString()??'در حد نو';subcategory=a['subcategory']?.toString()??'سایر';vehicleTransmission=a['vehicle_transmission']?.toString()??'دستی';vehicleBodyCondition=a['vehicle_body_condition']?.toString()??'سالم';vehicleFuel=a['vehicle_fuel']?.toString()??'بنزینی';vehicleExchange=a['vehicle_exchange']==true;}
+  @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();vehicleBrand.dispose();vehicleModel.dispose();vehicleYear.dispose();vehicleMileage.dispose();vehicleColor.dispose();super.dispose();}
   List<String> get subs {
   final list=HomeCategoryData.subsFor(category);
   return list.isEmpty?const ['سایر']:list;
@@ -1252,7 +1254,7 @@ class _EditAdPageState extends State<EditAdPage>{
   Future<void> save()async{
     final p=int.tryParse(price.text.replaceAll(RegExp(r'[^0-9]'),''));final uid=supabase.auth.currentUser?.id;if(p==null||uid==null)return;
     setState(()=>saving=true);try{
-      await supabase.rpc('update_own_ad',params:{'p_ad_id':widget.ad['idd'],'p_title':title.text.trim(),'p_description':desc.text.trim(),'p_price':p,'p_city':city,'p_province':province,'p_category':category,'p_subcategory':subcategory,'p_condition':condition,'p_neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim()});
+      await supabase.rpc('update_own_ad',params:{'p_ad_id':widget.ad['idd'],'p_title':title.text.trim(),'p_description':desc.text.trim(),'p_price':p,'p_city':city,'p_province':province,'p_category':category,'p_subcategory':subcategory,'p_condition':condition,'p_neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim(),'p_vehicle_brand':category=='خودرو'&&vehicleBrand.text.trim().isNotEmpty?vehicleBrand.text.trim():null,'p_vehicle_model':category=='خودرو'&&vehicleModel.text.trim().isNotEmpty?vehicleModel.text.trim():null,'p_vehicle_year':category=='خودرو'?int.tryParse(vehicleYear.text.trim()):null,'p_vehicle_mileage':category=='خودرو'?int.tryParse(vehicleMileage.text.trim()):null,'p_vehicle_color':category=='خودرو'&&vehicleColor.text.trim().isNotEmpty?vehicleColor.text.trim():null,'p_vehicle_transmission':category=='خودرو'?vehicleTransmission:null,'p_vehicle_body_condition':category=='خودرو'?vehicleBodyCondition:null,'p_vehicle_fuel':category=='خودرو'?vehicleFuel:null,'p_vehicle_exchange':category=='خودرو'?vehicleExchange:false,'p_vehicle_brand':category=='خودرو'&&vehicleBrand.text.trim().isNotEmpty?vehicleBrand.text.trim():null,'p_vehicle_model':category=='خودرو'&&vehicleModel.text.trim().isNotEmpty?vehicleModel.text.trim():null,'p_vehicle_year':category=='خودرو'?int.tryParse(vehicleYear.text.trim()):null,'p_vehicle_mileage':category=='خودرو'?int.tryParse(vehicleMileage.text.trim()):null,'p_vehicle_color':category=='خودرو'&&vehicleColor.text.trim().isNotEmpty?vehicleColor.text.trim():null,'p_vehicle_transmission':category=='خودرو'?vehicleTransmission:null,'p_vehicle_body_condition':category=='خودرو'?vehicleBodyCondition:null,'p_vehicle_fuel':category=='خودرو'?vehicleFuel:null,'p_vehicle_exchange':category=='خودرو'?vehicleExchange:false});
       if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تغییرات ذخیره شد و آگهی برای بررسی دوباره ارسال شد.')));Navigator.pop(context);}
     }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تغییرات: '+e.toString())));}finally{if(mounted)setState(()=>saving=false);}
   }
@@ -1262,7 +1264,27 @@ class _EditAdPageState extends State<EditAdPage>{
     const SizedBox(height:12),TextField(controller:title,decoration:const InputDecoration(labelText:'عنوان',border:OutlineInputBorder())),
     const SizedBox(height:12),TextField(controller:desc,maxLines:5,decoration:const InputDecoration(labelText:'توضیحات',border:OutlineInputBorder())),
     const SizedBox(height:12),TextField(controller:price,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'قیمت (تومان)',border:OutlineInputBorder())),
-    const SizedBox(height:12),DropdownButtonFormField<String>(value:const['نو','در حد نو','کارکرده'].contains(condition)?condition:'در حد نو',items:const['نو','در حد نو','کارکرده'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>condition=v??condition),decoration:const InputDecoration(labelText:'وضعیت',border:OutlineInputBorder())),
+    const SizedBox(height:12),DropdownButtonFormField<String>(value:const['نو','در حد نو','کارکرده'].contains(condition)?condition:'در حد نو',items:const['نو','در حد نو','کارکرده'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>condition=v??condition),decoration:const InputDecoration(labelText:'وضعیت',border:OutlineInputBorder())),\n          if(category=='خودرو')...[
+            const SizedBox(height:12),TextField(controller:vehicleBrand,decoration:const InputDecoration(labelText:'برند خودرو',border:OutlineInputBorder())),
+            const SizedBox(height:12),TextField(controller:vehicleModel,decoration:const InputDecoration(labelText:'مدل خودرو',border:OutlineInputBorder())),
+            const SizedBox(height:12),TextField(controller:vehicleYear,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'سال ساخت',border:OutlineInputBorder())),
+            const SizedBox(height:12),TextField(controller:vehicleMileage,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'کارکرد (کیلومتر)',border:OutlineInputBorder())),
+            const SizedBox(height:12),TextField(controller:vehicleColor,decoration:const InputDecoration(labelText:'رنگ',border:OutlineInputBorder())),
+            const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleTransmission,items:const['دستی','اتوماتیک','نیمه‌اتوماتیک'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleTransmission=v??vehicleTransmission),decoration:const InputDecoration(labelText:'گیربکس',border:OutlineInputBorder())),
+            const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleBodyCondition,items:const['سالم','رنگ‌شده','تصادفی','نیازمند تعمیر'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleBodyCondition=v??vehicleBodyCondition),decoration:const InputDecoration(labelText:'وضعیت بدنه',border:OutlineInputBorder())),
+            const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleFuel,items:const['بنزینی','دوگانه‌سوز','دیزلی','هیبریدی','برقی'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleFuel=v??vehicleFuel),decoration:const InputDecoration(labelText:'سوخت',border:OutlineInputBorder())),
+            SwitchListTile(value:vehicleExchange,onChanged:(v)=>setState(()=>vehicleExchange=v),title:const Text('معاوضه می‌شود')),
+          ],\n    if(category=='خودرو')...[
+      const SizedBox(height:12),TextField(controller:vehicleBrand,decoration:const InputDecoration(labelText:'برند خودرو',border:OutlineInputBorder())),
+      const SizedBox(height:12),TextField(controller:vehicleModel,decoration:const InputDecoration(labelText:'مدل خودرو',border:OutlineInputBorder())),
+      const SizedBox(height:12),TextField(controller:vehicleYear,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'سال ساخت',border:OutlineInputBorder())),
+      const SizedBox(height:12),TextField(controller:vehicleMileage,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'کارکرد (کیلومتر)',border:OutlineInputBorder())),
+      const SizedBox(height:12),TextField(controller:vehicleColor,decoration:const InputDecoration(labelText:'رنگ',border:OutlineInputBorder())),
+      const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleTransmission,items:const['دستی','اتوماتیک','نیمه‌اتوماتیک'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleTransmission=v??vehicleTransmission),decoration:const InputDecoration(labelText:'گیربکس',border:OutlineInputBorder())),
+      const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleBodyCondition,items:const['سالم','رنگ‌شده','تصادفی','نیازمند تعمیر'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleBodyCondition=v??vehicleBodyCondition),decoration:const InputDecoration(labelText:'وضعیت بدنه',border:OutlineInputBorder())),
+      const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleFuel,items:const['بنزینی','دوگانه‌سوز','دیزلی','هیبریدی','برقی'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleFuel=v??vehicleFuel),decoration:const InputDecoration(labelText:'سوخت',border:OutlineInputBorder())),
+      SwitchListTile(value:vehicleExchange,onChanged:(v)=>setState(()=>vehicleExchange=v),title:const Text('معاوضه می‌شود')),
+    ],
     const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities[province]?.contains(city)==true?city:iranProvinceCities[province]!.first,items:(iranProvinceCities[province]??const <String>[]).map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
     const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities.containsKey(province)?province:iranProvinceCities.keys.first,items:iranProvinceCities.keys.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState((){province=v??province;city=iranProvinceCities[province]!.first;}),decoration:const InputDecoration(labelText:'استان',border:OutlineInputBorder())),
           const SizedBox(height:12),TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله',border:OutlineInputBorder())),
@@ -1277,7 +1299,9 @@ class AddAdPage extends StatefulWidget {
 
 class _AddAdPageState extends State<AddAdPage>{
   final title=TextEditingController(),desc=TextEditingController(),price=TextEditingController(),neighborhood=TextEditingController();
-  String category='موبایل و تبلت',province='تهران',city='تهران',condition='در حد نو',subcategory='';
+  final vehicleBrand=TextEditingController(),vehicleModel=TextEditingController(),vehicleYear=TextEditingController(),vehicleMileage=TextEditingController(),vehicleColor=TextEditingController();
+  String category='موبایل و تبلت',province='تهران',city='تهران',condition='در حد نو',subcategory='',vehicleTransmission='دستی',vehicleBodyCondition='سالم',vehicleFuel='بنزینی';
+  bool vehicleExchange=false;
   bool publishing=false;
   final picker=ImagePicker();
   final List<XFile> selectedImages=[];
@@ -1288,7 +1312,7 @@ class _AddAdPageState extends State<AddAdPage>{
   }
 
   @override void initState(){super.initState(); subcategory=subcategories.first;}
-  @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();super.dispose();}
+  @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();vehicleBrand.dispose();vehicleModel.dispose();vehicleYear.dispose();vehicleMileage.dispose();vehicleColor.dispose();super.dispose();}
 
   Future<void> pickImages() async {
     try{
@@ -1951,6 +1975,17 @@ class _AdDetailPageState extends State<AdDetailPage>{
                     _specRow('دسته‌بندی', cat, Icons.category_outlined),
                     _specRow('زیرمجموعه', widget.ad['subcategory']?.toString() ?? '', Icons.account_tree_outlined),
                     _specRow('وضعیت', condition, Icons.verified_outlined),
+                    if (cat == 'خودرو') ...[
+                      _specRow('برند', widget.ad['vehicle_brand']?.toString() ?? '', Icons.directions_car_outlined),
+                      _specRow('مدل خودرو', widget.ad['vehicle_model']?.toString() ?? '', Icons.drive_file_rename_outline),
+                      _specRow('سال ساخت', widget.ad['vehicle_year']?.toString() ?? '', Icons.calendar_month_outlined),
+                      _specRow('کارکرد', widget.ad['vehicle_mileage'] == null ? '' : '${widget.ad['vehicle_mileage']} کیلومتر', Icons.speed_outlined),
+                      _specRow('رنگ', widget.ad['vehicle_color']?.toString() ?? '', Icons.color_lens_outlined),
+                      _specRow('گیربکس', widget.ad['vehicle_transmission']?.toString() ?? '', Icons.settings_outlined),
+                      _specRow('وضعیت بدنه', widget.ad['vehicle_body_condition']?.toString() ?? '', Icons.car_repair_outlined),
+                      _specRow('سوخت', widget.ad['vehicle_fuel']?.toString() ?? '', Icons.local_gas_station_outlined),
+                      _specRow('معاوضه', widget.ad['vehicle_exchange'] == true ? 'بله' : '', Icons.swap_horiz_outlined),
+                    ],
                     _specRow('استان', widget.ad['province']?.toString() ?? '', Icons.map_outlined),
                     _specRow('شهر', city, Icons.location_on_outlined),
                     _specRow('محله', neighborhood, Icons.place_outlined),
