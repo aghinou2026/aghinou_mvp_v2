@@ -1298,17 +1298,7 @@ class _EditAdPageState extends State<EditAdPage>{
             const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleBodyCondition,items:const['سالم','رنگ‌شده','تصادفی','نیازمند تعمیر'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleBodyCondition=v??vehicleBodyCondition),decoration:const InputDecoration(labelText:'وضعیت بدنه',border:OutlineInputBorder())),
             const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleFuel,items:const['بنزینی','دوگانه‌سوز','دیزلی','هیبریدی','برقی'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleFuel=v??vehicleFuel),decoration:const InputDecoration(labelText:'سوخت',border:OutlineInputBorder())),
             SwitchListTile(value:vehicleExchange,onChanged:(v)=>setState(()=>vehicleExchange=v),title:const Text('معاوضه می‌شود')),
-          ],\n    if(category=='خودرو')...[
-      const SizedBox(height:12),TextField(controller:vehicleBrand,decoration:const InputDecoration(labelText:'برند خودرو',border:OutlineInputBorder())),
-      const SizedBox(height:12),TextField(controller:vehicleModel,decoration:const InputDecoration(labelText:'مدل خودرو',border:OutlineInputBorder())),
-      const SizedBox(height:12),TextField(controller:vehicleYear,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'سال ساخت',border:OutlineInputBorder())),
-      const SizedBox(height:12),TextField(controller:vehicleMileage,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'کارکرد (کیلومتر)',border:OutlineInputBorder())),
-      const SizedBox(height:12),TextField(controller:vehicleColor,decoration:const InputDecoration(labelText:'رنگ',border:OutlineInputBorder())),
-      const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleTransmission,items:const['دستی','اتوماتیک','نیمه‌اتوماتیک'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleTransmission=v??vehicleTransmission),decoration:const InputDecoration(labelText:'گیربکس',border:OutlineInputBorder())),
-      const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleBodyCondition,items:const['سالم','رنگ‌شده','تصادفی','نیازمند تعمیر'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleBodyCondition=v??vehicleBodyCondition),decoration:const InputDecoration(labelText:'وضعیت بدنه',border:OutlineInputBorder())),
-      const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleFuel,items:const['بنزینی','دوگانه‌سوز','دیزلی','هیبریدی','برقی'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleFuel=v??vehicleFuel),decoration:const InputDecoration(labelText:'سوخت',border:OutlineInputBorder())),
-      SwitchListTile(value:vehicleExchange,onChanged:(v)=>setState(()=>vehicleExchange=v),title:const Text('معاوضه می‌شود')),
-    ],
+          ],\n    
     const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities[province]?.contains(city)==true?city:iranProvinceCities[province]!.first,items:(iranProvinceCities[province]??const <String>[]).map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>city=v??city),decoration:const InputDecoration(labelText:'شهر',border:OutlineInputBorder())),
     const SizedBox(height:12),DropdownButtonFormField<String>(value:iranProvinceCities.containsKey(province)?province:iranProvinceCities.keys.first,items:iranProvinceCities.keys.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState((){province=v??province;city=iranProvinceCities[province]!.first;}),decoration:const InputDecoration(labelText:'استان',border:OutlineInputBorder())),
           const SizedBox(height:12),TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله',border:OutlineInputBorder())),
@@ -1378,6 +1368,15 @@ class _AddAdPageState extends State<AddAdPage>{
         'p_subcategory':subcategory,
         'p_condition':condition,
         'p_neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim(),
+        'p_vehicle_brand':category=='خودرو'&&vehicleBrand.text.trim().isNotEmpty?vehicleBrand.text.trim():null,
+        'p_vehicle_model':category=='خودرو'&&vehicleModel.text.trim().isNotEmpty?vehicleModel.text.trim():null,
+        'p_vehicle_year':category=='خودرو'?int.tryParse(vehicleYear.text.trim()):null,
+        'p_vehicle_mileage':category=='خودرو'?int.tryParse(vehicleMileage.text.trim()):null,
+        'p_vehicle_color':category=='خودرو'&&vehicleColor.text.trim().isNotEmpty?vehicleColor.text.trim():null,
+        'p_vehicle_transmission':category=='خودرو'?vehicleTransmission:null,
+        'p_vehicle_body_condition':category=='خودرو'?vehicleBodyCondition:null,
+        'p_vehicle_fuel':category=='خودرو'?vehicleFuel:null,
+        'p_vehicle_exchange':category=='خودرو'?vehicleExchange:false,
       })).toString();
 
       for(var i=0;i<selectedImages.length;i++){
