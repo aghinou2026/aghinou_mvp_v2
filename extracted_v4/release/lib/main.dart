@@ -562,6 +562,9 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int tab = 0;
   bool loadingAds = true;
+  List<Map<String,dynamic>> commercialAds = [];
+  String commercialContactPhone = '';
+  String commercialContactText = 'برای تبلیغات با ما تماس بگیرید.';
   bool loadingSubscription = true;
   bool hasActiveSubscription = false;
   bool isAdmin = false;
@@ -705,6 +708,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       setState((){subscriptionExpiresAt=expires;hasActiveSubscription=expires!=null&&expires.isAfter(DateTime.now());adsUsed=(row?['ads_used'] as num?)?.toInt()??0;adLimit=(row?['ad_limit'] as num?)?.toInt()??9;loadingSubscription=false;});
     }catch(e){if(mounted){setState(()=>loadingSubscription=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('بررسی اشتراک انجام نشد. لطفاً دوباره تلاش کنید.')));}}
   }
+  Future<void> loadCommercialAds() async {
+    try {
+      final rows=await supabase.from('commercial_ads').select('id,slot,title,description,image_url,target_url,start_at,end_at,active').eq('active',true).lte('start_at',DateTime.now().toUtc().toIso8601String()).gte('end_at',DateTime.now().toUtc().toIso8601String()).order('slot');
+      final setting=await supabase.from('commercial_ad_settings').select('contact_phone,contact_text').eq('id',true).maybeSingle();
+      if(!mounted)return;
+      setState((){commercialAds=List<Map<String,dynamic>>.from(rows);commercialContactPhone=setting?['contact_phone']?.toString()??'';commercialContactText=setting?['contact_text']?.toString()??'برای تبلیغات با ما تماس بگیرید.';});
+    }catch(_){}
+  }
+  Future<void> callForAdvertising() async {
+    final phone=commercialContactPhone.trim();
+    if(phone.isEmpty){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره تماس تبلیغات هنوز تنظیم نشده است.')));return;}
+    await launchUrl(Uri.parse('tel:$phone'));
+  }
+  Widget commercialAdCard(Map<String,dynamic> ad){
+    final image=ad['image_url']?.toString()??'',title=ad['title']?.toString()??'تبلیغ ویژه',desc=ad['description']?.toString()??'',target=ad['target_url']?.toString()??'';
+    return Card(margin:const EdgeInsets.only(bottom:16),clipBehavior:Clip.antiAlias,elevation:2,child:InkWell(
+      onTap:() async {if(target.trim().isNotEmpty){final u=Uri.tryParse(target.trim());if(u!=null&&await canLaunchUrl(u))await launchUrl(u,mode:LaunchMode.externalApplication);}else{await callForAdvertising();}},
+      child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+        if(image.isNotEmpty)SizedBox(height:170,child:Image.network(image,fit:BoxFit.cover,errorBuilder:(_,__,___)=>const SizedBox(height:170,child:Center(child:Icon(Icons.image_not_supported_outlined,size:48))))),
+        Padding(padding:const EdgeInsets.fromLTRB(14,12,14,14),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+          Row(children:[const Icon(Icons.campaign_outlined,size:22,color:Color(0xFF006D77)),const SizedBox(width:7),Expanded(child:Text(title,style:const TextStyle(fontSize:17,fontWeight:FontWeight.bold)))]),
+          if(desc.trim().isNotEmpty)...[const SizedBox(height:5),Text(desc,style:const TextStyle(height:1.5))],
+          const SizedBox(height:9),Text(target.trim().isEmpty?'تماس برای تبلیغات':'مشاهده تبلیغ',style:const TextStyle(fontWeight:FontWeight.w700,color:Color(0xFF006D77))),
+        ])),
+      ])));
+  }
+  Widget advertisingContactCard()=>Card(margin:const EdgeInsets.only(bottom:16),child:Padding(padding:const EdgeInsets.all(16),child:Column(children:[
+    const Icon(Icons.campaign_outlined,size:34,color:Color(0xFF006D77)),const SizedBox(height:7),
+    const Text('جای تبلیغ شما در آگهینو',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold),textAlign:TextAlign.center),
+    const SizedBox(height:5),Text(commercialContactText,textAlign:TextAlign.center),const SizedBox(height:10),
+    FilledButton.icon(onPressed:callForAdvertising,icon:const Icon(Icons.phone),label:const Text('تماس با ما برای تبلیغات')),
+  ]));
   Future<void> loadAds() async {
     try {
       final rows = await supabase
@@ -719,6 +754,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ads = List<Map<String, dynamic>>.from(rows);
         loadingAds = false;
       });
+      await loadCommercialAds();
     } catch (e) {
       if (!mounted) return;
       setState(() => loadingAds = false);
@@ -970,6 +1006,8 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
               ],
             ),
           ),
+          if(commercialAds.any((x)=>x['slot']==1)) commercialAds.where((x)=>x['slot']==1).map(commercialAdCard).first,
+          if(!commercialAds.any((x)=>x['slot']==1)) advertisingContactCard(),
           const SizedBox(height: 22),
           const Text(
             'دسته‌بندی‌ها',
@@ -1077,7 +1115,9 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
               ),
             )
           else
-            ...filteredAds.map((ad) {
+            ...filteredAds.asMap().entries.map((entry) {
+              final ad=entry.value;
+              final adIndex=entry.key;
               final images = ad['ad_images'];
               final firstUrl = images is List && images.isNotEmpty
                   ? images.first['image_url']?.toString()
@@ -1096,6 +1136,7 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
               final statusLabel = listingStatus == 'sold' ? 'فروخته شد' : listingStatus == 'reserved' ? 'رزرو شده' : 'موجود';
               final typeLine = [category, subcategory].where((x) => x.trim().isNotEmpty).join(' • ');
 
+              return Column(children:[
               return Padding(
                 padding: const EdgeInsets.only(bottom: 14),
                 child: Material(
@@ -1223,6 +1264,11 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
                   ),
                 ),
               );
+            if(adIndex==2) ...[
+              if(commercialAds.any((x)=>x['slot']==2)) commercialAds.where((x)=>x['slot']==2).map(commercialAdCard).first,
+              if(!commercialAds.any((x)=>x['slot']==2)) advertisingContactCard(),
+            ],
+            ]),
             }),
         ],
       ),
@@ -2167,9 +2213,54 @@ class _AdminPageState extends State<AdminPage>{
   List<Map<String,dynamic>> payments=[],ads=[],users=[],reports=[];
   Map<String,dynamic>? stats;
   final price=TextEditingController(),days=TextEditingController(),limit=TextEditingController(),images=TextEditingController(),card=TextEditingController(),holder=TextEditingController(),bank=TextEditingController(),instructions=TextEditingController(),userSearch=TextEditingController(),adSearch=TextEditingController();
+  final adPhone=TextEditingController(),adContactText=TextEditingController();
+  final adTitles=List.generate(3,(_)=>TextEditingController());
+  final adDescriptions=List.generate(3,(_)=>TextEditingController());
+  final adLinks=List.generate(3,(_)=>TextEditingController());
+  List<Map<String,dynamic>?> commercialRows=List.filled(3,null);
+  List<XFile?> pickedAdImages=List.filled(3,null);
   bool enabled=true;
   @override void initState(){super.initState();load();}
-  @override void dispose(){for(final c in [price,days,limit,images,card,holder,bank,instructions,userSearch,adSearch])c.dispose();super.dispose();}
+  @override void dispose(){for(final c in [price,days,limit,images,card,holder,bank,instructions,userSearch,adSearch,adPhone,adContactText,...adTitles,...adDescriptions,...adLinks])c.dispose();super.dispose();}
+  Future<void> loadCommercialSettings() async {
+    try{
+      final st=await supabase.from('commercial_ad_settings').select('contact_phone,contact_text').eq('id',true).maybeSingle();
+      final rows=await supabase.from('commercial_ads').select('id,slot,title,description,image_url,target_url,start_at,end_at,active').order('slot');
+      commercialRows=List<Map<String,dynamic>?>.filled(3,null);
+      for(final row in List<Map<String,dynamic>>.from(rows)){
+        final slot=(row['slot'] as num?)?.toInt()??0;
+        if(slot>=1&&slot<=3){commercialRows[slot-1]=row;adTitles[slot-1].text=row['title']?.toString()??'';adDescriptions[slot-1].text=row['description']?.toString()??'';adLinks[slot-1].text=row['target_url']?.toString()??'';}
+      }
+      adPhone.text=st?['contact_phone']?.toString()??'';
+      adContactText.text=st?['contact_text']?.toString()??'برای تبلیغات با ما تماس بگیرید.';
+    }catch(_){}
+  }
+  Future<void> pickCommercialImage(int slot) async {
+    final x=await ImagePicker().pickImage(source:ImageSource.gallery,imageQuality:88,maxWidth:1800,maxHeight:1200);
+    if(mounted&&x!=null)setState(()=>pickedAdImages[slot]=x);
+  }
+  Future<void> saveCommercialSlot(int slot) async {
+    if(working)return;setState(()=>working=true);
+    try{
+      String? imageUrl=commercialRows[slot]?['image_url']?.toString();
+      final picked=pickedAdImages[slot];
+      if(picked!=null){
+        final bytes=await picked.readAsBytes();
+        final ext=picked.name.contains('.')?picked.name.split('.').last.toLowerCase():'jpg';
+        final safe={'jpg','jpeg','png','webp'}.contains(ext)?ext:'jpg';
+        final p='admin/slot_${slot+1}_${DateTime.now().microsecondsSinceEpoch}.$safe';
+        await supabase.storage.from('commercial-ads').uploadBinary(p,bytes,fileOptions:FileOptions(contentType:safe=='png'?'image/png':safe=='webp'?'image/webp':'image/jpeg'));
+        imageUrl=supabase.storage.from('commercial-ads').getPublicUrl(p);
+      }
+      final old=commercialRows[slot];
+      final data={'slot':slot+1,'title':adTitles[slot].text.trim().isEmpty?'تبلیغ ویژه':adTitles[slot].text.trim(),'description':adDescriptions[slot].text.trim(),'image_url':imageUrl,'target_url':adLinks[slot].text.trim().isEmpty?null:adLinks[slot].text.trim(),'start_at':old?['start_at']?.toString()??DateTime.now().toUtc().toIso8601String(),'end_at':DateTime.now().toUtc().add(const Duration(days:30)).toIso8601String(),'active':true};
+      if(old?['id']!=null) await supabase.from('commercial_ads').update(data).eq('id',old!['id']); else await supabase.from('commercial_ads').insert(data);
+      await supabase.from('commercial_ad_settings').upsert({'id':true,'contact_phone':adPhone.text.trim(),'contact_text':adContactText.text.trim().isEmpty?'برای تبلیغات با ما تماس بگیرید.':adContactText.text.trim(),'updated_at':DateTime.now().toUtc().toIso8601String()});
+      await loadCommercialSettings();if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('کادر تبلیغ ${slot+1} ذخیره شد.')));
+    }catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ذخیره تبلیغ انجام نشد.')));}
+    finally{if(mounted)setState(()=>working=false);}
+  }
+  Future<void> disableCommercialSlot(int slot) async {final old=commercialRows[slot];if(old?['id']==null)return;try{await supabase.from('commercial_ads').update({'active':false}).eq('id',old!['id']);await loadCommercialSettings();if(mounted)setState((){});}catch(_){ }}
   Future<void> load() async {
     dynamic st;
     List<Map<String,dynamic>> pp=[], rrRows=[], aaRows=[], uuRows=[];
@@ -2178,6 +2269,7 @@ class _AdminPageState extends State<AdminPage>{
     Future<void> safe(String name, Future<void> Function() fn) async {
       try { await fn(); } catch(e) { errors.add('$name: $e'); }
     }
+    await safe('تبلیغات',loadCommercialSettings);
     await safe('تنظیمات',() async {
       settings=await supabase.from('subscription_settings').select('*').eq('id',true).maybeSingle();
     });
@@ -2276,6 +2368,29 @@ class _AdminPageState extends State<AdminPage>{
     final fa=ads.where((x)=>aq.isEmpty||x['title'].toString().toLowerCase().contains(aq)||x['city'].toString().toLowerCase().contains(aq)).toList();
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),body:ListView(padding:const EdgeInsets.all(12),children:[
       const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),Row(children:[stat('کاربران',stats?['users'],Icons.people),stat('آگهی‌ها',stats?['ads'],Icons.list_alt)]),Row(children:[stat('در انتظار پرداخت',stats?['pending_payments'],Icons.hourglass_top),stat('پرداخت موفق',stats?['paid_payments'],Icons.payments)]),Row(children:[stat('درآمد',stats?['revenue'],Icons.account_balance_wallet),const Spacer()]),
+      ExpansionTile(
+        title:const Text('مدیریت تبلیغات'),
+        children:[Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+          field(adPhone,'شماره تماس تبلیغات',type:TextInputType.phone),
+          field(adContactText,'متن تماس با ما'),
+          ...List.generate(3,(i)=>Card(margin:const EdgeInsets.only(bottom:10),child:Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
+            Text('کادر تبلیغ ${i+1} — ${i==0?'بالای صفحه':i==1?'وسط آگهی‌ها':'پایین صفحه'}',style:const TextStyle(fontWeight:FontWeight.bold)),
+            const SizedBox(height:8),
+            if(commercialRows[i]?['image_url']?.toString().isNotEmpty==true)SizedBox(height:105,child:Image.network(commercialRows[i]!['image_url'].toString(),fit:BoxFit.cover)),
+            if(pickedAdImages[i]!=null)Padding(padding:const EdgeInsets.only(top:6),child:Image.file(File(pickedAdImages[i]!.path),height:105,fit:BoxFit.cover)),
+            field(adTitles[i],'عنوان تبلیغ'),
+            field(adDescriptions[i],'توضیح تبلیغ'),
+            field(adLinks[i],'لینک تبلیغ (اختیاری)'),
+            Row(children:[
+              Expanded(child:OutlinedButton.icon(onPressed:working?null:()=>pickCommercialImage(i),icon:const Icon(Icons.image_outlined),label:const Text('انتخاب عکس'))),
+              const SizedBox(width:8),
+              Expanded(child:FilledButton(onPressed:working?null:()=>saveCommercialSlot(i),child:const Text('ذخیره کادر'))),
+            ]),
+            if(commercialRows[i]?['id']!=null)TextButton.icon(onPressed:working?null:()=>disableCommercialSlot(i),icon:const Icon(Icons.visibility_off_outlined),label:const Text('غیرفعال کردن')),
+          ])))),
+          const Text('هر بار ذخیره، کادر را برای ۳۰ روز فعال می‌کند.',style:TextStyle(fontSize:12)),
+        ])),
+      ),
       ExpansionTile(title:const Text('تنظیمات اشتراک و کارت‌به‌کارت'),children:[Padding(padding:const EdgeInsets.all(12),child:Column(children:[field(price,'قیمت اشتراک',type:TextInputType.number),field(days,'مدت (روز)',type:TextInputType.number),field(limit,'سهمیه آگهی',type:TextInputType.number),field(images,'حداکثر عکس',type:TextInputType.number),field(card,'شماره کارت مقصد'),field(holder,'صاحب کارت'),field(bank,'بانک'),field(instructions,'توضیحات'),SwitchListTile(value:enabled,onChanged:(v)=>setState(()=>enabled=v),title:const Text('فروش اشتراک فعال باشد')),FilledButton(onPressed:working?null:saveSettings,child:const Text('ذخیره'))]))]),
       ExpansionTile(title:Text('مدیریت کاربران (${stats?['users'] ?? users.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text((((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim().isNotEmpty)?((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim():(u['name']?.toString()??'کاربر')),subtitle:Text(u['cphone']?.toString()??'-'),trailing:Wrap(children:[IconButton(tooltip:(u['is_blocked']==true?'رفع مسدودی':'مسدود کردن'),onPressed:working?null:()=>setUserBlocked(u['iidd'].toString(),u['is_blocked']==true?false:true),icon:Icon(u['is_blocked']==true?Icons.lock_open_outlined:Icons.block_outlined)),IconButton(tooltip:'حذف کامل کاربر',onPressed:working?null:()=>deleteUser(u['iidd'].toString()),icon:const Icon(Icons.delete_forever_outlined))])))] ),
       ExpansionTile(title:Text('مدیریت آگهی‌ها (${fa.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:adSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'عنوان یا شهر',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fa.take(50).map((ad)=>ListTile(title:Text(ad['title']?.toString()??'بدون عنوان'),subtitle:Text('${ad['city']??''} • ${ad['category']??''} • ${ad['price']??'توافقی'} تومان'),trailing:Wrap(children:[IconButton(tooltip:'تأیید',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'published'),icon:const Icon(Icons.check_circle_outline)),IconButton(tooltip:'رد',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'rejected'),icon:const Icon(Icons.cancel_outlined)),IconButton(tooltip:'توقف',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'paused'),icon:const Icon(Icons.pause_circle_outline)),IconButton(icon:const Icon(Icons.delete_outline),onPressed:working?null:()=>deleteAd(ad['idd'].toString()))])))]),
