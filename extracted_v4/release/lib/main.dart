@@ -274,6 +274,8 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+}
+
 class TermsPage extends StatelessWidget {
   const TermsPage({super.key});
 
