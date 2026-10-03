@@ -200,7 +200,7 @@ class _LoginPageState extends State<LoginPage> {
       await supabase.from('profiles').upsert({'iidd':u.id,'cphone':v,'first_name':fn,'last_name':ln,'name':'$fn $ln','accepted_terms_version':currentTermsVersion,'accepted_terms_at':DateTime.now().toUtc().toIso8601String()},onConflict:'iidd');
       if(mounted)Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const HomePage()));
     }on AuthException catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(authErrorMessage(e,registerMode:true))));}
-    catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت‌نام انجام نشد: $e')));}
+    catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.')));}
     finally{if(mounted)setState(()=>loading=false);}
   }
 
@@ -370,22 +370,22 @@ const Map<String,List<String>> categoryDetailFields = {
 };
 class HomeCategoryData {
   static const Map<String,List<String>> categorySubs={
-    'خودرو':['سواری','شاسی‌بلند','وانت','پیکاپ','موتورسیکلت','کامیون','کامیونت','کشنده','اتوبوس','مینی‌بوس','ون','خودرو کلاسیک','خودرو برقی و هیبریدی','خودرو کار و خدماتی','ماشین‌آلات سنگین'],
-    'املاک':['آپارتمان','خانه و ویلا','زمین','مغازه و تجاری'],
-    'موبایل و تبلت':['موبایل','تبلت','لوازم جانبی'],
-    'لوازم دیجیتال':['لپ‌تاپ','کامپیوتر','تلویزیون','دوربین'],
-    'لوازم خانگی':['یخچال و فریزر','لباسشویی','اجاق و گاز','کولر و تهویه'],
-    'مبلمان و دکوراسیون':['مبل','میز و صندلی','تخت و سرویس خواب','دکوراسیون'],
-    'پوشاک و کیف و کفش':['لباس زنانه','لباس مردانه','کیف','کفش'],
-    'وسایل نقلیه':['دوچرخه','قایق','قطعات و لوازم'],
-    'خدمات':['فنی و تعمیرات','نظافت','آموزش','حمل و نقل'],
-    'استخدام و کاریابی':['تمام‌وقت','پاره‌وقت','دورکاری','کارآموزی'],
-    'لوازم شخصی':['ساعت و اکسسوری','زیورآلات','عینک'],
-    'سرگرمی و ورزش':['ورزش','کتاب','بازی و کنسول','آلات موسیقی'],
-    'کشاورزی و دامداری':['دام','طیور','ماشین‌آلات کشاورزی','محصولات کشاورزی'],
-    'ابزار و تجهیزات':['ابزار دستی','ابزار برقی','تجهیزات کارگاهی','تجهیزات ایمنی'],
-    'حیوانات':['سگ','گربه','پرندگان','آبزیان'],
-    'سایر':['متفرقه'],
+    'خودرو':['سواری','شاسی‌بلند','کراس‌اوور','سدان','هاچ‌بک','کوپه','کابریولت','استیشن','وان','مینی‌ون','ون','پیکاپ','وانت','آفرود','کلاسیک','برقی','هیبریدی','دوگانه‌سوز','موتورسیکلت','اسکوتر','موتورسیکلت برقی','سه‌چرخه','کامیون','کامیونت','کشنده','تریلی','اتوبوس','مینی‌بوس','خودرو کار و خدماتی','ماشین‌آلات سنگین'],
+    'املاک':['آپارتمان','خانه','ویلا','باغ و باغچه','زمین مسکونی','زمین کشاورزی','زمین تجاری','مغازه','دفتر کار','مطب','واحد تجاری','انبار','کارگاه','سوله','رستوران و کافه','هتل و اقامتگاه','املاک صنعتی','پروژه ساختمانی','پیش‌فروش','رهن و اجاره','فروش'],
+    'موبایل و تبلت':['گوشی موبایل','آیفون','سامسونگ','شیائومی','هواوی','نوکیا','آنر','وان‌پلاس','سونی','تبلت','آیپد','تبلت اندرویدی','لوازم جانبی','قاب و گلس','شارژر و کابل','پاوربانک','هندزفری و هدفون','ساعت هوشمند','قطعات موبایل','قطعات تبلت'],
+    'لوازم دیجیتال':['لپ‌تاپ','کامپیوتر رومیزی','مینی‌کامپیوتر','مانیتور','کیبورد','ماوس','پرینتر','اسکنر','مودم و روتر','تلویزیون','گیرنده دیجیتال','دوربین عکاسی','دوربین فیلمبرداری','دوربین مداربسته','لنز دوربین','کنسول بازی','هارد و SSD','فلش و کارت حافظه','اسپیکر','هدفون','تجهیزات شبکه'],
+    'لوازم خانگی':['یخچال','فریزر','یخچال فریزر','لباسشویی','ظرفشویی','اجاق گاز','فر','مایکروویو','جاروبرقی','جارو شارژی','کولر گازی','کولر آبی','پنکه','بخاری','شوفاژ و پکیج','آبگرمکن','تصفیه آب','چرخ خیاطی','اتو','قهوه‌ساز','چای‌ساز','سرخ‌کن','آسیاب و خردکن','لوازم آشپزخانه'],
+    'مبلمان و دکوراسیون':['مبل راحتی','مبل کلاسیک','مبل استیل','مبل تختخواب‌شو','میز ناهارخوری','میز جلو مبلی','میز تلویزیون','صندلی','صندلی اداری','تخت خواب','سرویس خواب','کمد و دراور','کتابخانه','ویترین','فرش','قالی','تابلو','آینه','پرده','لوستر','چراغ و آباژور','دکوراسیون منزل','دکوراسیون اداری'],
+    'پوشاک و کیف و کفش':['لباس زنانه','لباس مردانه','لباس بچگانه','لباس مجلسی','مانتو','شلوار','پیراهن','کت و شلوار','پالتو و کاپشن','لباس ورزشی','لباس زیر','کیف زنانه','کیف مردانه','کوله‌پشتی','کیف اداری','کفش زنانه','کفش مردانه','کفش بچگانه','کفش ورزشی','صندل','بوت','اکسسوری و شال'],
+    'وسایل نقلیه':['دوچرخه','دوچرخه برقی','اسکوتر','قایق','جت‌اسکی','قطعات خودرو','قطعات موتورسیکلت','قطعات دوچرخه','لاستیک و رینگ','باتری','لوازم یدکی','لوازم جانبی خودرو','لوازم جانبی موتورسیکلت'],
+    'خدمات':['فنی و تعمیرات','تعمیرات خودرو','تعمیرات موبایل','تعمیرات لوازم خانگی','برق‌کاری','لوله‌کشی','نقاشی ساختمان','نجاری','آهنگری','نظافت','اسباب‌کشی','حمل و نقل','باربری','آموزش خصوصی','آموزش آنلاین','ترجمه','تایپ و تولید محتوا','طراحی و گرافیک','برنامه‌نویسی','خدمات کامپیوتری','خدمات ساختمانی','خدمات زیبایی','عکاسی و فیلمبرداری','خدمات مجالس','بیمه و امور اداری'],
+    'استخدام و کاریابی':['تمام‌وقت','پاره‌وقت','دورکاری','کارآموزی','فریلنسری','موقت','قراردادی','پروژه‌ای','فروش و بازاریابی','اداری و مالی','فنی و مهندسی','فناوری اطلاعات','راننده','کارگر ساده','خدماتی','آموزشی','پزشکی و درمانی','رستوران و کافه','نگهبانی'],
+    'لوازم شخصی':['ساعت','ساعت هوشمند','زیورآلات','طلا و جواهر','بدلیجات','عینک','عینک آفتابی','عطر و ادکلن','لوازم آرایشی','لوازم بهداشتی','کیف پول','چمدان','لوازم کودک','لوازم سفر'],
+    'سرگرمی و ورزش':['دوچرخه','لوازم ورزشی','بدنسازی','فوتبال','فوتسال','کوهنوردی','کمپینگ','ماهیگیری','شنا','اسکی','کتاب','مجله','بازی فکری','اسباب‌بازی','کنسول بازی','بازی کامپیوتری','آلات موسیقی','گیتار','پیانو','سازهای سنتی','کلکسیون'],
+    'کشاورزی و دامداری':['گاو','گوسفند','بز','مرغ و خروس','طیور','ماهی و آبزیان','زنبور و زنبورداری','خوراک دام','بذر و نهال','کود','سم و تجهیزات','محصولات کشاورزی','میوه','سبزی و صیفی','ماشین‌آلات کشاورزی','تراکتور','ادوات کشاورزی','گل و گیاه','گلخانه'],
+    'ابزار و تجهیزات':['ابزار دستی','ابزار برقی','دریل و پیچ‌گوشتی','فرز','جوشکاری','کمپرسور','ژنراتور','تجهیزات کارگاهی','تجهیزات صنعتی','تجهیزات ساختمانی','تجهیزات کشاورزی','تجهیزات ایمنی','نردبان و داربست','تجهیزات فروشگاهی','تجهیزات رستورانی','تجهیزات پزشکی'],
+    'حیوانات':['سگ','گربه','پرندگان','طوطی','مرغ و خروس زینتی','آبزیان','ماهی آکواریومی','همستر','خرگوش','خزندگان','حیوانات مزرعه','لوازم حیوانات','غذا و مکمل حیوانات'],
+    'سایر':['متفرقه','هدیه و رایگان','اشیای کلکسیونی','صنایع دستی','محصولات هنری','سایر کالاها'],
   };
   static List<String> subsFor(String category)=>categorySubs[category]??const [];
 }
@@ -495,7 +495,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     // so a temporary RLS/network issue can never make a category appear empty.
     final dbSubs = categorySubs[category] ?? const <String>[];
     final fallbackSubs = HomeCategoryData.subsFor(category);
-    final subs = dbSubs.isNotEmpty ? dbSubs : fallbackSubs;
+    final subs = <String>{...dbSubs,...fallbackSubs}.toList();
     setState(() {
       selectedCategory = selectedCategory == category ? null : category;
       selectedSubcategory = null;
@@ -535,7 +535,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       final expires=expiresRaw==null?null:DateTime.tryParse(expiresRaw);
       if(!mounted)return;
       setState((){subscriptionExpiresAt=expires;hasActiveSubscription=expires!=null&&expires.isAfter(DateTime.now());adsUsed=(row?['ads_used'] as num?)?.toInt()??0;adLimit=(row?['ad_limit'] as num?)?.toInt()??9;loadingSubscription=false;});
-    }catch(e){if(mounted){setState(()=>loadingSubscription=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('بررسی اشتراک انجام نشد: $e')));}}
+    }catch(e){if(mounted){setState(()=>loadingSubscription=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('بررسی اشتراک انجام نشد. لطفاً دوباره تلاش کنید.')));}}
   }
   Future<void> loadAds() async {
     try {
@@ -555,7 +555,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       if (!mounted) return;
       setState(() => loadingAds = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('دریافت آگهی‌ها انجام نشد: $e')),
+        SnackBar(content: Text('دریافت آگهی‌ها انجام نشد. لطفاً دوباره تلاش کنید.')),
       );
     }
   }
@@ -733,31 +733,42 @@ String relativeTime(dynamic raw) {
         bottomNavigationBar: NavigationBar(
           selectedIndex: tab,
           onDestinationSelected: (v) => setState(() => tab = v),
+          backgroundColor: const Color(0xFFF7FBFB),
+          indicatorColor: const Color(0xFFD7F0F1),
           destinations: const [
             NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
+              icon: Icon(Icons.home_outlined, color: Color(0xFF0077B6)),
+              selectedIcon: Icon(Icons.home, color: Color(0xFF0077B6)),
               label: 'خانه',
             ),
             NavigationDestination(
-              icon: Icon(Icons.favorite_border),
-              selectedIcon: Icon(Icons.favorite),
+              icon: Icon(Icons.favorite_border, color: Color(0xFFE63973)),
+              selectedIcon: Icon(Icons.favorite, color: Color(0xFFE63973)),
               label: 'علاقه‌مندی',
             ),
             NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble),
+              icon: Icon(Icons.chat_bubble_outline, color: Color(0xFF7B2CBF)),
+              selectedIcon: Icon(Icons.chat_bubble, color: Color(0xFF7B2CBF)),
               label: 'پیام‌ها',
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
+              icon: Icon(Icons.person_outline, color: Color(0xFF2A9D8F)),
+              selectedIcon: Icon(Icons.person, color: Color(0xFF2A9D8F)),
               label: 'حساب',
             ),
           ],
         ),
       ),
     );
+  }
+
+  Color _categoryColor(String category) {
+    const colors = [
+      Color(0xFF0077B6), Color(0xFFE76F51), Color(0xFF2A9D8F), Color(0xFF7B2CBF),
+      Color(0xFFF4A261), Color(0xFFE63973), Color(0xFF457B9D), Color(0xFF6A994E),
+    ];
+    final i = categories.indexOf(category);
+    return colors[(i < 0 ? 0 : i) % colors.length];
   }
 
   Widget home() {
@@ -891,13 +902,13 @@ String relativeTime(dynamic raw) {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: selected ? const Color(0xFF006D77) : Colors.white,
+                              color: selected ? const Color(0xFF006D77) : _categoryColor(item).withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(11),
                             ),
                             child: Icon(
                               aghinouCategoryIcons[item] ?? Icons.category_outlined,
                               size: 21,
-                              color: selected ? Colors.white : const Color(0xFF006D77),
+                              color: selected ? Colors.white : _categoryColor(item),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -1060,7 +1071,7 @@ String relativeTime(dynamic raw) {
   Future<void> saveCurrentSearch() async {
     final uid=supabase.auth.currentUser?.id;if(uid==null)return;
     if(searchQuery.trim().isEmpty&&selectedCategory==null&&selectedProvince==null&&selectedCity==null&&minPrice==null&&maxPrice==null){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ابتدا یک عبارت یا فیلتر برای ذخیره انتخاب کنید.')));return;}
-    try{await supabase.from('saved_searches').insert({'user_id':uid,'query':searchQuery.trim(),'filters':{'category':selectedCategory,'subcategory':selectedSubcategory,'province':selectedProvince,'city':selectedCity,'min_price':minPrice,'max_price':maxPrice,'sort':sortMode}});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('جست‌وجو ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره جست‌وجو: $e')));}
+    try{await supabase.from('saved_searches').insert({'user_id':uid,'query':searchQuery.trim(),'filters':{'category':selectedCategory,'subcategory':selectedSubcategory,'province':selectedProvince,'city':selectedCity,'min_price':minPrice,'max_price':maxPrice,'sort':sortMode}});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('جست‌وجو ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره جست‌وجو انجام نشد. لطفاً دوباره تلاش کنید.')));}
   }
 
   Future<void> buySubscription() async {
@@ -1298,7 +1309,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(message??'ذخیره پروفایل انجام نشد.')));
     } catch(e) {
       if(!mounted)return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره پروفایل انجام نشد: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره پروفایل انجام نشد. لطفاً دوباره تلاش کنید.')));
     } finally { if(mounted)setState(()=>saving=false); }
   }
   @override Widget build(BuildContext context) {
@@ -1536,7 +1547,7 @@ class _EditAdPageState extends State<EditAdPage>{
       await supabase.rpc('update_own_ad',params:{'p_ad_id':widget.ad['idd'],'p_details':Map<String,String>.fromEntries(detailControllers.entries.where((e)=>e.value.text.trim().isNotEmpty).map((e)=>MapEntry(e.key,e.value.text.trim()))),'p_title':title.text.trim(),'p_description':desc.text.trim(),'p_price':p,'p_city':city,'p_province':province,'p_category':category,'p_subcategory':subcategory,'p_condition':condition,'p_neighborhood':neighborhood.text.trim().isEmpty?null:neighborhood.text.trim(),'p_vehicle_brand':category=='خودرو'&&vehicleBrand.text.trim().isNotEmpty?vehicleBrand.text.trim():null,'p_vehicle_model':category=='خودرو'&&vehicleModel.text.trim().isNotEmpty?vehicleModel.text.trim():null,'p_vehicle_year':category=='خودرو'?int.tryParse(vehicleYear.text.trim()):null,'p_vehicle_mileage':category=='خودرو'?int.tryParse(vehicleMileage.text.trim()):null,'p_vehicle_color':category=='خودرو'&&vehicleColor.text.trim().isNotEmpty?vehicleColor.text.trim():null,'p_vehicle_transmission':category=='خودرو'?vehicleTransmission:null,'p_vehicle_body_condition':category=='خودرو'?vehicleBodyCondition:null,'p_vehicle_fuel':category=='خودرو'?vehicleFuel:null,'p_vehicle_exchange':category=='خودرو'?vehicleExchange:false});
       if(latitude!=null&&longitude!=null){await supabase.rpc('update_own_ad_location',params:{'p_ad_id':widget.ad['idd'],'p_latitude':latitude,'p_longitude':longitude});}
       if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تغییرات ذخیره شد و آگهی برای بررسی دوباره ارسال شد.')));Navigator.pop(context);}
-    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تغییرات: '+e.toString())));}finally{if(mounted)setState(()=>saving=false);}
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تغییرات انجام نشد. لطفاً دوباره تلاش کنید.')));}finally{if(mounted)setState(()=>saving=false);}
   }
   @override Widget build(BuildContext c)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('ویرایش آگهی')),body:ListView(padding:const EdgeInsets.all(16),children:[
     DropdownButtonFormField<String>(value:category,items:_HomePageState.categories.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)setState((){category=v;subcategory=HomeCategoryData.subsFor(v).isEmpty?'سایر':HomeCategoryData.subsFor(v).first;resetDetailControllers(widget.ad);});},decoration:const InputDecoration(labelText:'دسته‌بندی',border:OutlineInputBorder())),
@@ -1645,7 +1656,7 @@ class _AddAdPageState extends State<AddAdPage>{
       final remaining=maxImages-selectedImages.length;
       setState(()=>selectedImages.addAll(xs.take(remaining)));
     }catch(e){
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت تنظیمات عکس: $e')));
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت تنظیمات عکس انجام نشد. لطفاً دوباره تلاش کنید.')));
     }
   }
   void removeImage(int i)=>setState(()=>selectedImages.removeAt(i));
@@ -1882,11 +1893,11 @@ class _AdminPageState extends State<AdminPage>{
       }
     }
   }
-  Future<void> saveSettings() async {setState(()=>working=true);try{await supabase.rpc('update_subscription_settings',params:{'p_price':int.parse(price.text),'p_duration_days':int.parse(days.text),'p_ad_limit':int.parse(limit.text),'p_image_limit':int.parse(images.text),'p_destination_card':card.text.trim(),'p_card_holder':holder.text.trim(),'p_bank_name':bank.text.trim(),'p_instructions':instructions.text.trim(),'p_enabled':enabled});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تنظیمات ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تنظیمات: $e')));}finally{if(mounted)setState(()=>working=false);}}
+  Future<void> saveSettings() async {setState(()=>working=true);try{await supabase.rpc('update_subscription_settings',params:{'p_price':int.parse(price.text),'p_duration_days':int.parse(days.text),'p_ad_limit':int.parse(limit.text),'p_image_limit':int.parse(images.text),'p_destination_card':card.text.trim(),'p_card_holder':holder.text.trim(),'p_bank_name':bank.text.trim(),'p_instructions':instructions.text.trim(),'p_enabled':enabled});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تنظیمات ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تنظیمات انجام نشد. لطفاً دوباره تلاش کنید.')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> decide(String id,bool approve) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('confirm_payment',params:{'p_payment_id':id,'p_approve':approve,'p_reason':approve?null:'تأیید نشد توسط مدیر'});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(approve?'پرداخت تأیید و اشتراک فعال شد.':'پرداخت رد شد.')));await load();}}catch(e){if(mounted){String msg='انجام عملیات پرداخت ممکن نشد.';final raw=e.toString();if(raw.contains('PAYMENT_NOT_FOUND'))msg='پرداخت پیدا نشد.';else if(raw.contains('PAYMENT_ALREADY_CONFIRMED'))msg='این پرداخت قبلاً بررسی شده است.';else if(raw.contains('INSUFFICIENT_AMOUNT'))msg='مبلغ پرداخت کمتر از مبلغ اشتراک است.';else if(raw.contains('SUBSCRIPTION_DISABLED'))msg='فروش اشتراک در حال حاضر غیرفعال است.';ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(msg)));}}finally{if(mounted)setState(()=>working=false);}}
-  Future<void> moderateAd(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('moderate_ad',params:{'p_ad_id':id,'p_status':status,'p_reason':status=='rejected'?'آگهی مطابق قوانین تأیید نشد.':null});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(status=='published'?'آگهی تأیید شد.':status=='paused'?'آگهی متوقف شد.':'آگهی رد شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تغییر وضعیت آگهی: $e')));}finally{if(mounted)setState(()=>working=false);}}
-  Future<void> setReportStatus(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('admin_set_report_status',params:{'p_report_id':id,'p_status':status});if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('وضعیت گزارش به‌روزرسانی شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('گزارش: $e')));}finally{if(mounted)setState(()=>working=false);}}
-  Future<void> deleteAd(String id) async {if(working)return;setState(()=>working=true);try{final deleted=await supabase.from('ads').delete().eq('idd',id).select('idd');if(deleted.isEmpty)throw Exception('آگهی حذف نشد یا دسترسی کافی وجود ندارد.');if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی حذف شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی: $e')));}finally{if(mounted)setState(()=>working=false);}}
+  Future<void> moderateAd(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('moderate_ad',params:{'p_ad_id':id,'p_status':status,'p_reason':status=='rejected'?'آگهی مطابق قوانین تأیید نشد.':null});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(status=='published'?'آگهی تأیید شد.':status=='paused'?'آگهی متوقف شد.':'آگهی رد شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تغییر وضعیت آگهی انجام نشد. لطفاً دوباره تلاش کنید.')));}finally{if(mounted)setState(()=>working=false);}}
+  Future<void> setReportStatus(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('admin_set_report_status',params:{'p_report_id':id,'p_status':status});if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('وضعیت گزارش به‌روزرسانی شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('عملیات گزارش انجام نشد. لطفاً دوباره تلاش کنید.')));}finally{if(mounted)setState(()=>working=false);}}
+  Future<void> deleteAd(String id) async {if(working)return;setState(()=>working=true);try{final deleted=await supabase.from('ads').delete().eq('idd',id).select('idd');if(deleted.isEmpty)throw Exception('آگهی حذف نشد یا دسترسی کافی وجود ندارد.');if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی حذف شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی انجام نشد. لطفاً دوباره تلاش کنید.')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> deleteUser(String id) async {
     if(working)return;
     final ok=await showDialog<bool>(
@@ -1978,10 +1989,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> load() async {
     final uid=supabase.auth.currentUser?.id;if(uid==null){if(mounted)setState(()=>loading=false);return;}
     try{final r=await supabase.from('notifications').select('id,title,body,type,read_at,created_at').eq('user_id',uid).order('created_at',ascending:false).limit(100);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}
-    catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت اعلان‌ها انجام نشد: $e')));}}
+    catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت اعلان‌ها انجام نشد. لطفاً دوباره تلاش کنید.')));}}
   }
   Future<void> markRead(String id) async {try{await supabase.from('notifications').update({'read_at':DateTime.now().toIso8601String()}).eq('id',id).eq('user_id',supabase.auth.currentUser!.id);if(mounted)setState((){final i=rows.indexWhere((x)=>x['id'].toString()==id);if(i>=0)rows[i]['read_at']=DateTime.now().toIso8601String();});}catch(_){ }}
-  Future<void> markAllRead() async {final uid=supabase.auth.currentUser?.id;if(uid==null)return;try{await supabase.from('notifications').update({'read_at':DateTime.now().toIso8601String()}).eq('user_id',uid).isFilter('read_at',null);await load();}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('علامت‌گذاری اعلان‌ها: $e')));}}
+  Future<void> markAllRead() async {final uid=supabase.auth.currentUser?.id;if(uid==null)return;try{await supabase.from('notifications').update({'read_at':DateTime.now().toIso8601String()}).eq('user_id',uid).isFilter('read_at',null);await load();}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('علامت‌گذاری اعلان‌ها انجام نشد. لطفاً دوباره تلاش کنید.')));}}
   @override Widget build(BuildContext context){
     final unread=rows.where((x)=>x['read_at']==null).length;
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
@@ -2004,7 +2015,7 @@ class SavedSearchesPage extends StatefulWidget {
 class _SavedSearchesPageState extends State<SavedSearchesPage>{
   bool loading=true;List<Map<String,dynamic>> rows=[];
   @override void initState(){super.initState();load();}
-  Future<void> load() async {final uid=supabase.auth.currentUser?.id;if(uid==null){if(mounted)setState(()=>loading=false);return;}try{final r=await supabase.from('saved_searches').select('id,query,filters,created_at').eq('user_id',uid).order('created_at',ascending:false);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت جست‌وجوهای ذخیره‌شده: $e')));}}}
+  Future<void> load() async {final uid=supabase.auth.currentUser?.id;if(uid==null){if(mounted)setState(()=>loading=false);return;}try{final r=await supabase.from('saved_searches').select('id,query,filters,created_at').eq('user_id',uid).order('created_at',ascending:false);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت جست‌وجوهای ذخیره‌شده انجام نشد. لطفاً دوباره تلاش کنید.')));}}}
   Future<void> deleteSearch(String id) async {final uid=supabase.auth.currentUser?.id;if(uid==null)return;try{await supabase.from('saved_searches').delete().eq('id',id).eq('user_id',uid);await load();}catch(_){ }}
   Future<void> useSearch(Map<String,dynamic> r) async {
     final f = r['filters'] is Map
@@ -2054,7 +2065,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     }catch(e){
       if(mounted){
         setState(()=>loading=false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت اطلاعات اشتراک: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت اطلاعات اشتراک انجام نشد. لطفاً دوباره تلاش کنید.')));
       }
     }
   }
@@ -2135,7 +2146,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       );
       if(mounted)Navigator.pop(context);
     }catch(e){
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت پرداخت: $e')));
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت پرداخت انجام نشد. لطفاً دوباره تلاش کنید.')));
     }finally{
       if(mounted)setState(()=>sending=false);
     }
@@ -2318,7 +2329,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی و عکس‌های آن حذف شد.')));
       Navigator.pop(context,true);
     }catch(e){
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی انجام نشد: $e')));
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی انجام نشد. لطفاً دوباره تلاش کنید.')));
     }
   }
 
@@ -2651,7 +2662,7 @@ class _ConversationPageState extends State<ConversationPage> {
       await supabase.from('conversations').delete().eq('id',widget.conversationId);
       if(mounted)Navigator.pop(context,true);
     }catch(e){
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف گفتگو: $e')));
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف گفتگو انجام نشد. لطفاً دوباره تلاش کنید.')));
     }
   }
 
