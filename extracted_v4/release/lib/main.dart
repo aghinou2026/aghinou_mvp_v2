@@ -105,13 +105,15 @@ class _LoginPageState extends State<LoginPage> {
     return v;
   }
 
+  String authEmailForPhone(String normalizedPhone) {
+    final digits = normalizedPhone.replaceAll('+', '');
+    return 'u$digits@aghinou.app';
+  }
+
   String authErrorMessage(AuthException e, {bool registerMode = false}) {
     final m = e.message.toLowerCase();
     if (m.contains('invalid login credentials')) {
-      return 'شماره موبایل یا رمز ورود نادرست است. اگر حساب را قبلاً با کد پیامکی ساخته‌اید، این حساب هنوز رمز ورود ندارد و باید یک حساب جدید با رمز بسازید.';
-    }
-    if (m.contains('phone') && (m.contains('disabled') || m.contains('not enabled'))) {
-      return 'ورود با شماره موبایل در تنظیمات احراز هویت Supabase فعال نیست.';
+      return 'شماره موبایل یا رمز ورود نادرست است. شماره و رمز را بررسی کنید.';
     }
     if (m.contains('user already registered') || m.contains('already registered')) {
       return 'این شماره قبلاً ثبت شده است. از بخش «ورود» با رمز همان حساب استفاده کنید.';
@@ -120,7 +122,7 @@ class _LoginPageState extends State<LoginPage> {
       return 'رمز ورود باید حداقل ۶ کاراکتر باشد.';
     }
     if (m.contains('email not confirmed') || m.contains('phone not confirmed')) {
-      return 'تأیید شماره تلفن برای این حساب کامل نشده است.';
+      return 'تأیید ایمیل در Supabase باید خاموش باشد تا ثبت‌نام بدون کد انجام شود.';
     }
     return (registerMode ? 'ثبت‌نام: ' : 'ورود: ') + e.message;
   }
@@ -143,7 +145,7 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => loading = true);
     try {
-      final r = await supabase.auth.signInWithPassword(phone: v, password: p);
+      final r = await supabase.auth.signInWithPassword(email: authEmailForPhone(v), password: p);
       final u = r.user;
       if (u == null) throw Exception('ورود انجام نشد.');
       await supabase.from('profiles').upsert({
@@ -183,11 +185,11 @@ class _LoginPageState extends State<LoginPage> {
 
     setState(() => loading = true);
     try {
-      final r = await supabase.auth.signUp(phone: v, password: p);
+      final r = await supabase.auth.signUp(email: authEmailForPhone(v), password: p);
       final u = r.user;
       if (u == null) throw Exception('ساخت حساب انجام نشد.');
       if (r.session == null) {
-        throw Exception('حساب ساخته شد، اما تأیید شماره تلفن فعال است. در تنظیمات Auth باید تأیید شماره تلفن خاموش باشد.');
+        throw Exception('حساب ساخته شد، اما تأیید ایمیل فعال است. در تنظیمات Auth باید Confirm Email خاموش باشد.');
       }
       await supabase.from('profiles').upsert({
         'iidd': u.id,
