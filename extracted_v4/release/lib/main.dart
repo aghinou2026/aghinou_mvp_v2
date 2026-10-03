@@ -770,7 +770,7 @@ class _HomePageState extends State<HomePage> {
               final city = ad['city']?.toString() ?? '';
               final price = ad['price'] == null || ad['price'].toString().isEmpty
                   ? 'توافقی'
-                  : '\${ad['price']} تومان';
+                  : '${ad['price']} تومان';
               final time = relativeTime(ad['created_at']);
               final typeLine = [category, subcategory].where((x) => x.trim().isNotEmpty).join(' • ');
 
