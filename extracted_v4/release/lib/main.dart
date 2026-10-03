@@ -2211,6 +2211,14 @@ class _AdDetailPageState extends State<AdDetailPage>{
     }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('شروع گفت‌وگو: '+e.toString())));}
   }
 
+  Future<void> openAdMap() async {
+    final lat=(widget.ad['latitude'] as num?)?.toDouble();
+    final lng=(widget.ad['longitude'] as num?)?.toDouble();
+    if(lat==null||lng==null)return;
+    final uri=Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
+    if(await canLaunchUrl(uri)) await launchUrl(uri,mode:LaunchMode.externalApplication);
+  }
+
   Future<void> callSeller() async {
     final sellerId=widget.ad['seller_id']?.toString();
     final phone=seller?['cphone']?.toString();
@@ -2320,6 +2328,20 @@ class _AdDetailPageState extends State<AdDetailPage>{
                 ),
               ),
             ),
+            if((widget.ad['latitude'] as num?)!=null&&(widget.ad['longitude'] as num?)!=null)...[
+              const SizedBox(height:18),
+              const Text('موقعیت آگهی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
+              const SizedBox(height:8),
+              SizedBox(height:230,child:ClipRRect(borderRadius:BorderRadius.circular(18),child:FlutterMap(
+                options:MapOptions(initialCenter:LatLng((widget.ad['latitude'] as num).toDouble(),(widget.ad['longitude'] as num).toDouble()),initialZoom:15,interactionOptions:const InteractionOptions(flags:InteractiveFlag.pinchZoom|InteractiveFlag.drag|InteractiveFlag.doubleTapZoom)),
+                children:[
+                  TileLayer(urlTemplate:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',userAgentPackageName:'com.aghinou.app'),
+                  MarkerLayer(markers:[Marker(point:LatLng((widget.ad['latitude'] as num).toDouble(),(widget.ad['longitude'] as num).toDouble()),width:52,height:52,child:const Icon(Icons.location_pin,size:52,color:Color(0xFFD62828)))])
+                ],
+              ))),
+              const SizedBox(height:8),
+              FilledButton.icon(onPressed:openAdMap,icon:const Icon(Icons.directions),label:const Text('مسیریابی تا این محل')),
+            ],
             const SizedBox(height:18),
             const Text('توضیحات آگهی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),
             const SizedBox(height:6),
