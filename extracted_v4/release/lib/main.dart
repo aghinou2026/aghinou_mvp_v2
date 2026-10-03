@@ -1460,7 +1460,7 @@ class _AddAdPageState extends State<AddAdPage>{
         appBar:AppBar(title:const Text('ثبت آگهی')),
         body:ListView(padding:const EdgeInsets.all(16),children:[
           DropdownButtonFormField<String>(value:category,items:_HomePageState.categories.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
-            onChanged:(v){if(v==null)return;setState(()=>{category=v;subcategory=subcategories.first;resetDetailControllers();});},decoration:const InputDecoration(labelText:'دسته‌بندی',border:OutlineInputBorder())),
+            onChanged:(v){if(v==null)return;setState(() { category=v;subcategory=subcategories.first;resetDetailControllers(); });},decoration:const InputDecoration(labelText:'دسته‌بندی',border:OutlineInputBorder())),
           const SizedBox(height:12),
           DropdownButtonFormField<String>(value:subcategory,items:subcategories.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
             onChanged:(v)=>setState(()=>subcategory=v??subcategories.first),decoration:const InputDecoration(labelText:'زیر‌دسته',border:OutlineInputBorder())),
