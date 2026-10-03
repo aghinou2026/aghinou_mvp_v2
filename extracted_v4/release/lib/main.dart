@@ -1194,8 +1194,8 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
             if(adIndex==2) ...[
               if(commercialAds.any((x)=>x['slot']==2)) commercialAds.where((x)=>x['slot']==2).map(commercialAdCard).first,
               if(!commercialAds.any((x)=>x['slot']==2)) advertisingContactCard(),
-            ],
-            }),
+            ]);
+            });
         ],
       ),
     );
