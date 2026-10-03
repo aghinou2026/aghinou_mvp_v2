@@ -2160,6 +2160,24 @@ class _AdminPageState extends State<AdminPage>{
       adContactText.text=st?['contact_text']?.toString()??'برای تبلیغات با ما تماس بگیرید.';
     }catch(_){}
   }
+  Future<void> saveCommercialContactSettings() async {
+    if(working)return;
+    setState(()=>working=true);
+    try{
+      await supabase.from('commercial_ad_settings').upsert({
+        'id':true,
+        'contact_phone':adPhone.text.trim(),
+        'contact_text':adContactText.text.trim().isEmpty?'برای تبلیغات با ما تماس بگیرید.':adContactText.text.trim(),
+        'updated_at':DateTime.now().toUtc().toIso8601String(),
+      });
+      await loadCommercialSettings();
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره تماس تبلیغات ذخیره شد.')));
+    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ذخیره شماره تماس انجام نشد. لطفاً دوباره تلاش کنید.')));
+    }finally{
+      if(mounted)setState(()=>working=false);
+    }
+  }
   Future<void> pickCommercialImage(int slot) async {
     final x=await ImagePicker().pickImage(source:ImageSource.gallery,imageQuality:88,maxWidth:1800,maxHeight:1200);
     if(mounted&&x!=null)setState(()=>pickedAdImages[slot]=x);
@@ -2298,6 +2316,12 @@ class _AdminPageState extends State<AdminPage>{
         children:[Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
           field(adPhone,'شماره تماس تبلیغات',type:TextInputType.phone),
           field(adContactText,'متن تماس با ما'),
+          SizedBox(width:double.infinity,child:FilledButton.icon(
+            onPressed:working?null:saveCommercialContactSettings,
+            icon:const Icon(Icons.save_outlined),
+            label:const Text('ذخیره شماره تماس'),
+          )),
+          const SizedBox(height:10),
           ...List.generate(3,(i)=>Card(margin:const EdgeInsets.only(bottom:10),child:Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
             Text('کادر تبلیغ ${i+1} — ${i==0?'بالای صفحه':i==1?'وسط آگهی‌ها':'پایین صفحه'}',style:const TextStyle(fontWeight:FontWeight.bold)),
             const SizedBox(height:8),
