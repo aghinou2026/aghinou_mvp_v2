@@ -396,7 +396,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int tab = 0;
   bool loadingAds = true;
   bool loadingSubscription = true;
@@ -421,13 +421,56 @@ class _HomePageState extends State<HomePage> {
     'خودرو','املاک','موبایل و تبلت','لوازم دیجیتال','لوازم خانگی','مبلمان و دکوراسیون','پوشاک و کیف و کفش','وسایل نقلیه','خدمات','استخدام و کاریابی','لوازم شخصی','سرگرمی و ورزش','کشاورزی و دامداری','ابزار و تجهیزات','حیوانات','سایر',
   ];
 
+  RealtimeChannel? _notificationChannel;
+  DateTime? _lastNotificationAt;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     loadAds();
     loadCategories();
     loadSubscription();
     loadAdmin(); loadProfile();
+    _listenForNotifications();
+  }
+
+  void _listenForNotifications() {
+    final uid = supabase.auth.currentUser?.id;
+    if (uid == null) return;
+    _notificationChannel = supabase.channel('user-notifications-$uid')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'notifications',
+        filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'user_id', value: uid),
+        callback: (payload) {
+          final row = payload.newRecord;
+          final title = row['title']?.toString() ?? 'اعلان آگهینو';
+          _lastNotificationAt = DateTime.now();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(title)),
+          );
+        },
+      )
+      .subscribe();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      loadSubscription();
+      loadAds();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    final ch = _notificationChannel;
+    if (ch != null) supabase.removeChannel(ch);
+    super.dispose();
   }
 
   Future<void> loadProfile() async{final uid=supabase.auth.currentUser?.id;if(uid==null)return;try{final p=await supabase.from('profiles').select('first_name,last_name,cphone,name').eq('iidd',uid).maybeSingle();if(!mounted||p==null)return;setState((){profileFirstName=p['first_name']?.toString()??'';profileLastName=p['last_name']?.toString()??'';profilePhone=p['cphone']?.toString()??'';});}catch(_){}}
@@ -1820,7 +1863,7 @@ class _AdminPageState extends State<AdminPage>{
     }
   }
   Future<void> saveSettings() async {setState(()=>working=true);try{await supabase.rpc('update_subscription_settings',params:{'p_price':int.parse(price.text),'p_duration_days':int.parse(days.text),'p_ad_limit':int.parse(limit.text),'p_image_limit':int.parse(images.text),'p_destination_card':card.text.trim(),'p_card_holder':holder.text.trim(),'p_bank_name':bank.text.trim(),'p_instructions':instructions.text.trim(),'p_enabled':enabled});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تنظیمات ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تنظیمات: $e')));}finally{if(mounted)setState(()=>working=false);}}
-  Future<void> decide(String id,bool approve) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('confirm_payment',params:{'p_payment_id':id,'p_approve':approve,'p_reason':approve?null:'تأیید نشد توسط مدیر'});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(approve?'پرداخت تأیید و اشتراک فعال شد.':'پرداخت رد شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('عملیات: $e')));}finally{if(mounted)setState(()=>working=false);}}
+  Future<void> decide(String id,bool approve) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('confirm_payment',params:{'p_payment_id':id,'p_approve':approve,'p_reason':approve?null:'تأیید نشد توسط مدیر'});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(approve?'پرداخت تأیید و اشتراک فعال شد.':'پرداخت رد شد.')));await load();}}catch(e){if(mounted){String msg='انجام عملیات پرداخت ممکن نشد.';final raw=e.toString();if(raw.contains('PAYMENT_NOT_FOUND'))msg='پرداخت پیدا نشد.';else if(raw.contains('PAYMENT_ALREADY_CONFIRMED'))msg='این پرداخت قبلاً بررسی شده است.';else if(raw.contains('INSUFFICIENT_AMOUNT'))msg='مبلغ پرداخت کمتر از مبلغ اشتراک است.';else if(raw.contains('SUBSCRIPTION_DISABLED'))msg='فروش اشتراک در حال حاضر غیرفعال است.';ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(msg)));}}finally{if(mounted)setState(()=>working=false);}}
   Future<void> moderateAd(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('moderate_ad',params:{'p_ad_id':id,'p_status':status,'p_reason':status=='rejected'?'آگهی مطابق قوانین تأیید نشد.':null});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(status=='published'?'آگهی تأیید شد.':status=='paused'?'آگهی متوقف شد.':'آگهی رد شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تغییر وضعیت آگهی: $e')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> setReportStatus(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('admin_set_report_status',params:{'p_report_id':id,'p_status':status});if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('وضعیت گزارش به‌روزرسانی شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('گزارش: $e')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> deleteAd(String id) async {if(working)return;setState(()=>working=true);try{final deleted=await supabase.from('ads').delete().eq('idd',id).select('idd');if(deleted.isEmpty)throw Exception('آگهی حذف نشد یا دسترسی کافی وجود ندارد.');if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی حذف شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی: $e')));}finally{if(mounted)setState(()=>working=false);}}
