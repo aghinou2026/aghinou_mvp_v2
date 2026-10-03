@@ -1749,16 +1749,57 @@ class _AdminPageState extends State<AdminPage>{
   @override void initState(){super.initState();load();}
   @override void dispose(){for(final c in [price,days,limit,images,card,holder,bank,instructions,userSearch,adSearch])c.dispose();super.dispose();}
   Future<void> load() async {
-    try{
-      final r=await supabase.from('subscription_settings').select('*').eq('id',true).maybeSingle();
-      final p=await supabase.from('payments').select('id,user_id,amount,status,payment_note,payment_code,metadata,provider,created_at,paid_at,confirmed_at').inFilter('status',['pending','checking']).order('created_at',ascending:false);
-      final st=await supabase.rpc('admin_dashboard_stats');
-      final rr=await supabase.from('reports').select('id,reporter_id,ad_id,reason,details,status,created_at,ads(title,city)').order('created_at',ascending:false).limit(100);
-      final aa=await supabase.from('ads').select('idd,title,price,city,category,seller_id,publish_status,created_at').order('created_at',ascending:false).limit(100);
-      final uu=await supabase.from('profiles').select('iidd,name,first_name,last_name,cphone,created_at').order('created_at',ascending:false).limit(100);
-      if(r!=null){price.text=r['price'].toString();days.text=r['duration_days'].toString();limit.text=r['ad_limit'].toString();images.text=r['image_limit'].toString();card.text=r['destination_card']?.toString()??'';holder.text=r['card_holder']?.toString()??'';bank.text=r['bank_name']?.toString()??'';instructions.text=r['instructions']?.toString()??'';enabled=r['enabled']==true;}
-      if(mounted)setState(() { stats=Map<String,dynamic>.from(st); payments=List<Map<String,dynamic>>.from(p); ads=List<Map<String,dynamic>>.from(aa); users=List<Map<String,dynamic>>.from(uu); reports=List<Map<String,dynamic>>.from(rr); loading=false; });
-    }catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('پنل مدیریت: $e')));}}
+    dynamic st;
+    List<Map<String,dynamic>> pp=[], rrRows=[], aaRows=[], uuRows=[];
+    Map<String,dynamic>? settings;
+    final errors=<String>[];
+    Future<void> safe(String name, Future<void> Function() fn) async {
+      try { await fn(); } catch(e) { errors.add('$name: $e'); }
+    }
+    await safe('تنظیمات',() async {
+      settings=await supabase.from('subscription_settings').select('*').eq('id',true).maybeSingle();
+    });
+    await safe('پرداخت‌ها',() async {
+      final x=await supabase.from('payments').select('id,user_id,amount,status,payment_note,payment_code,metadata,provider,created_at,paid_at,confirmed_at').inFilter('status',['pending','checking']).order('created_at',ascending:false);
+      pp=List<Map<String,dynamic>>.from(x);
+    });
+    await safe('آمار',() async { st=await supabase.rpc('admin_dashboard_stats'); });
+    await safe('گزارش‌ها',() async {
+      final x=await supabase.from('reports').select('id,reporter_id,ad_id,reason,details,status,created_at,ads(title,city)').order('created_at',ascending:false).limit(100);
+      rrRows=List<Map<String,dynamic>>.from(x);
+    });
+    await safe('آگهی‌ها',() async {
+      final x=await supabase.from('ads').select('idd,title,price,city,category,seller_id,publish_status,created_at').order('created_at',ascending:false).limit(100);
+      aaRows=List<Map<String,dynamic>>.from(x);
+    });
+    await safe('کاربران',() async {
+      final x=await supabase.from('profiles').select('iidd,name,first_name,last_name,cphone,created_at').order('created_at',ascending:false).limit(100);
+      uuRows=List<Map<String,dynamic>>.from(x);
+    });
+    if(settings!=null){
+      price.text=settings!['price'].toString();
+      days.text=settings!['duration_days'].toString();
+      limit.text=settings!['ad_limit'].toString();
+      images.text=settings!['image_limit'].toString();
+      card.text=settings!['destination_card']?.toString()??'';
+      holder.text=settings!['card_holder']?.toString()??'';
+      bank.text=settings!['bank_name']?.toString()??'';
+      instructions.text=settings!['instructions']?.toString()??'';
+      enabled=settings!['enabled']==true;
+    }
+    if(mounted){
+      setState(() {
+        stats=st is Map ? Map<String,dynamic>.from(st) : null;
+        payments=pp;
+        ads=aaRows;
+        users=uuRows;
+        reports=rrRows;
+        loading=false;
+      });
+      if(errors.isNotEmpty){
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('برخی بخش‌های پنل بارگذاری نشد: '+errors.join(' | '))));
+      }
+    }
   }
   Future<void> saveSettings() async {setState(()=>working=true);try{await supabase.rpc('update_subscription_settings',params:{'p_price':int.parse(price.text),'p_duration_days':int.parse(days.text),'p_ad_limit':int.parse(limit.text),'p_image_limit':int.parse(images.text),'p_destination_card':card.text.trim(),'p_card_holder':holder.text.trim(),'p_bank_name':bank.text.trim(),'p_instructions':instructions.text.trim(),'p_enabled':enabled});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('تنظیمات ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره تنظیمات: $e')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> decide(String id,bool approve) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('confirm_payment',params:{'p_payment_id':id,'p_approve':approve,'p_reason':approve?null:'تأیید نشد توسط مدیر'});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(approve?'پرداخت تأیید و اشتراک فعال شد.':'پرداخت رد شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('عملیات: $e')));}finally{if(mounted)setState(()=>working=false);}}
