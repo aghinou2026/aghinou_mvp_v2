@@ -916,6 +916,17 @@ class _HomePageState extends State<HomePage> {
         const SizedBox(height: 18),
         Card(
           child: ListTile(
+            leading: const Icon(Icons.lock_outline),
+            title: const Text('تغییر رمز ورود'),
+            subtitle: const Text('رمز ورود حساب خود را تغییر دهید'),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const ChangePasswordPage()),
+            ),
+          ),
+        ),
+        Card(
+          child: ListTile(
             leading: const Icon(Icons.workspace_premium),
             title: const Text('اشتراک'),
             subtitle: Text(
@@ -1024,6 +1035,172 @@ class _HomePageState extends State<HomePage> {
       MaterialPageRoute(
         builder: (_) => AddAdPage(
           onPublished: loadAds,
+        ),
+      ),
+    );
+  }
+}
+
+class ChangePasswordPage extends StatefulWidget {
+  const ChangePasswordPage({super.key});
+  @override
+  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
+}
+
+class _ChangePasswordPageState extends State<ChangePasswordPage> {
+  final current = TextEditingController();
+  final next = TextEditingController();
+  final confirm = TextEditingController();
+  bool loading = false;
+  bool hideCurrent = true;
+  bool hideNext = true;
+  bool hideConfirm = true;
+
+  @override
+  void dispose() {
+    current.dispose();
+    next.dispose();
+    confirm.dispose();
+    super.dispose();
+  }
+
+  Future<void> changePassword() async {
+    final oldPassword = current.text;
+    final newPassword = next.text;
+    final confirmPassword = confirm.text;
+    final user = supabase.auth.currentUser;
+
+    if (user == null) return;
+    if (oldPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('رمز فعلی را وارد کنید.')));
+      return;
+    }
+    if (newPassword.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('رمز جدید باید حداقل ۶ کاراکتر باشد.')));
+      return;
+    }
+    if (newPassword != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تکرار رمز جدید با رمز جدید یکسان نیست.')));
+      return;
+    }
+    if (newPassword == oldPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('رمز جدید باید با رمز فعلی متفاوت باشد.')));
+      return;
+    }
+
+    setState(() => loading = true);
+    try {
+      final email = user.email;
+      if (email == null || email.isEmpty) {
+        throw const AuthException('حساب کاربری برای تغییر رمز آماده نیست.');
+      }
+      await supabase.auth.signInWithPassword(email: email, password: oldPassword);
+      await supabase.auth.updateUser(UserAttributes(password: newPassword));
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('رمز ورود با موفقیت تغییر کرد.')),
+      );
+      Navigator.pop(context);
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      final m = e.message.toLowerCase();
+      final message = m.contains('invalid login credentials')
+          ? 'رمز فعلی نادرست است.'
+          : 'تغییر رمز انجام نشد: ' + e.message;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('تغییر رمز انجام نشد: ' + e.toString())));
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        appBar: AppBar(title: const Text('تغییر رمز ورود')),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Icon(Icons.lock_outline, size: 54, color: Color(0xFF006D77)),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'برای امنیت حساب، رمز فعلی و رمز جدید را وارد کنید.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 15, height: 1.6),
+                    ),
+                    const SizedBox(height: 18),
+                    TextField(
+                      controller: current,
+                      obscureText: hideCurrent,
+                      textInputAction: TextInputAction.next,
+                      decoration: InputDecoration(
+                        labelText: 'رمز فعلی',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.key_outlined),
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => hideCurrent = !hideCurrent),
+                          icon: Icon(hideCurrent ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: next,
+                      obscureText: hideNext,
+                      textInputAction: TextInputAction.next,
+                      decoration: InputDecoration(
+                        labelText: 'رمز جدید',
+                        helperText: 'حداقل ۶ کاراکتر؛ حروف انگلیسی و اعداد مجاز است.',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock_reset_outlined),
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => hideNext = !hideNext),
+                          icon: Icon(hideNext ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: confirm,
+                      obscureText: hideConfirm,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => loading ? null : changePassword(),
+                      decoration: InputDecoration(
+                        labelText: 'تکرار رمز جدید',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.check_circle_outline),
+                        suffixIcon: IconButton(
+                          onPressed: () => setState(() => hideConfirm = !hideConfirm),
+                          icon: Icon(hideConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: loading ? null : changePassword,
+                        icon: loading
+                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.save_outlined),
+                        label: Text(loading ? 'در حال تغییر...' : 'تغییر رمز'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
