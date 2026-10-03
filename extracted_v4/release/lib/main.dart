@@ -42,6 +42,7 @@ class AghinouApp extends StatefulWidget {
 
 class _AghinouAppState extends State<AghinouApp> with WidgetsBindingObserver {
   RealtimeChannel? _adminNotificationChannel;
+  bool _adminListenerStarted = false;
   @override
   void initState() {
     super.initState();
@@ -50,10 +51,12 @@ class _AghinouAppState extends State<AghinouApp> with WidgetsBindingObserver {
   }
 
   void _setupAdminPaymentNotifications() {
+    if (_adminListenerStarted) return;
     final uid = supabase.auth.currentUser?.id;
     if (uid == null) return;
     supabase.from('admin_users').select('user_id').eq('user_id', uid).maybeSingle().then((row) {
       if (!mounted || row == null) return;
+      _adminListenerStarted = true;
       _adminNotificationChannel = supabase.channel('admin-payment-notifications-${uid}');
       _adminNotificationChannel!.onPostgresChanges(
         event: PostgresChangeEvent.insert,
