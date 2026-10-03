@@ -351,7 +351,7 @@ const Map<String, IconData> aghinouCategoryIcons = {
 };
 
 const Map<String,List<String>> categoryDetailFields = {
-  'خودرو':['برند','مدل','سال ساخت','کارکرد (کیلومتر)','رنگ','گیربکس','وضعیت بدنه','سوخت','معاوضه'],
+  'خودرو':['برند','مدل','سال ساخت','کارکرد (کیلومتر)','رنگ','گیربکس','وضعیت بدنه','سوخت','معاوضه','وضعیت بیمه','بیمه شخص ثالث','مدت اعتبار شخص ثالث','بیمه بدنه','مدت اعتبار بیمه بدنه'],
   'املاک':['متراژ (متر)','تعداد اتاق','طبقه','تعداد طبقات','سال ساخت','پارکینگ','انباری','آسانسور','سند','نوع کاربری'],
   'موبایل و تبلت':['برند','مدل','حافظه داخلی','رم','رنگ','وضعیت باتری','گارانتی','رجیستری','دو سیم‌کارت'],
   'لوازم دیجیتال':['برند','مدل','سال تولید','وضعیت','گارانتی','مشخصات فنی'],
@@ -1561,9 +1561,54 @@ class _EditAdPageState extends State<EditAdPage>{
   final Map<String,TextEditingController> detailControllers={};
   double? latitude;
   double? longitude;
-  void resetDetailControllers(Map<String,dynamic>? values){for(final x in detailControllers.values)x.dispose();detailControllers.clear();final d=values?['details'] is Map?Map<String,dynamic>.from(values!['details']):<String,dynamic>{};for(final f in categoryDetailFields[category]??const <String>[]){detailControllers[f]=TextEditingController(text:d[f]?.toString()??'');}}
+  void resetDetailControllers(Map<String,dynamic>? values){for(final x in detailControllers.values)x.dispose();detailControllers.clear();final d=values?['details'] is Map?Map<String,dynamic>.from(values!['details']):<String,dynamic>{};for(final f in categoryDetailFields[category]??const <String>[]){detailControllers[f]=TextEditingController(text:d[f]?.toString()??'');}if(category=='خودرو'){detailControllers['وضعیت بیمه']!.text=d['وضعیت بیمه']?.toString()??'ندارد';detailControllers['بیمه شخص ثالث']!.text=d['بیمه شخص ثالث']?.toString()??'ندارد';detailControllers['بیمه بدنه']!.text=d['بیمه بدنه']?.toString()??'ندارد';}}
   @override void initState(){super.initState();final a=widget.ad;title=TextEditingController(text:a['title']?.toString()??'');desc=TextEditingController(text:a['edescription']?.toString()??'');price=TextEditingController(text:(a['price'] as num?)?.toInt().toString()??'');neighborhood=TextEditingController(text:a['neighborhood']?.toString()??'');vehicleBrand=TextEditingController(text:a['vehicle_brand']?.toString()??'');vehicleModel=TextEditingController(text:a['vehicle_model']?.toString()??'');vehicleYear=TextEditingController(text:a['vehicle_year']?.toString()??'');vehicleMileage=TextEditingController(text:a['vehicle_mileage']?.toString()??'');vehicleColor=TextEditingController(text:a['vehicle_color']?.toString()??'');category=a['category']?.toString()??'سایر';province=a['province']?.toString()??'تهران';city=a['city']?.toString()??(iranProvinceCities['تهران']?.first??'تهران');condition=a['item_condition']?.toString()??'در حد نو';subcategory=a['subcategory']?.toString()??'سایر';vehicleTransmission=a['vehicle_transmission']?.toString()??'دستی';vehicleBodyCondition=a['vehicle_body_condition']?.toString()??'سالم';vehicleFuel=a['vehicle_fuel']?.toString()??'بنزینی';vehicleExchange=a['vehicle_exchange']==true;latitude=(a['latitude'] as num?)?.toDouble();longitude=(a['longitude'] as num?)?.toDouble();resetDetailControllers(a);}
   @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();vehicleBrand.dispose();vehicleModel.dispose();vehicleYear.dispose();vehicleMileage.dispose();vehicleColor.dispose();for(final x in detailControllers.values)x.dispose();super.dispose();}
+  static const vehicleInsuranceFields=<String>{'وضعیت بیمه','بیمه شخص ثالث','مدت اعتبار شخص ثالث','بیمه بدنه','مدت اعتبار بیمه بدنه'};
+  static const insuranceDurations=<String>['۳ ماه','۶ ماه','۹ ماه','۱۲ ماه'];
+  String detailText(String key)=>detailControllers[key]?.text??'';
+  Widget insuranceDropdown(String key,String label,List<String> items,{VoidCallback? onChanged}) {
+    final current=detailText(key);
+    final value=items.contains(current)?current:null;
+    return Padding(
+      padding:const EdgeInsets.only(bottom:10),
+      child:DropdownButtonFormField<String>(
+        value:value,
+        items:items.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
+        onChanged:(v){if(v==null)return;detailControllers[key]!.text=v;onChanged?.call();setState((){});},
+        decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),
+      ),
+    );
+  }
+  Widget vehicleInsuranceSection() {
+    if(category!='خودرو') return const SizedBox.shrink();
+    final status=detailText('وضعیت بیمه');
+    final third=detailText('بیمه شخص ثالث');
+    final body=detailText('بیمه بدنه');
+    return Column(
+      children:[
+        insuranceDropdown('وضعیت بیمه','وضعیت بیمه',const['دارد','ندارد'],onChanged:(){
+          if(detailText('وضعیت بیمه')=='ندارد'){
+            detailControllers['بیمه شخص ثالث']!.text='ندارد';
+            detailControllers['مدت اعتبار شخص ثالث']!.clear();
+            detailControllers['بیمه بدنه']!.text='ندارد';
+            detailControllers['مدت اعتبار بیمه بدنه']!.clear();
+          }
+        }),
+        if(status=='دارد') ...[
+          insuranceDropdown('بیمه شخص ثالث','بیمه شخص ثالث',const['دارد','ندارد'],onChanged:(){
+            if(detailText('بیمه شخص ثالث')=='ندارد') detailControllers['مدت اعتبار شخص ثالث']!.clear();
+          }),
+          if(third=='دارد') insuranceDropdown('مدت اعتبار شخص ثالث','مدت اعتبار شخص ثالث',insuranceDurations),
+          insuranceDropdown('بیمه بدنه','بیمه بدنه',const['دارد','ندارد'],onChanged:(){
+            if(detailText('بیمه بدنه')=='ندارد') detailControllers['مدت اعتبار بیمه بدنه']!.clear();
+          }),
+          if(body=='دارد') insuranceDropdown('مدت اعتبار بیمه بدنه','مدت اعتبار بیمه بدنه',insuranceDurations),
+        ],
+      ],
+    );
+  }
+
   List<String> get subs {
   final list=HomeCategoryData.subsFor(category);
   return list.isEmpty?const ['سایر']:list;
@@ -1599,7 +1644,8 @@ class _EditAdPageState extends State<EditAdPage>{
           const SizedBox(height:12),TextField(controller:neighborhood,decoration:const InputDecoration(labelText:'محله',border:OutlineInputBorder())),          const SizedBox(height:12),OutlinedButton.icon(onPressed:saving?null:() async {final result=await Navigator.push<LatLng>(context,MaterialPageRoute(builder:(_)=>MapPickerPage(initialLatitude:latitude,initialLongitude:longitude)));if(result!=null&&mounted)setState((){latitude=result.latitude;longitude=result.longitude;});},icon:Icon(latitude!=null?Icons.location_on:Icons.map_outlined),label:Text(latitude!=null?'موقعیت روی نقشه انتخاب شد':'انتخاب موقعیت روی نقشه (اختیاری)')),
     if((categoryDetailFields[category]??const <String>[]).isNotEmpty) ...[
       const SizedBox(height:14),const Text('جزئیات آگهی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),
-      ...(categoryDetailFields[category]??const <String>[]).map((f)=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:detailControllers[f],decoration:InputDecoration(labelText:f,border:const OutlineInputBorder())))),
+      if(category=='خودرو') vehicleInsuranceSection(),
+      ...(categoryDetailFields[category]??const <String>[]).where((f)=>category!='خودرو'||!vehicleInsuranceFields.contains(f)).map((f)=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:detailControllers[f],decoration:InputDecoration(labelText:f,border:const OutlineInputBorder())))),
     ],
     const SizedBox(height:18),FilledButton(onPressed:saving?null:save,child:Text(saving?'در حال ذخیره...':'ذخیره تغییرات')),
   ])));
@@ -1660,7 +1706,7 @@ class _AddAdPageState extends State<AddAdPage>{
   final Map<String,TextEditingController> detailControllers={};
   double? latitude;
   double? longitude;
-  void resetDetailControllers(){ for(final x in detailControllers.values)x.dispose(); detailControllers.clear(); for(final f in categoryDetailFields[category]??const <String>[]){ detailControllers[f]=TextEditingController(); } }
+  void resetDetailControllers(){ for(final x in detailControllers.values)x.dispose(); detailControllers.clear(); for(final f in categoryDetailFields[category]??const <String>[]){ detailControllers[f]=TextEditingController(); } if(category=='خودرو'){ detailControllers['وضعیت بیمه']!.text='ندارد'; detailControllers['بیمه شخص ثالث']!.text='ندارد'; detailControllers['بیمه بدنه']!.text='ندارد'; } }
 
   List<String> get subcategories {
     final list=HomeCategoryData.subsFor(category);
@@ -1669,6 +1715,51 @@ class _AddAdPageState extends State<AddAdPage>{
 
   @override void initState(){super.initState(); subcategory=subcategories.first; resetDetailControllers();}
   @override void dispose(){title.dispose();desc.dispose();price.dispose();neighborhood.dispose();vehicleBrand.dispose();vehicleModel.dispose();vehicleYear.dispose();vehicleMileage.dispose();vehicleColor.dispose();for(final x in detailControllers.values)x.dispose();super.dispose();}
+
+  static const vehicleInsuranceFields=<String>{'وضعیت بیمه','بیمه شخص ثالث','مدت اعتبار شخص ثالث','بیمه بدنه','مدت اعتبار بیمه بدنه'};
+  static const insuranceDurations=<String>['۳ ماه','۶ ماه','۹ ماه','۱۲ ماه'];
+  String detailText(String key)=>detailControllers[key]?.text??'';
+  Widget insuranceDropdown(String key,String label,List<String> items,{VoidCallback? onChanged}) {
+    final current=detailText(key);
+    final value=items.contains(current)?current:null;
+    return Padding(
+      padding:const EdgeInsets.only(bottom:10),
+      child:DropdownButtonFormField<String>(
+        value:value,
+        items:items.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
+        onChanged:(v){if(v==null)return;detailControllers[key]!.text=v;onChanged?.call();setState((){});},
+        decoration:InputDecoration(labelText:label,border:const OutlineInputBorder()),
+      ),
+    );
+  }
+  Widget vehicleInsuranceSection() {
+    if(category!='خودرو') return const SizedBox.shrink();
+    final status=detailText('وضعیت بیمه');
+    final third=detailText('بیمه شخص ثالث');
+    final body=detailText('بیمه بدنه');
+    return Column(
+      children:[
+        insuranceDropdown('وضعیت بیمه','وضعیت بیمه',const['دارد','ندارد'],onChanged:(){
+          if(detailText('وضعیت بیمه')=='ندارد'){
+            detailControllers['بیمه شخص ثالث']!.text='ندارد';
+            detailControllers['مدت اعتبار شخص ثالث']!.clear();
+            detailControllers['بیمه بدنه']!.text='ندارد';
+            detailControllers['مدت اعتبار بیمه بدنه']!.clear();
+          }
+        }),
+        if(status=='دارد') ...[
+          insuranceDropdown('بیمه شخص ثالث','بیمه شخص ثالث',const['دارد','ندارد'],onChanged:(){
+            if(detailText('بیمه شخص ثالث')=='ندارد') detailControllers['مدت اعتبار شخص ثالث']!.clear();
+          }),
+          if(third=='دارد') insuranceDropdown('مدت اعتبار شخص ثالث','مدت اعتبار شخص ثالث',insuranceDurations),
+          insuranceDropdown('بیمه بدنه','بیمه بدنه',const['دارد','ندارد'],onChanged:(){
+            if(detailText('بیمه بدنه')=='ندارد') detailControllers['مدت اعتبار بیمه بدنه']!.clear();
+          }),
+          if(body=='دارد') insuranceDropdown('مدت اعتبار بیمه بدنه','مدت اعتبار بیمه بدنه',insuranceDurations),
+        ],
+      ],
+    );
+  }
 
   Future<void> pickImages() async {
     try{
@@ -1827,7 +1918,8 @@ class _AddAdPageState extends State<AddAdPage>{
 
           if((categoryDetailFields[category]??const <String>[]).isNotEmpty) ...[
             const SizedBox(height:14),const Text('جزئیات آگهی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),
-            ...(categoryDetailFields[category]??const <String>[]).map((f)=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:detailControllers[f],decoration:InputDecoration(labelText:f,border:const OutlineInputBorder())))),
+            if(category=='خودرو') vehicleInsuranceSection(),
+            ...(categoryDetailFields[category]??const <String>[]).where((f)=>category!='خودرو'||!vehicleInsuranceFields.contains(f)).map((f)=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:detailControllers[f],decoration:InputDecoration(labelText:f,border:const OutlineInputBorder())))),
           ],
           const SizedBox(height:14),
           OutlinedButton.icon(onPressed:publishing?null:pickImages,icon:const Icon(Icons.add_a_photo_outlined),label:Text('افزودن عکس '+selectedImages.length.toString()+'/حداکثر')),
