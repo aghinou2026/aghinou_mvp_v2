@@ -515,7 +515,30 @@ class _HomePageState extends State<HomePage> {
           DropdownMenuItem(value:'expensive',child:Text('گران‌ترین')),
         ],onChanged:(v)=>setSheet(() { sortMode=v??'newest'; }),decoration:const InputDecoration(labelText:'مرتب‌سازی',border:OutlineInputBorder())),
         const SizedBox(height:14),
-        FilledButton(onPressed:(){setState(() { minPrice=int.tryParse(min.text); maxPrice=int.tryParse(max.text); });Navigator.pop(ctx);},child:const Text('اعمال فیلتر')),
+        Row(children:[
+          Expanded(child:OutlinedButton.icon(
+            onPressed:(){
+              setState((){
+                selectedProvince=null;
+                selectedCity=null;
+                minPrice=null;
+                maxPrice=null;
+                sortMode='newest';
+              });
+              Navigator.pop(ctx);
+            },
+            icon:const Icon(Icons.clear_all),
+            label:const Text('پاک کردن فیلترها'),
+          )),
+          const SizedBox(width:10),
+          Expanded(child:FilledButton(
+            onPressed:(){
+              setState(() { minPrice=int.tryParse(min.text); maxPrice=int.tryParse(max.text); });
+              Navigator.pop(ctx);
+            },
+            child:const Text('اعمال فیلتر'),
+          )),
+        ]),
       ])))));
   }
 
