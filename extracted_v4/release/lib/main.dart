@@ -27,6 +27,8 @@ Future<void> main() async {
 final supabase = Supabase.instance.client;
 
 const String currentTermsVersion = '1.0';
+const int currentAppVersionCode = 8;
+const String currentAppVersionName = '0.4.1';
 const String termsTitle = 'قوانین و مقررات آگهینو';
 const List<String> aghinouTerms = ['آگهینو بستری برای انتشار آگهی و ارتباط میان کاربران است و طرف معامله میان خریدار و فروشنده نیست.','مسئولیت صحت اطلاعات، قیمت، تصاویر و توضیحات هر آگهی بر عهده آگهی‌دهنده است.','انتشار کالا، خدمات یا فعالیت‌های غیرقانونی یا فاقد مجوز لازم ممنوع است.','کلاهبرداری، فریب، جعل هویت، کالای سرقتی یا تقلبی و اطلاعات گمراه‌کننده ممنوع است.','محتوای توهین‌آمیز، تهدیدآمیز، خشونت‌آمیز یا ناقض حقوق دیگران ممنوع است.','انتشار محتوایی که حقوق مالکیت فکری یا حقوق اشخاص دیگر را نقض کند ممنوع است.','آگهی‌دهنده باید مشخصات کالا یا خدمت را صادقانه، دقیق و روشن اعلام کند.','کاربران نباید رمز، کد تأیید بانکی یا اطلاعات حساس خود را در اختیار افراد ناشناس قرار دهند.','انجام معامله، پرداخت وجه، بررسی کالا و هویت طرف مقابل بر عهده خود کاربران است و آگهینو تضمین‌کننده معامله میان کاربران نیست.','آگهینو می‌تواند آگهی‌های مغایر با قوانین یا مقررات داخلی برنامه را حذف یا از انتشار آنها جلوگیری کند.','کاربران می‌توانند آگهی‌های مشکوک یا مغایر با قوانین را گزارش کنند.','هر کاربر مسئول فعالیت‌هایی است که با حساب خودش انجام می‌دهد و نباید حساب خود را در اختیار دیگران قرار دهد.','قوانین ممکن است به‌روزرسانی شوند و نسخه جدید آنها از طریق برنامه منتشر خواهد شد.'];
 
@@ -1137,6 +1139,70 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
     try{await supabase.from('saved_searches').insert({'user_id':uid,'query':searchQuery.trim(),'filters':{'category':selectedCategory,'subcategory':selectedSubcategory,'province':selectedProvince,'city':selectedCity,'min_price':minPrice,'max_price':maxPrice,'sort':sortMode,'advanced':Map<String,String>.from(advancedFilters),'listing_status':listingStatusFilter,'seller_type':sellerTypeFilter,'published_within':publishedWithin,'only_with_photos':onlyWithPhotos}});if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('جست‌وجو ذخیره شد.')));}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره جست‌وجو انجام نشد. لطفاً دوباره تلاش کنید.')));}
   }
 
+  Future<void> checkForUpdates({bool showLatestMessage = true}) async {
+    try {
+      final row = await supabase.from('app_update_settings').select('latest_version_code,latest_version_name,minimum_version_code,enabled,bazaar_url,myket_url,play_url,message').eq('id',true).maybeSingle();
+      if (row == null || row['enabled'] != true) {
+        if (showLatestMessage && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('بررسی به‌روزرسانی در دسترس نیست.')));
+        return;
+      }
+      final latest = (row['latest_version_code'] as num?)?.toInt() ?? currentAppVersionCode;
+      final minimum = (row['minimum_version_code'] as num?)?.toInt() ?? 1;
+      if (latest <= currentAppVersionCode) {
+        if (showLatestMessage && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('آگهینو به‌روز است.')));
+        return;
+      }
+      if (!mounted) return;
+      final latestName = row['latest_version_name']?.toString() ?? 'نسخه جدید';
+      final message = row['message']?.toString() ?? 'نسخه جدید آگهینو آماده است.';
+      final mandatory = currentAppVersionCode < minimum;
+      await showModalBottomSheet(
+        context: context,
+        isDismissible: !mandatory,
+        enableDrag: !mandatory,
+        builder: (_) => Directionality(
+          textDirection: TextDirection.rtl,
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(mandatory ? 'به‌روزرسانی لازم است' : 'نسخه جدید آگهینو', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('نسخه نصب‌شده: $currentAppVersionName\nنسخه جدید: $latestName\n$message'),
+                  const SizedBox(height: 14),
+                  if ((row['bazaar_url']?.toString() ?? '').isNotEmpty)
+                    FilledButton.icon(
+                      onPressed: () => launchUrl(Uri.parse(row['bazaar_url'].toString()), mode: LaunchMode.externalApplication),
+                      icon: const Icon(Icons.storefront_outlined),
+                      label: const Text('به‌روزرسانی از بازار'),
+                    ),
+                  if ((row['myket_url']?.toString() ?? '').isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () => launchUrl(Uri.parse(row['myket_url'].toString()), mode: LaunchMode.externalApplication),
+                      icon: const Icon(Icons.apps_outlined),
+                      label: const Text('به‌روزرسانی از مایکت'),
+                    ),
+                  if ((row['play_url']?.toString() ?? '').isNotEmpty)
+                    OutlinedButton.icon(
+                      onPressed: () => launchUrl(Uri.parse(row['play_url'].toString()), mode: LaunchMode.externalApplication),
+                      icon: const Icon(Icons.play_arrow_outlined),
+                      label: const Text('به‌روزرسانی از Google Play'),
+                    ),
+                  if (!mandatory) TextButton(onPressed: () => Navigator.pop(context), child: const Text('بعداً')),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    } catch (_) {
+      if (showLatestMessage && mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('بررسی به‌روزرسانی انجام نشد. لطفاً دوباره تلاش کنید.')));
+    }
+  }
+
   Future<void> buySubscription() async {
     if(!mounted)return;
     await Navigator.push(context,MaterialPageRoute(builder:(_)=>const SubscriptionPage()));
@@ -1211,6 +1277,14 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
             title: const Text('آگهی‌های من'),
             subtitle: const Text('ویرایش و مدیریت آگهی‌های شما'),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MyAdsPage())),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.system_update_outlined),
+            title: const Text('به‌روزرسانی آگهینو'),
+            subtitle: const Text('بررسی نسخه جدید و انتخاب بازار، مایکت یا Google Play'),
+            onTap: () => checkForUpdates(),
           ),
         ),
         Card(
