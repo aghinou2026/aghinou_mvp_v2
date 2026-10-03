@@ -450,6 +450,21 @@ class _HomePageState extends State<HomePage> {
         .trim();
   }
 
+  String relativeTime(dynamic raw) {
+    final d = DateTime.tryParse(raw?.toString() ?? '');
+    if (d == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(d);
+    if (diff.isNegative) return 'همین حالا';
+    if (diff.inMinutes < 1) return 'همین حالا';
+    if (diff.inMinutes < 60) return '\${diff.inMinutes} دقیقه پیش';
+    if (diff.inHours < 24) return '\${diff.inHours} ساعت پیش';
+    if (diff.inDays < 7) return '\${diff.inDays} روز پیش';
+    if (diff.inDays < 30) return '\${(diff.inDays / 7).floor()} هفته پیش';
+    if (diff.inDays < 365) return '\${(diff.inDays / 30).floor()} ماه پیش';
+    return '\${(diff.inDays / 365).floor()} سال پیش';
+  }
+
   List<Map<String, dynamic>> get filteredAds {
     final q = normalizeFa(searchQuery);
     final result = ads.where((ad) {
@@ -735,7 +750,7 @@ class _HomePageState extends State<HomePage> {
             'جدیدترین آگهی‌ها',
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           if (filteredAds.isEmpty)
             const Card(
               child: Padding(
@@ -744,54 +759,126 @@ class _HomePageState extends State<HomePage> {
               ),
             )
           else
-            ...filteredAds.map((ad) => Card(
-                  child: ListTile(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AdDetailPage(ad: ad))),
-                    leading: Builder(
-                      builder: (context) {
-                        final images = ad['ad_images'];
-                        final firstUrl = images is List && images.isNotEmpty
-                            ? images.first['image_url']?.toString()
-                            : null;
-                        if (firstUrl == null || firstUrl.isEmpty) {
-                          return Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(12),
+            ...filteredAds.map((ad) {
+              final images = ad['ad_images'];
+              final firstUrl = images is List && images.isNotEmpty
+                  ? images.first['image_url']?.toString()
+                  : null;
+              final title = ad['title']?.toString() ?? 'بدون عنوان';
+              final category = ad['category']?.toString() ?? '';
+              final subcategory = ad['subcategory']?.toString() ?? '';
+              final city = ad['city']?.toString() ?? '';
+              final price = ad['price'] == null || ad['price'].toString().isEmpty
+                  ? 'توافقی'
+                  : '\${ad['price']} تومان';
+              final time = relativeTime(ad['created_at']);
+              final typeLine = [category, subcategory].where((x) => x.trim().isNotEmpty).join(' • ');
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Material(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  clipBehavior: Clip.antiAlias,
+                  elevation: 2,
+                  child: InkWell(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => AdDetailPage(ad: ad)),
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: 0.92,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (firstUrl != null && firstUrl.isNotEmpty)
+                            Image.network(
+                              firstUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: const Color(0xFFEFF3F4),
+                                child: const Center(
+                                  child: Icon(Icons.image_outlined, size: 64, color: Color(0xFF8A9A9D)),
+                                ),
+                              ),
+                            )
+                          else
+                            Container(
+                              color: const Color(0xFFEFF3F4),
+                              child: const Center(
+                                child: Icon(Icons.image_outlined, size: 64, color: Color(0xFF8A9A9D)),
+                              ),
                             ),
-                            child: const Icon(Icons.image_outlined),
-                          );
-                        }
-                        return ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            firstUrl,
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 60,
-                              height: 60,
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.broken_image_outlined),
+                          Positioned.fill(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.transparent,
+                                    Colors.black.withOpacity(0.08),
+                                    Colors.black.withOpacity(0.62),
+                                  ],
+                                  stops: const [0.0, 0.48, 0.70, 1.0],
+                                ),
+                              ),
                             ),
                           ),
-                        );
-                      },
+                          Positioned(
+                            left: 12,
+                            top: 12,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.22),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 16),
+                            ),
+                          ),
+                          Positioned(
+                            right: 14,
+                            left: 14,
+                            bottom: 14,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (typeLine.isNotEmpty)
+                                  Text(
+                                    typeLine,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w600),
+                                  ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  title,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.white, fontSize: 21, height: 1.25, fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(height: 7),
+                                Wrap(
+                                  spacing: 10,
+                                  runSpacing: 4,
+                                  children: [
+                                    Text(price, style: const TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w800)),
+                                    if (city.isNotEmpty) Text(city, style: const TextStyle(color: Colors.white, fontSize: 12.5)),
+                                    if (time.isNotEmpty) Text(time, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    title: Text(
-                      '${ad['title'] ?? 'بدون عنوان'}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      '${ad['price'] ?? 'توافقی'} تومان\n'
-                      '${ad['city'] ?? ''}',
-                    ),
-                    isThreeLine: true,
                   ),
-                )),
+                ),
+              );
+            }),
         ],
       ),
     );
