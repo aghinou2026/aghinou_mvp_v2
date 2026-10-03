@@ -956,7 +956,10 @@ String relativeTime(dynamic raw) {
                   ? 'توافقی'
                   : '${ad['price']} تومان';
               final time = relativeTime(ad['created_at']);
+              final exactTime = ad['created_at'] == null ? '' : '${persianDate(DateTime.tryParse(ad['created_at'].toString())?.toLocal() ?? DateTime.now())} • ${DateTime.tryParse(ad['created_at'].toString())?.toLocal().toString().substring(11,16) ?? ''}';
               final imageCount = images is List ? images.length : 0;
+              final listingStatus = ad['listing_status']?.toString() ?? 'available';
+              final statusLabel = listingStatus == 'sold' ? 'فروخته شد' : listingStatus == 'reserved' ? 'رزرو شده' : 'موجود';
               final typeLine = [category, subcategory].where((x) => x.trim().isNotEmpty).join(' • ');
 
               return Padding(
@@ -1885,7 +1888,7 @@ class _AdminPageState extends State<AdminPage>{
       rrRows=List<Map<String,dynamic>>.from(x);
     });
     await safe('آگهی‌ها',() async {
-      final x=await supabase.from('ads').select('idd,title,price,city,category,seller_id,publish_status,created_at').order('created_at',ascending:false).limit(100);
+      final x=await supabase.from('ads').select('idd,title,price,city,category,seller_id,publish_status,listing_status,created_at').order('created_at',ascending:false).limit(100);
       aaRows=List<Map<String,dynamic>>.from(x);
     });
     await safe('کاربران',() async {
@@ -1922,6 +1925,16 @@ class _AdminPageState extends State<AdminPage>{
   Future<void> moderateAd(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('moderate_ad',params:{'p_ad_id':id,'p_status':status,'p_reason':status=='rejected'?'آگهی مطابق قوانین تأیید نشد.':null});if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(status=='published'?'آگهی تأیید شد.':status=='paused'?'آگهی متوقف شد.':'آگهی رد شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('تغییر وضعیت آگهی انجام نشد. لطفاً دوباره تلاش کنید.')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> setReportStatus(String id,String status) async {if(working)return;setState(()=>working=true);try{await supabase.rpc('admin_set_report_status',params:{'p_report_id':id,'p_status':status});if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('وضعیت گزارش به‌روزرسانی شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('عملیات گزارش انجام نشد. لطفاً دوباره تلاش کنید.')));}finally{if(mounted)setState(()=>working=false);}}
   Future<void> deleteAd(String id) async {if(working)return;setState(()=>working=true);try{final deleted=await supabase.from('ads').delete().eq('idd',id).select('idd');if(deleted.isEmpty)throw Exception('آگهی حذف نشد یا دسترسی کافی وجود ندارد.');if(mounted){ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی حذف شد.')));await load();}}catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی انجام نشد. لطفاً دوباره تلاش کنید.')));}finally{if(mounted)setState(()=>working=false);}}
+  Future<void> setUserBlocked(String id, bool blocked) async {
+    if(working)return;
+    setState(()=>working=true);
+    try{
+      await supabase.rpc('admin_set_user_blocked',params:{'p_user_id':id,'p_blocked':blocked});
+      if(mounted){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(blocked?'کاربر مسدود شد و آگهی‌های منتشرشده او متوقف شدند.':'مسدودی کاربر برداشته شد.')));await load();}
+    }catch(e){
+      if(mounted){final raw=e.toString();String msg='تغییر وضعیت کاربر انجام نشد.';if(raw.contains('CANNOT_BLOCK_SELF'))msg='حساب مدیر فعلی قابل مسدود کردن نیست.';else if(raw.contains('CANNOT_BLOCK_ADMIN'))msg='حساب مدیر دیگری قابل مسدود کردن نیست.';else if(raw.contains('USER_NOT_FOUND'))msg='کاربر پیدا نشد.';ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(msg)));}
+    }finally{if(mounted)setState(()=>working=false);}
+  }
   Future<void> deleteUser(String id) async {
     if(working)return;
     final ok=await showDialog<bool>(
@@ -1961,7 +1974,7 @@ class _AdminPageState extends State<AdminPage>{
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),body:ListView(padding:const EdgeInsets.all(12),children:[
       const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),Row(children:[stat('کاربران',stats?['users'],Icons.people),stat('آگهی‌ها',stats?['ads'],Icons.list_alt)]),Row(children:[stat('در انتظار پرداخت',stats?['pending_payments'],Icons.hourglass_top),stat('پرداخت موفق',stats?['paid_payments'],Icons.payments)]),Row(children:[stat('درآمد',stats?['revenue'],Icons.account_balance_wallet),const Spacer()]),
       ExpansionTile(title:const Text('تنظیمات اشتراک و کارت‌به‌کارت'),children:[Padding(padding:const EdgeInsets.all(12),child:Column(children:[field(price,'قیمت اشتراک',type:TextInputType.number),field(days,'مدت (روز)',type:TextInputType.number),field(limit,'سهمیه آگهی',type:TextInputType.number),field(images,'حداکثر عکس',type:TextInputType.number),field(card,'شماره کارت مقصد'),field(holder,'صاحب کارت'),field(bank,'بانک'),field(instructions,'توضیحات'),SwitchListTile(value:enabled,onChanged:(v)=>setState(()=>enabled=v),title:const Text('فروش اشتراک فعال باشد')),FilledButton(onPressed:working?null:saveSettings,child:const Text('ذخیره'))]))]),
-      ExpansionTile(title:Text('مدیریت کاربران (${stats?['users'] ?? users.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text((((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim().isNotEmpty)?((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim():(u['name']?.toString()??'کاربر')),subtitle:Text(u['cphone']?.toString()??'-'),trailing:IconButton(tooltip:'حذف کامل کاربر',onPressed:working?null:()=>deleteUser(u['iidd'].toString()),icon:const Icon(Icons.delete_forever_outlined))))] ),
+      ExpansionTile(title:Text('مدیریت کاربران (${stats?['users'] ?? users.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text((((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim().isNotEmpty)?((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim():(u['name']?.toString()??'کاربر')),subtitle:Text(u['cphone']?.toString()??'-'),trailing:Wrap(children:[IconButton(tooltip:(u['is_blocked']==true?'رفع مسدودی':'مسدود کردن'),onPressed:working?null:()=>setUserBlocked(u['iidd'].toString(),u['is_blocked']==true?false:true),icon:Icon(u['is_blocked']==true?Icons.lock_open_outlined:Icons.block_outlined)),IconButton(tooltip:'حذف کامل کاربر',onPressed:working?null:()=>deleteUser(u['iidd'].toString()),icon:const Icon(Icons.delete_forever_outlined))])))] ),
       ExpansionTile(title:Text('مدیریت آگهی‌ها (${fa.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:adSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'عنوان یا شهر',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fa.take(50).map((ad)=>ListTile(title:Text(ad['title']?.toString()??'بدون عنوان'),subtitle:Text('${ad['city']??''} • ${ad['category']??''} • ${ad['price']??'توافقی'} تومان'),trailing:Wrap(children:[IconButton(tooltip:'تأیید',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'published'),icon:const Icon(Icons.check_circle_outline)),IconButton(tooltip:'رد',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'rejected'),icon:const Icon(Icons.cancel_outlined)),IconButton(tooltip:'توقف',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'paused'),icon:const Icon(Icons.pause_circle_outline)),IconButton(icon:const Icon(Icons.delete_outline),onPressed:working?null:()=>deleteAd(ad['idd'].toString()))])))]),
       ExpansionTile(
         title:Text('پرداخت‌های در انتظار (${payments.length})'),
@@ -2297,7 +2310,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
     }catch(_){}
 
     try{
-      final r=await supabase.from('ads').select('idd,title,price,city,category,subcategory,publish_status,details,latitude,longitude,ad_images(image_url,sort_order,is_primary)').eq('category',widget.ad['category']?.toString()??'').eq('publish_status','published').neq('idd',id).limit(6);
+      final r=await supabase.from('ads').select('idd,title,price,city,category,subcategory,publish_status,listing_status,details,latitude,longitude,ad_images(image_url,sort_order,is_primary)').eq('category',widget.ad['category']?.toString()??'').eq('publish_status','published').neq('idd',id).limit(6);
       sims=List<Map<String,dynamic>>.from(r);
     }catch(_){}
 
@@ -2364,7 +2377,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
       if(saved) await supabase.from('favorites').delete().eq('user_id',u).eq('ad_id',id);
       else await supabase.from('favorites').insert({'user_id':u,'ad_id':id});
       if(mounted)setState(()=>saved=!saved);
-    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ذخیره آگهی: '+e.toString())));}
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ذخیره آگهی انجام نشد. لطفاً دوباره تلاش کنید.')));}
   }
 
   Future<void> report() async {
@@ -2378,7 +2391,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
     try{
       await supabase.from('reports').insert({'reporter_id':u,'ad_id':id,'reason':reason});
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('گزارش شما ثبت شد.')));
-    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('گزارش: '+e.toString())));}
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ثبت گزارش انجام نشد. لطفاً دوباره تلاش کنید.')));}
   }
 
   Future<void> shareAd() async {
@@ -2394,7 +2407,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
       final ex=await supabase.from('conversations').select('id').eq('ad_id',adId).eq('buyer_id',u).eq('seller_id',sellerId).maybeSingle();
       final cid=ex?['id']?.toString()??(await supabase.from('conversations').insert({'buyer_id':u,'seller_id':sellerId,'ad_id':adId,'title':widget.ad['title']?.toString()??'گفت‌وگو'}).select('id').single())['id'].toString();
       if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:cid,title:widget.ad['title']?.toString()??'گفت‌وگو')));
-    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('شروع گفت‌وگو: '+e.toString())));}
+    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شروع گفت‌وگو انجام نشد. لطفاً دوباره تلاش کنید.')));}
   }
 
   Future<void> openAdMap() async {
@@ -2490,7 +2503,8 @@ class _AdDetailPageState extends State<AdDetailPage>{
                     _specRow('قیمت', price == 'توافقی' ? 'توافقی' : '$price تومان', Icons.payments_outlined, emphasize: true),
                     _specRow('دسته‌بندی', cat, Icons.category_outlined),
                     _specRow('زیرمجموعه', widget.ad['subcategory']?.toString() ?? '', Icons.account_tree_outlined),
-                    _specRow('وضعیت', condition, Icons.verified_outlined),
+                    _specRow('وضعیت کالا', condition, Icons.verified_outlined),
+                    _specRow('وضعیت آگهی', listingStatusLabel, listingStatus == 'sold' ? Icons.check_circle : listingStatus == 'reserved' ? Icons.event_available : Icons.inventory_2_outlined),
                     if (cat == 'خودرو') ...[
                       _specRow('برند', widget.ad['vehicle_brand']?.toString() ?? '', Icons.directions_car_outlined),
                       _specRow('مدل خودرو', widget.ad['vehicle_model']?.toString() ?? '', Icons.drive_file_rename_outline),
@@ -2584,7 +2598,7 @@ class _SellerProfilePageState extends State<SellerProfilePage>{
   Future<void> load() async {
     try{
       final p=await supabase.from('profiles').select('iidd,name,cphone,city,created_at,avatar_url,profile_views').eq('iidd',widget.sellerId).maybeSingle();
-      final a=await supabase.from('ads').select('idd,title,price,city,category,view_count,publish_status,details').eq('seller_id',widget.sellerId).eq('publish_status','published').limit(50);
+      final a=await supabase.from('ads').select('idd,title,price,city,category,view_count,publish_status,listing_status,details').eq('seller_id',widget.sellerId).eq('publish_status','published').limit(50);
       final pv=(p?['profile_views'] as int?)??0;
       if(mounted)setState((){profile=p;ads=List<Map<String,dynamic>>.from(a);views=pv;loading=false;});
       try{await supabase.rpc('increment_profile_view',params:{'p_seller_id':widget.sellerId});}catch(_){ }
