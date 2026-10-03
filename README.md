@@ -7,6 +7,7 @@
 - Supabase + ZarinPal files: موجود
 - Android host structure: اضافه شد
 - Flutter SDK/Gradle build: باید روی محیط دارای Flutter SDK اجرا و تست شود
+- آخرین بررسی بیلد: پس از تغییرات ثبت‌نام و قوانین در حال انجام است.
 
 ## Supabase
 قبل از انتشار عمومی، RLS و Secretهای Edge Function را بررسی کنید.
