@@ -1716,7 +1716,7 @@ class _AdminPageState extends State<AdminPage>{
     final fu=users.where((x){final full=((x['first_name']??'').toString()+' '+(x['last_name']??'').toString()).trim();return uq.isEmpty||full.toLowerCase().contains(uq)||x['name'].toString().toLowerCase().contains(uq)||x['cphone'].toString().contains(uq);}).toList();
     final fa=ads.where((x)=>aq.isEmpty||x['title'].toString().toLowerCase().contains(aq)||x['city'].toString().toLowerCase().contains(aq)).toList();
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),body:ListView(padding:const EdgeInsets.all(12),children:[
-      const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),Row(children:[stat('کاربران',stats?['users'],Icons.people),stat('آگهی‌ها',stats?['ads'],Icons.list_alt)]),Row(children:[stat('پرداخت موفق',stats?['paid_payments'],Icons.payments),stat('درآمد',stats?['revenue'],Icons.account_balance_wallet)]),
+      const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),Row(children:[stat('کاربران',stats?['users'],Icons.people),stat('آگهی‌ها',stats?['ads'],Icons.list_alt)]),Row(children:[stat('در انتظار پرداخت',stats?['pending_payments'],Icons.hourglass_top),stat('پرداخت موفق',stats?['paid_payments'],Icons.payments)]),Row(children:[stat('درآمد',stats?['revenue'],Icons.account_balance_wallet),const Spacer()]),
       ExpansionTile(title:const Text('تنظیمات اشتراک و کارت‌به‌کارت'),children:[Padding(padding:const EdgeInsets.all(12),child:Column(children:[field(price,'قیمت اشتراک',type:TextInputType.number),field(days,'مدت (روز)',type:TextInputType.number),field(limit,'سهمیه آگهی',type:TextInputType.number),field(images,'حداکثر عکس',type:TextInputType.number),field(card,'شماره کارت مقصد'),field(holder,'صاحب کارت'),field(bank,'بانک'),field(instructions,'توضیحات'),SwitchListTile(value:enabled,onChanged:(v)=>setState(()=>enabled=v),title:const Text('فروش اشتراک فعال باشد')),FilledButton(onPressed:working?null:saveSettings,child:const Text('ذخیره'))]))]),
       ExpansionTile(title:Text('مدیریت کاربران (${stats?['users'] ?? users.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:userSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'نام یا شماره',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fu.take(50).map((u)=>ListTile(leading:const CircleAvatar(child:Icon(Icons.person)),title:Text((((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim().isNotEmpty)?((u['first_name']??'').toString()+' '+(u['last_name']??'').toString()).trim():(u['name']?.toString()??'کاربر')),subtitle:Text(u['cphone']?.toString()??'-')))]),
       ExpansionTile(title:Text('مدیریت آگهی‌ها (${fa.length})'),children:[Padding(padding:const EdgeInsets.all(12),child:TextField(controller:adSearch,onChanged:(_)=>setState((){}),decoration:const InputDecoration(labelText:'عنوان یا شهر',prefixIcon:Icon(Icons.search),border:OutlineInputBorder()))),...fa.take(50).map((ad)=>ListTile(title:Text(ad['title']?.toString()??'بدون عنوان'),subtitle:Text('${ad['city']??''} • ${ad['category']??''} • ${ad['price']??'توافقی'} تومان'),trailing:Wrap(children:[IconButton(tooltip:'تأیید',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'published'),icon:const Icon(Icons.check_circle_outline)),IconButton(tooltip:'رد',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'rejected'),icon:const Icon(Icons.cancel_outlined)),IconButton(tooltip:'توقف',onPressed:working?null:()=>moderateAd(ad['idd'].toString(),'paused'),icon:const Icon(Icons.pause_circle_outline)),IconButton(icon:const Icon(Icons.delete_outline),onPressed:working?null:()=>deleteAd(ad['idd'].toString()))])))]),
@@ -2086,6 +2086,34 @@ class _AdDetailPageState extends State<AdDetailPage>{
     )));
   }
 
+  Future<void> deleteOwnAd() async {
+    final u=supabase.auth.currentUser?.id;
+    final id=widget.ad['idd']?.toString();
+    final sellerId=widget.ad['seller_id']?.toString();
+    if(u==null||id==null||sellerId!=u)return;
+    final ok=await showDialog<bool>(
+      context:context,
+      builder:(_)=>AlertDialog(
+        title:const Text('حذف آگهی'),
+        content:const Text('آیا مطمئن هستید که می‌خواهید این آگهی و عکس‌های آن حذف شود؟'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('انصراف')),
+          FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('حذف')),
+        ],
+      ),
+    );
+    if(ok!=true)return;
+    try{
+      await supabase.from('ad_images').delete().eq('ad_id',id);
+      await supabase.from('ads').delete().eq('idd',id).eq('seller_id',u);
+      if(!mounted)return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی و عکس‌های آن حذف شد.')));
+      Navigator.pop(context,true);
+    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('حذف آگهی انجام نشد: $e')));
+    }
+  }
+
   Future<void> toggle() async {
     final u=supabase.auth.currentUser?.id,id=widget.ad['idd']?.toString();
     if(u==null||id==null)return;
@@ -2175,6 +2203,8 @@ class _AdDetailPageState extends State<AdDetailPage>{
     final neighborhood=widget.ad['neighborhood']?.toString()??'';
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
       appBar:AppBar(title:const Text('جزئیات آگهی'),actions:[
+        if(widget.ad['seller_id']?.toString()==supabase.auth.currentUser?.id)
+          IconButton(onPressed:deleteOwnAd,tooltip:'حذف آگهی',icon:const Icon(Icons.delete_outline)),
         IconButton(onPressed:shareAd,icon:const Icon(Icons.share_outlined)),
         IconButton(onPressed:toggle,icon:Icon(saved?Icons.favorite:Icons.favorite_border)),
       ]),
