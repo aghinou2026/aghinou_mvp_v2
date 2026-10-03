@@ -386,6 +386,50 @@ const Map<String,Map<String,List<String>>> categoryFilterOptions = {
 'حیوانات':{'جنسیت':['نر','ماده'],'وضعیت سلامت':['سالم','نیازمند درمان'],'واکسیناسیون':['کامل','ناقص','ندارد'],'شناسنامه':['دارد','ندارد'],'عقیم شده':['دارد','ندارد'],'نوع نگهداری':['خانگی','پرورشی']},
 'سایر':{'وضعیت':['نو','در حد نو','کارکرده'],'گارانتی':['دارد','ندارد'],'نو یا کارکرده':['نو','کارکرده']},
 };
+const Map<String,List<String>> categoryBrandOptions = {
+'خودرو':['سایپا','ایران خودرو','بهمن موتور','کرمان موتور','مدیران خودرو','فونیکس','آرین موتور','ماموت خودرو','نیسان','تویوتا','لکسوس','هوندا','مزدا','هیوندای','کیا','بنز','بی‌ام‌و','آئودی','فولکس‌واگن','پورشه','رنو','پژو','سیتروئن','ولوو','فورد','شورولت','جک','چری','ام‌وی‌ام','ام‌جی','لیفان','جیلی','هاوال','فیدلیتی','دیگنیتی','لاماری','سایر'],
+'موبایل و تبلت':['سامسونگ','اپل','شیائومی','هواوی','آنر','نوکیا','وان‌پلاس','سونی','گوگل','موتورولا','ایسوس','لنوو','مایکروسافت','سایر'],
+'لوازم دیجیتال':['اپل','سامسونگ','لنوو','ایسوس','اچ‌پی','دل','ایسر','ام‌اس‌آی','مایکروسافت','سونی','ال‌جی','شیائومی','سایر'],
+'لوازم خانگی':['سامسونگ','ال‌جی','اسنوا','دوو','پاکشوما','امرسان','جی‌پلاس','ایکس‌ویژن','بوش','بکو','فیلیپس','پاناسونیک','سایر'],
+'مبلمان و دکوراسیون':['ایکیا','چوبینه','بالسا','تولیکا','سایر'],
+'پوشاک و کیف و کفش':['نایک','آدیداس','پوما','زارا','اچ‌اند‌ام','گوچی','دیزل','لیوایز','ریبوک','سایر'],
+'وسایل نقلیه':['جاینت','تری‌ک','اسکات','مرکوری','هوندا','یاماها','کاوازاکی','وسپا','سایر'],
+'ابزار و تجهیزات':['بوش','ماکیتا','دیوالت','میلواکی','هیلتی','رونیکس','توسن','کنزاکس','سایر'],
+'سرگرمی و ورزش':['نایک','آدیداس','پوما','دکاتلون','ویلسون','هد','یونکس','سایر'],
+'لوازم شخصی':['کاسیو','سیتیزن','سیکو','رولکس','امگا','اپل','سامسونگ','شیائومی','سایر'],
+'سایر':['سایر'],
+};
+const Map<String,Map<String,List<String>>> brandModelOptions = {
+'خودرو':{
+'سایپا':['پراید','تیبا','تیبا ۲','ساینا','ساینا S','شاهین','شاهین پلاس','کوییک','کوییک S','کوییک R','اطلس','آریو','چانگان CS35','وانت ۱۵۱','زوتی'],
+'ایران خودرو':['پژو ۲۰۶','پژو ۲۰۷','پژو پارس','دنا','دنا پلاس','سمند','سورن','رانا','تارا','ری‌را','هایما S5','هایما S7','پژو ۴۰۵','آریسان','وانت آریسان'],
+'بهمن موتور':['فیدلیتی','دیگنیتی','رسپکت','مزدا ۳','مزدا ۲','کاپرا','اینرودز','هاوال H2','هاوال H6'],
+'کرمان موتور':['جک J4','جک S3','جک S5','KMC J7','KMC K7','KMC T8','KMC X5'],
+'مدیران خودرو':['ام‌وی‌ام ۱۱۰','ام‌وی‌ام ۳۱۵','ام‌وی‌ام X22','ام‌وی‌ام X33','ام‌وی‌ام X55','فونیکس FX','فونیکس تیگو ۷','فونیکس تیگو ۸','آریزو ۵','آریزو ۶'],
+'نیسان':['جوک','قشقایی','ایکس‌تریل','ماکسیما','پاترول','مورانو','وانت نیسان'],
+'تویوتا':['کرولا','کمری','راوفور','پرادو','لندکروزر','یاریس','هایلوکس','CH-R'],
+'هیوندای':['اکسنت','النترا','سوناتا','آزرا','توسان','سانتافه','کونا','i20','i30'],
+'کیا':['سراتو','اپتیما','اسپورتیج','سورنتو','پیکانتو','ریو','موهاوی','کادنزا'],
+'بنز':['C200','E200','E250','S500','GLC','GLE','A180'],
+'بی‌ام‌و':['116i','218i','320i','330i','520i','528i','X1','X3','X4','X5'],
+'پژو':['۲۰۶','۲۰۷','۴۰۵','پارس','۳۰۰۸','۵۰۸'],
+'رنو':['لوگان','ساندرو','مگان','داستر','کپچر','تالیسمان'],
+'مزدا':['مزدا ۲','مزدا ۳','CX-3','CX-5'],
+'جک':['J4','S3','S5','T8'],
+'چری':['آریزو ۵','آریزو ۶','تیگو ۵','تیگو ۷','تیگو ۸'],
+'ام‌وی‌ام':['۱۱۰','۳۱۵','X22','X33','X55'],
+'فولکس‌واگن':['گلف','پاسات','تیگوان','توارگ'],
+'پورشه':['کاین','ماکان','پانامرا','باکستر','911'],
+},
+'موبایل و تبلت':{
+'سامسونگ':['Galaxy S24','Galaxy S25','Galaxy S23','Galaxy A55','Galaxy A35','Galaxy A25','Galaxy A15','Galaxy Z Flip','Galaxy Z Fold','Galaxy Tab S9'],
+'اپل':['iPhone 13','iPhone 14','iPhone 15','iPhone 16','iPhone 17','iPhone 16 Pro','iPhone 17 Pro','iPad','iPad Air','iPad Pro'],
+'شیائومی':['Redmi Note 13','Redmi Note 14','Redmi Note 15','Poco X6','Poco X7','Xiaomi 14','Xiaomi 15'],
+'هواوی':['Nova 11','Nova 12','P60','Mate 50','Mate 60','MatePad'],
+'آنر':['Honor 90','Honor 200','Magic 6','Magic 7','X8','X9'],
+'نوکیا':['G22','G42','C32','C22'],
+},
+};
 const Map<String,List<String>> categoryRangeFields = {
 'خودرو':['سال ساخت','کارکرد (کیلومتر)'],'املاک':['متراژ (متر)','سن بنا','طبقه','تعداد طبقات','تعداد واحد در هر طبقه','ودیعه (تومان)','اجاره ماهانه (تومان)'],'موبایل و تبلت':['اندازه صفحه'],'لوازم دیجیتال':['سال تولید'],'لوازم خانگی':['سال تولید','ظرفیت'],'مبلمان و دکوراسیون':['سن کالا','تعداد نفرات'],'وسایل نقلیه':['سال ساخت','کارکرد'],'خدمات':['سابقه کار','قیمت پایه'],'استخدام و کاریابی':['سابقه موردنیاز','حقوق','سن موردنیاز'],'کشاورزی و دامداری':['سن/وزن','مقدار','تعداد','قیمت واحد'],'ابزار و تجهیزات':['توان/ظرفیت','سال تولید'],'حیوانات':['سن','وزن'],'سایر':['سال تولید'],
 };
@@ -665,6 +709,19 @@ DropdownButtonFormField<String>(value:pub,items:const[DropdownMenuItem<String>(v
 SwitchListTile(value:photos,onChanged:(v)=>setSheet(()=>photos=v),title:const Text('فقط دارای عکس'),contentPadding:EdgeInsets.zero),
 TextField(controller:min,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'قیمت از',border:OutlineInputBorder())),const SizedBox(height:10),TextField(controller:max,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'قیمت تا',border:OutlineInputBorder())),
 if(tc!=null)...[const SizedBox(height:18),Text('فیلترهای تخصصی ${tc!}',style:const TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),
+if(categoryBrandOptions[tc!]?.isNotEmpty==true)...[
+Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(
+value:(categoryBrandOptions[tc!]??const <String>[]).contains(temp['برند'])?temp['برند']:null,
+items:[null,...(categoryBrandOptions[tc!]??const <String>[])].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه برندها'))).toList(),
+onChanged:(v){if(v==null){temp.remove('برند');temp.remove('مدل');}else{temp['برند']=v;temp.remove('مدل');}setSheet((){});},
+decoration:const InputDecoration(labelText:'برند / کارخانه / سازنده',border:OutlineInputBorder()))),
+if((brandModelOptions[tc!]?[temp['برند']]??const <String>[]).isNotEmpty)
+Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(
+value:(brandModelOptions[tc!]?[temp['برند']]??const <String>[]).contains(temp['مدل'])?temp['مدل']:null,
+items:[null,...(brandModelOptions[tc!]?[temp['برند']]??const <String>[])].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه مدل‌ها'))).toList(),
+onChanged:(v){if(v==null)temp.remove('مدل');else temp['مدل']=v;setSheet((){});},
+decoration:const InputDecoration(labelText:'مدل',border:OutlineInputBorder()))),
+],
 ...(categoryDetailFields[tc!]??const <String>[]).map((field){final ranges=categoryRangeFields[tc!]??const <String>[];if(ranges.contains(field)){return Padding(padding:const EdgeInsets.only(bottom:10),child:Row(children:[Expanded(child:TextField(controller:TextEditingController(text:temp['${field}__min']??''),keyboardType:TextInputType.number,onChanged:(v)=>temp['${field}__min']=v,decoration:InputDecoration(labelText:'${field} از',border:const OutlineInputBorder()))),const SizedBox(width:8),Expanded(child:TextField(controller:TextEditingController(text:temp['${field}__max']??''),keyboardType:TextInputType.number,onChanged:(v)=>temp['${field}__max']=v,decoration:InputDecoration(labelText:'${field} تا',border:const OutlineInputBorder()))) ]));}final opts=categoryFilterOptions[tc!]?[field]??const <String>[];if(opts.isNotEmpty){final current=temp[field];return Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(value:opts.contains(current)?current:null,items:[null,...opts].map((x)=>DropdownMenuItem<String>(value:x,child:Text(x??'همه'))).toList(),onChanged:(v){if(v==null)temp.remove(field);else temp[field]=v;setSheet((){});},decoration:InputDecoration(labelText:field,border:const OutlineInputBorder())));}return Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:TextEditingController(text:temp[field]??''),onChanged:(v){if(v.trim().isEmpty)temp.remove(field);else temp[field]=v.trim();},decoration:InputDecoration(labelText:field,border:const OutlineInputBorder())) ;}),
 ],
 const SizedBox(height:8),DropdownButtonFormField<String>(value:sortMode,items:const[DropdownMenuItem(value:'newest',child:Text('جدیدترین')),DropdownMenuItem(value:'cheapest',child:Text('ارزان‌ترین')),DropdownMenuItem(value:'expensive',child:Text('گران‌ترین'))],onChanged:(v)=>setSheet(()=>sortMode=v??'newest'),decoration:const InputDecoration(labelText:'مرتب‌سازی',border:OutlineInputBorder())),
