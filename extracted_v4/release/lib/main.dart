@@ -154,8 +154,22 @@ class _LoginPageState extends State<LoginPage> {
       final r = await supabase.auth.signInWithPassword(email: authEmailForPhone(v), password: p);
       final u = r.user;
       if (u == null) throw Exception('ورود انجام نشد.');
-      final existing=await supabase.from('profiles').select('iidd').eq('iidd',u.id).maybeSingle();
-      if(existing==null){await supabase.from('profiles').insert({'iidd':u.id,'cphone':v,'name':'کاربر آگهینو'});}else{await supabase.from('profiles').update({'cphone':v}).eq('iidd',u.id);}
+      // ورود باید به‌خاطر خطای جانبی جدول پروفایل شکست نخورد.
+      // احراز هویت با Supabase انجام شده؛ همگام‌سازی پروفایل جداگانه است.
+      try {
+        final existing = await supabase.from('profiles').select('iidd').eq('iidd',u.id).maybeSingle();
+        if (existing == null) {
+          await supabase.from('profiles').insert({
+            'iidd': u.id,
+            'cphone': v,
+            'name': 'کاربر آگهینو',
+          });
+        } else {
+          await supabase.from('profiles').update({'cphone': v}).eq('iidd',u.id);
+        }
+      } catch (_) {
+        // RLS/profile sync must never block a successful login.
+      }
       if (mounted) {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
       }
