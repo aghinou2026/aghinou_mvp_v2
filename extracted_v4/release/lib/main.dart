@@ -639,7 +639,7 @@ class _HomePageState extends State<HomePage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  '“Indeed, with hardship comes ease.”',
+                  '“همانا با سختی، آسانی است.”',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w600),
                 ),
