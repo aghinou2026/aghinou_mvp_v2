@@ -1892,7 +1892,7 @@ class _AdminPageState extends State<AdminPage>{
       aaRows=List<Map<String,dynamic>>.from(x);
     });
     await safe('کاربران',() async {
-      final x=await supabase.from('profiles').select('iidd,name,first_name,last_name,cphone,created_at').order('created_at',ascending:false).limit(100);
+      final x=await supabase.from('profiles').select('iidd,name,first_name,last_name,cphone,is_blocked,created_at').order('created_at',ascending:false).limit(100);
       uuRows=List<Map<String,dynamic>>.from(x);
     });
     if(settings!=null){
