@@ -2464,6 +2464,8 @@ class _AdDetailPageState extends State<AdDetailPage>{
     final cat=widget.ad['category']?.toString()??'';
     final desc=widget.ad['edescription']?.toString()??'توضیحی ثبت نشده است.';
     final condition=widget.ad['item_condition']?.toString()??'';
+    final listingStatus=widget.ad['listing_status']?.toString()??'available';
+    final listingStatusLabel=listingStatus=='sold'?'فروخته شد':listingStatus=='reserved'?'رزرو شده':'موجود';
     final neighborhood=widget.ad['neighborhood']?.toString()??'';
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
       appBar:AppBar(title:const Text('جزئیات آگهی'),actions:[
