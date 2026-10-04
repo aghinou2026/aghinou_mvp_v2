@@ -902,7 +902,7 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
           onDestinationSelected: (v) => setState(() => tab = v),
           backgroundColor: const Color(0xFFF7FBFB),
           indicatorColor: const Color(0xFFD7F0F1),
-          destinations: const [
+          destinations: [
             NavigationDestination(
               icon: Icon(Icons.home_outlined, color: Color(0xFF0077B6)),
               selectedIcon: Icon(Icons.home, color: Color(0xFF0077B6)),
@@ -920,7 +920,7 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
             ),
             NavigationDestination(
               icon: _BadgeNavigationIcon(icon: Icons.person_outline, color: Color(0xFF2A9D8F), count: unreadNotificationCount + pendingPaymentCount + unreadSupportCount),
-              selectedIcon: _BadgeNavigationIcon(icon: Icons.person, color: Color(0xFF2A9D8F), count: unreadNotificationCount + pendingPaymentCount),
+              selectedIcon: _BadgeNavigationIcon(icon: Icons.person, color: Color(0xFF2A9D8F), count: unreadNotificationCount + pendingPaymentCount + unreadSupportCount),
               label: 'حساب',
             ),
           ],
