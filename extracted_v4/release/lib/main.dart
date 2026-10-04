@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -43,12 +44,16 @@ class AghinouApp extends StatefulWidget {
 class _AghinouAppState extends State<AghinouApp> with WidgetsBindingObserver {
   RealtimeChannel? _notificationChannel;
   bool _notificationListenerStarted = false;
+  StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _setupNotificationListener();
+    _authSubscription = supabase.auth.onAuthStateChange.listen((data) {
+      if (data.session != null) _setupNotificationListener();
+    });
   }
 
   void _setupNotificationListener() {
@@ -88,8 +93,9 @@ class _AghinouAppState extends State<AghinouApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    if (_adminNotificationChannel != null) {
-      supabase.removeChannel(_adminNotificationChannel!);
+    _authSubscription?.cancel();
+    if (_notificationChannel != null) {
+      supabase.removeChannel(_notificationChannel!);
     }
     super.dispose();
   }
@@ -111,7 +117,7 @@ class _AghinouAppState extends State<AghinouApp> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _setupAdminPaymentNotifications();
+      _setupNotificationListener();
     }
   }
 }
