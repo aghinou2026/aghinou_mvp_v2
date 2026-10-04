@@ -2569,7 +2569,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override void initState(){super.initState();load();}
   Future<void> markAllReadOnOpen(String uid) async {
     try {
-      await supabase.from('notifications').update({'read_at':DateTime.now().toUtc().toIso8601String()}).eq('user_id',uid).isFilter('read_at',null);
+      await supabase.rpc('mark_my_notifications_read');
     } catch (_) {}
   }
   Future<void> load() async {
@@ -3227,7 +3227,7 @@ class _MessagesPageState extends State<MessagesPage>{
   @override void initState(){super.initState();load();}
   Future<void> markAllReadOnOpen(String uid) async {
     try {
-      await supabase.from('messages').update({'read_at':DateTime.now().toUtc().toIso8601String()}).neq('sender_id',uid).isFilter('read_at',null);
+      await supabase.rpc('mark_my_messages_read');
     } catch (_) {}
   }
   Future<void> load() async {
@@ -3271,8 +3271,7 @@ class _ConversationPageState extends State<ConversationPage> {
       final uid=supabase.auth.currentUser?.id;
       if(uid!=null){
         try{
-          await supabase.from('messages').update({'read_at':DateTime.now().toIso8601String()})
-            .eq('conversation_id',widget.conversationId).neq('sender_id',uid).isFilter('read_at',null);
+          await supabase.rpc('mark_my_messages_read');
         }catch(_){}
       }
       if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
