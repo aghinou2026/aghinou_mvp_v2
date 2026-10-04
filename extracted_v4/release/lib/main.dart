@@ -619,12 +619,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    loadAds();
-    loadCategories();
-    loadSubscription();
-    loadAdmin();
-    loadProfile();
-    loadBadgeCounts();
+    // شروع همزمان درخواست‌های مستقل تا صفحه اول منتظر چند درخواست پشت‌سرهم نماند.
+    Future.wait([
+      loadAds(),
+      loadCategories(),
+      loadSubscription(),
+      loadAdmin(),
+      loadProfile(),
+      loadBadgeCounts(),
+    ]);
     _listenForNotifications();
   }
 
@@ -817,24 +820,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   ])));
   Future<void> loadAds() async {
     try {
+      // فقط فیلدهای لازم برای کارت آگهی را می‌گیریم؛ از دریافت ستون‌های اضافی جلوگیری می‌شود.
       final rows = await supabase
           .from('ads')
-          .select('*, ad_images(image_url,sort_order,is_primary)')
+          .select('idd,seller_id,title,edescription,price,city,province,category,subcategory,created_at,listing_status,details,vehicle_brand,vehicle_model,vehicle_year,vehicle_mileage,vehicle_color,vehicle_transmission,vehicle_body_condition,vehicle_fuel,vehicle_exchange,latitude,longitude,ad_images(image_url,sort_order,is_primary)')
           .eq('publish_status', 'published')
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .limit(30);
 
       if (!mounted) return;
-
       setState(() {
         ads = List<Map<String, dynamic>>.from(rows);
         loadingAds = false;
       });
-      await loadCommercialAds();
-    } catch (e) {
+
+      // تبلیغات تجاری جداگانه و بدون معطل کردن نمایش آگهی‌ها بارگذاری شود.
+      loadCommercialAds();
+    } catch (_) {
       if (!mounted) return;
       setState(() => loadingAds = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('دریافت آگهی‌ها انجام نشد. لطفاً دوباره تلاش کنید.')),
+        const SnackBar(content: Text('دریافت آگهی‌ها انجام نشد. لطفاً دوباره تلاش کنید.')),
       );
     }
   }
