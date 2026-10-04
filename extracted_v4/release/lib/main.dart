@@ -2771,10 +2771,19 @@ class _AdDetailPageState extends State<AdDetailPage>{
     final u=supabase.auth.currentUser?.id;
     final sellerId=widget.ad['seller_id']?.toString();
     final adId=widget.ad['idd']?.toString();
-    if(u==null||sellerId==null||adId==null||sellerId==u){
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('امکان شروع گفت‌وگو وجود ندارد.')));
+    if(u==null){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ابتدا وارد حساب کاربری شوید.')));
       return;
     }
+    if(sellerId==null||adId==null){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('اطلاعات فروشنده یا آگهی کامل نیست.')));
+      return;
+    }
+    if(sellerId==u){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('برای تست پیام، باید با یک حساب دیگر وارد شوید.')));
+      return;
+    }
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('در حال باز کردن گفت‌وگو...')));
     try{
       final found=await supabase.from('conversations').select('id')
         .eq('ad_id',adId).eq('buyer_id',u).eq('seller_id',sellerId).limit(1);
@@ -2795,25 +2804,23 @@ class _AdDetailPageState extends State<AdDetailPage>{
   }
 
   Future<void> openAdMap() async {
-    final lat=(widget.ad['latitude'] as num?)?.toDouble();
-    final lng=(widget.ad['longitude'] as num?)?.toDouble();
+    final rawLat=widget.ad['latitude'];
+    final rawLng=widget.ad['longitude'];
+    final lat=rawLat is num?rawLat.toDouble():double.tryParse(rawLat?.toString()??'');
+    final lng=rawLng is num?rawLng.toDouble():double.tryParse(rawLng?.toString()??'');
     if(lat==null||lng==null){
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('موقعیت این آگهی ثبت نشده است.')));
       return;
     }
     final webUri=Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
     try{
-      if(await canLaunchUrl(webUri)){
-        await launchUrl(webUri,mode:LaunchMode.externalApplication);
-        return;
-      }
+      await launchUrl(webUri,mode:LaunchMode.externalApplication);
+      return;
     }catch(_){}
     final geoUri=Uri.parse('geo:$lat,$lng?q=$lat,$lng');
     try{
-      if(await canLaunchUrl(geoUri)){
-        await launchUrl(geoUri,mode:LaunchMode.externalApplication);
-        return;
-      }
+      await launchUrl(geoUri,mode:LaunchMode.externalApplication);
+      return;
     }catch(_){}
     if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('برنامه نقشه برای مسیریابی پیدا نشد.')));
   }
