@@ -2768,21 +2768,54 @@ class _AdDetailPageState extends State<AdDetailPage>{
   }
 
   Future<void> startChat() async {
-    final u=supabase.auth.currentUser?.id,sellerId=widget.ad['seller_id']?.toString(),adId=widget.ad['idd']?.toString();
-    if(u==null||sellerId==null||adId==null||sellerId==u){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('امکان شروع گفت‌وگو وجود ندارد.')));return;}
+    final u=supabase.auth.currentUser?.id;
+    final sellerId=widget.ad['seller_id']?.toString();
+    final adId=widget.ad['idd']?.toString();
+    if(u==null||sellerId==null||adId==null||sellerId==u){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('امکان شروع گفت‌وگو وجود ندارد.')));
+      return;
+    }
     try{
-      final ex=await supabase.from('conversations').select('id').eq('ad_id',adId).eq('buyer_id',u).eq('seller_id',sellerId).maybeSingle();
-      final cid=ex?['id']?.toString()??(await supabase.from('conversations').insert({'buyer_id':u,'seller_id':sellerId,'ad_id':adId,'title':widget.ad['title']?.toString()??'گفت‌وگو'}).select('id').single())['id'].toString();
-      if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:cid,title:widget.ad['title']?.toString()??'گفت‌وگو')));
-    }catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شروع گفت‌وگو انجام نشد. لطفاً دوباره تلاش کنید.')));}
+      final found=await supabase.from('conversations').select('id')
+        .eq('ad_id',adId).eq('buyer_id',u).eq('seller_id',sellerId).limit(1);
+      String? cid=found.isNotEmpty?found.first['id']?.toString():null;
+      if(cid==null){
+        final created=await supabase.from('conversations').insert({
+          'buyer_id':u,'seller_id':sellerId,'ad_id':adId,
+          'title':widget.ad['title']?.toString()??'گفت‌وگو',
+          'updated_at':DateTime.now().toUtc().toIso8601String(),
+        }).select('id').single();
+        cid=created['id']?.toString();
+      }
+      if(cid==null||cid.isEmpty)throw Exception('conversation id missing');
+      if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:cid!,title:widget.ad['title']?.toString()??'گفت‌وگو')));
+    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('شروع گفت‌وگو انجام نشد: $e')));
+    }
   }
 
   Future<void> openAdMap() async {
     final lat=(widget.ad['latitude'] as num?)?.toDouble();
     final lng=(widget.ad['longitude'] as num?)?.toDouble();
-    if(lat==null||lng==null)return;
-    final uri=Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng');
-    if(await canLaunchUrl(uri)) await launchUrl(uri,mode:LaunchMode.externalApplication);
+    if(lat==null||lng==null){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('موقعیت این آگهی ثبت نشده است.')));
+      return;
+    }
+    final webUri=Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving');
+    try{
+      if(await canLaunchUrl(webUri)){
+        await launchUrl(webUri,mode:LaunchMode.externalApplication);
+        return;
+      }
+    }catch(_){}
+    final geoUri=Uri.parse('geo:$lat,$lng?q=$lat,$lng');
+    try{
+      if(await canLaunchUrl(geoUri)){
+        await launchUrl(geoUri,mode:LaunchMode.externalApplication);
+        return;
+      }
+    }catch(_){}
+    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('برنامه نقشه برای مسیریابی پیدا نشد.')));
   }
 
   Future<void> callSeller() async {
@@ -2924,7 +2957,7 @@ class _AdDetailPageState extends State<AdDetailPage>{
             const SizedBox(height:20),
             if(seller!=null)Card(child:ListTile(
               leading:const CircleAvatar(child:Icon(Icons.person)),
-              title:Text(seller!['name']?.toString()??'فروشنده'),
+              title:const Text('فروشنده آگهینو'),
               subtitle:Text('عضویت: ${seller!['created_at']?.toString().split('T').first??'-'}'),
               trailing:const Icon(Icons.person_outline),
               onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>SellerProfilePage(sellerId:seller!['iidd'].toString()))),
