@@ -455,9 +455,80 @@ const Map<String,Map<String,List<String>>> brandModelOptions = {
 'نوکیا':['G22','G42','C32','C22'],
 },
 };
+
+// گزینه‌های آماده برای فیلدهای مشخصات؛ کاربر تا جای ممکن انتخاب می‌کند و مجبور به تایپ نیست.
+List<String> aghinouOptions(String category,String field){
+  const colors=['سفید','مشکی','نقره‌ای','طوسی','خاکستری','آبی','سرمه‌ای','قرمز','زرشکی','سبز','زرد','نارنجی','قهوه‌ای','بژ','کرم','طلایی','بنفش','صورتی','سایر'];
+  const yesNo=['دارد','ندارد'];
+  if(field=='رنگ'||field=='رنگ بدنه') return colors;
+  if(field=='رنگ داخلی') return ['مشکی','کرم','طوسی','قهوه‌ای','بژ','قرمز','سایر'];
+  if(field=='وضعیت'||field=='وضعیت کالا'||field=='وضعیت دستگاه'||field=='وضعیت سلامت') return ['نو','در حد نو','کارکرده','نیازمند تعمیر','خراب'];
+  if(field=='گارانتی') return yesNo;
+  if(field=='جنسیت') return ['مهم نیست','مرد','زن','پسر','دختر'];
+  if(field=='نو یا کارکرده') return ['نو','کارکرده'];
+  if(field=='دو سیم‌کارت'||field=='5G'||field=='دارد'||field=='قابل شست‌وشو'||field=='هوشمند'||field=='عقیم شده'||field=='شناسنامه'||field=='واکسیناسیون') return yesNo;
+  if(field=='نوع دستگاه') return category=='لوازم خانگی'?['یخچال','فریزر','لباسشویی','ظرفشویی','اجاق گاز','فر','مایکروویو','جاروبرقی','کولر گازی','کولر آبی','تلویزیون','بخاری','پکیج','آبگرمکن','قهوه‌ساز','سرخ‌کن','سایر']:['لپ‌تاپ','کامپیوتر','مانیتور','پرینتر','اسکنر','تلویزیون','دوربین','کنسول بازی','مودم','روتر','اسپیکر','هدفون','ساعت هوشمند','پروژکتور','سایر'];
+  if(field=='نوع کالا') return category=='پوشاک و کیف و کفش'?['لباس','مانتو','شلوار','پیراهن','کت و شلوار','کیف','کفش','کوله‌پشتی','بوت','صندل','اکسسوری','سایر']:['ساعت','زیورآلات','عینک','عطر و ادکلن','لوازم آرایشی','لوازم بهداشتی','کیف پول','چمدان','لوازم کودک','لوازم سفر','سایر'];
+  if(field=='نوع مبلمان') return ['مبل راحتی','مبل کلاسیک','مبل استیل','مبل تختخواب‌شو','میز ناهارخوری','صندلی','تخت خواب','سرویس خواب','کمد و دراور','فرش','آینه','پرده','لوستر','سایر'];
+  if(field=='جنس') return ['چوب','MDF','فلز','پارچه','چرم','شیشه','پلاستیک','سنگ','ترکیبی','سایر'];
+  if(field=='مناسب برای'||field=='قابل استفاده برای') return ['زنانه','مردانه','بچگانه','کودک','نوجوان','بزرگسال','همه'];
+  if(field=='فصل') return ['بهار','تابستان','پاییز','زمستان','همه فصل‌ها'];
+  if(field=='نوع معامله') return ['فروش','رهن و اجاره','اجاره','پیش‌فروش','معاوضه'];
+  if(field=='پارکینگ'||field=='انباری'||field=='آسانسور'||field=='بالکن'||field=='بازسازی شده'||field=='مبله') return yesNo;
+  if(field=='سند') return ['تک‌برگ','شش‌دانگ','قولنامه‌ای','اوقافی','سایر'];
+  if(field=='نوع کاربری') return ['مسکونی','تجاری','اداری','کشاورزی','صنعتی'];
+  if(field=='سیستم‌عامل') return ['Android','Windows','macOS','iOS','Linux','سایر'];
+  if(field=='نوع صفحه‌نمایش') return ['LCD','LED','OLED','AMOLED','IPS','Mini-LED','سایر'];
+  if(field=='رجیستری') return ['رجیستر شده','رجیستر نشده'];
+  if(field=='شبکه') return ['4G','5G','4G/5G','سایر'];
+  if(field=='مصرف انرژی') return ['A+++','A++','A+','A','B','C و پایین‌تر'];
+  if(field=='نوع موتور') return ['اینورتر','معمولی','کمپرسور خطی','سایر'];
+  if(field=='نوع همکاری') return ['تمام‌وقت','پاره‌وقت','پروژه‌ای','کارآموزی','دورکاری','قراردادی','موقت'];
+  if(field=='نوع حقوق') return ['ماهانه','ساعتی','پروژه‌ای','پورسانتی','توافقی'];
+  if(field=='بیمه'||field=='دورکاری') return yesNo;
+  if(field=='مدرک تحصیلی') return ['بدون مدرک','دیپلم','کاردانی','کارشناسی','کارشناسی ارشد','دکتری'];
+  if(field=='نوع قیمت') return ['توافقی','ثابت','از قیمت پایه'];
+  if(field=='حضوری/غیرحضوری') return ['حضوری','غیرحضوری','هر دو'];
+  if(field=='فوری'||field=='ضمانت خدمت') return yesNo;
+  if(field=='منبع تغذیه') return ['برق','باتری','بنزین','دیزل','دستی'];
+  if(field=='کاربری') return ['خانگی','نیمه‌صنعتی','صنعتی'];
+  if(field=='سطح استفاده') return ['مبتدی','متوسط','حرفه‌ای'];
+  if(field=='نوع محصول/دام') return ['دام زنده','طیور','محصول کشاورزی','بذر','نهال','خوراک دام','تجهیزات'];
+  if(field=='واحد مقدار') return ['کیلوگرم','تن','عدد','لیتر','راس'];
+  if(field=='نوع') return category=='حیوانات'?['سگ','گربه','پرندگان','ماهی','همستر','خرگوش','خزندگان','حیوان مزرعه','سایر']:['عمومی','خانگی','صنعتی','سایر'];
+  if(field=='نژاد/رقم') return ['ایرانی','اصلاح‌شده','اصیل','ترکیبی','سایر'];
+  if(field=='نوع نگهداری') return ['خانگی','پرورشی'];
+  if(field=='واکسیناسیون') return ['کامل','ناقص','ندارد'];
+  if(field=='وضعیت شاسی') return ['سالم','ضربه‌خورده','تعویضی','رنگ‌شده'];
+  if(field=='وضعیت موتور') return ['سالم','نیاز به تعمیر','تعویضی'];
+  if(field=='وضعیت بدنه') return ['سالم','بدون رنگ','رنگ‌شده','تصادفی','تعویض قطعه'];
+  if(field=='گیربکس') return ['دستی','اتوماتیک','نیمه‌اتوماتیک'];
+  if(field=='سوخت') return ['بنزینی','دوگانه‌سوز','دیزلی','هیبریدی','برقی'];
+  if(field=='معاوضه') return yesNo;
+  if(field=='نوع آگهی‌دهنده') return ['شخصی','فروشگاه/کسب‌وکار','شرکت/کسب‌وکار'];
+  if(field.contains('ماه')) return ['۱ ماه','۲ ماه','۳ ماه','۶ ماه','۹ ماه','۱۲ ماه'];
+  if(field=='کشور سازنده') return ['ایرانی','چینی','کره‌ای','ژاپنی','آلمانی','فرانسوی','ایتالیایی','انگلیسی','آمریکایی','سایر'];
+  return const [];
+}
+List<String> aghinouYears(){
+  final y=DateTime.now().year+621;
+  return List.generate(46,(i)=>(y-i).toString());
+}
+
 const Map<String,List<String>> categoryRangeFields = {
 'خودرو':['سال ساخت','کارکرد (کیلومتر)'],'املاک':['متراژ (متر)','سن بنا','طبقه','تعداد طبقات','تعداد واحد در هر طبقه','ودیعه (تومان)','اجاره ماهانه (تومان)'],'موبایل و تبلت':['اندازه صفحه'],'لوازم دیجیتال':['سال تولید'],'لوازم خانگی':['سال تولید','ظرفیت'],'مبلمان و دکوراسیون':['سن کالا','تعداد نفرات'],'وسایل نقلیه':['سال ساخت','کارکرد'],'خدمات':['سابقه کار','قیمت پایه'],'استخدام و کاریابی':['سابقه موردنیاز','حقوق','سن موردنیاز'],'کشاورزی و دامداری':['سن/وزن','مقدار','تعداد','قیمت واحد'],'ابزار و تجهیزات':['توان/ظرفیت','سال تولید'],'حیوانات':['سن','وزن'],'سایر':['سال تولید'],
 };
+Widget aghinouDetailField(String category,String field,TextEditingController controller){
+  final opts=aghinouOptions(category,field);
+  final items=opts.isNotEmpty?opts:(field=='سال ساخت'||field=='سال تولید'?aghinouYears():const <String>[]);
+  if(items.isEmpty) return Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:controller,keyboardType:field.contains('متر')||field.contains('سال')||field.contains('تعداد')||field.contains('سن')||field.contains('حقوق')||field.contains('قیمت')?TextInputType.number:null,decoration:InputDecoration(labelText:field,border:const OutlineInputBorder())));
+  final value=items.contains(controller.text)?controller.text:null;
+  return Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(
+    value:value,items:items.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
+    onChanged:(v){if(v!=null)controller.text=v;},decoration:InputDecoration(labelText:field,border:const OutlineInputBorder()),
+  ));
+}
+
 class HomeCategoryData {
   static const Map<String,List<String>> categorySubs={
     'خودرو':['سواری','شاسی‌بلند','کراس‌اوور','سدان','هاچ‌بک','کوپه','کابریولت','استیشن','وان','مینی‌ون','ون','پیکاپ','وانت','آفرود','کلاسیک','برقی','هیبریدی','دوگانه‌سوز','موتورسیکلت','اسکوتر','موتورسیکلت برقی','سه‌چرخه','کامیون','کامیونت','کشنده','تریلی','اتوبوس','مینی‌بوس','خودرو کار و خدماتی','ماشین‌آلات سنگین'],
@@ -1893,11 +1964,11 @@ class _EditAdPageState extends State<EditAdPage>{
     const SizedBox(height:12),TextField(controller:price,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'قیمت (تومان)',border:OutlineInputBorder())),
     const SizedBox(height:12),DropdownButtonFormField<String>(value:const['نو','در حد نو','کارکرده'].contains(condition)?condition:'در حد نو',items:const['نو','در حد نو','کارکرده'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>condition=v??condition),decoration:const InputDecoration(labelText:'وضعیت',border:OutlineInputBorder())),
           if(category=='خودرو')...[
-            const SizedBox(height:12),TextField(controller:vehicleBrand,decoration:const InputDecoration(labelText:'برند خودرو',border:OutlineInputBorder())),
-            const SizedBox(height:12),TextField(controller:vehicleModel,decoration:const InputDecoration(labelText:'مدل خودرو',border:OutlineInputBorder())),
+            const SizedBox(height:12),DropdownButtonFormField<String>(value:categoryBrandOptions['خودرو']!.contains(vehicleBrand.text)?vehicleBrand.text:null,items:categoryBrandOptions['خودرو']!.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)setState((){vehicleBrand.text=v;final ms=brandModelOptions['خودرو']?[v]??const <String>[];if(ms.isNotEmpty&&!ms.contains(vehicleModel.text))vehicleModel.clear();});},decoration:const InputDecoration(labelText:'برند خودرو',border:OutlineInputBorder())),
+            const SizedBox(height:12),DropdownButtonFormField<String>(value:(brandModelOptions['خودرو']?[vehicleBrand.text]??const <String>[]).contains(vehicleModel.text)?vehicleModel.text:null,items:(brandModelOptions['خودرو']?[vehicleBrand.text]??const <String>[]).map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)vehicleModel.text=v;},decoration:const InputDecoration(labelText:'مدل خودرو',border:OutlineInputBorder())),
             const SizedBox(height:12),TextField(controller:vehicleYear,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'سال ساخت',border:OutlineInputBorder())),
             const SizedBox(height:12),TextField(controller:vehicleMileage,keyboardType:TextInputType.number,decoration:const InputDecoration(labelText:'کارکرد (کیلومتر)',border:OutlineInputBorder())),
-            const SizedBox(height:12),TextField(controller:vehicleColor,decoration:const InputDecoration(labelText:'رنگ',border:OutlineInputBorder())),
+            const SizedBox(height:12),DropdownButtonFormField<String>(value:aghinouOptions('خودرو','رنگ').contains(vehicleColor.text)?vehicleColor.text:null,items:aghinouOptions('خودرو','رنگ').map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v){if(v!=null)vehicleColor.text=v;},decoration:const InputDecoration(labelText:'رنگ',border:OutlineInputBorder())),
             const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleTransmission,items:const['دستی','اتوماتیک','نیمه‌اتوماتیک'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleTransmission=v??vehicleTransmission),decoration:const InputDecoration(labelText:'گیربکس',border:OutlineInputBorder())),
             const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleBodyCondition,items:const['سالم','رنگ‌شده','تصادفی','نیازمند تعمیر'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleBodyCondition=v??vehicleBodyCondition),decoration:const InputDecoration(labelText:'وضعیت بدنه',border:OutlineInputBorder())),
             const SizedBox(height:12),DropdownButtonFormField<String>(value:vehicleFuel,items:const['بنزینی','دوگانه‌سوز','دیزلی','هیبریدی','برقی'].map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),onChanged:(v)=>setState(()=>vehicleFuel=v??vehicleFuel),decoration:const InputDecoration(labelText:'سوخت',border:OutlineInputBorder())),
@@ -1909,7 +1980,7 @@ class _EditAdPageState extends State<EditAdPage>{
     if((categoryDetailFields[category]??const <String>[]).isNotEmpty) ...[
       const SizedBox(height:14),const Text('جزئیات آگهی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),
       if(category=='خودرو') vehicleInsuranceSection(),
-      ...(categoryDetailFields[category]??const <String>[]).where((f)=>category!='خودرو'||!vehicleInsuranceFields.contains(f)).map((f)=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:detailControllers[f],decoration:InputDecoration(labelText:f,border:const OutlineInputBorder())))),
+      ...(categoryDetailFields[category]??const <String>[]).where((f)=>category!='خودرو'||!vehicleInsuranceFields.contains(f)).map((f)=>aghinouDetailField(category,f,detailControllers[f]!)),
     ],
     const SizedBox(height:18),FilledButton(onPressed:saving?null:save,child:Text(saving?'در حال ذخیره...':'ذخیره تغییرات')),
   ])));
