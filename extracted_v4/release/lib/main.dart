@@ -542,6 +542,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int unreadMessageCount = 0;
   int unreadNotificationCount = 0;
   int pendingPaymentCount = 0;
+  int unreadSupportCount = 0;
 
   @override
   void initState() {
@@ -563,6 +564,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       final messages = await supabase.from('messages').select('id').neq('sender_id', uid).isFilter('read_at', null);
       final notifications = await supabase.from('notifications').select('id').eq('user_id', uid).isFilter('read_at', null);
       var pending = 0;
+    var support = 0;
       try {
         if (await supabase.rpc('is_current_user_admin') == true) {
           final payments = await supabase.from('payments').select('id').eq('status', 'pending');
@@ -917,7 +919,7 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
               label: 'پیام‌ها',
             ),
             NavigationDestination(
-              icon: _BadgeNavigationIcon(icon: Icons.person_outline, color: Color(0xFF2A9D8F), count: unreadNotificationCount + pendingPaymentCount),
+              icon: _BadgeNavigationIcon(icon: Icons.person_outline, color: Color(0xFF2A9D8F), count: unreadNotificationCount + pendingPaymentCount + unreadSupportCount),
               selectedIcon: _BadgeNavigationIcon(icon: Icons.person, color: Color(0xFF2A9D8F), count: unreadNotificationCount + pendingPaymentCount),
               label: 'حساب',
             ),
@@ -1421,6 +1423,17 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
             title: const Text('به‌روزرسانی آگهینو'),
             subtitle: const Text('بررسی نسخه جدید و انتخاب بازار، مایکت یا Google Play'),
             onTap: () => checkForUpdates(),
+          ),
+        ),
+        Card(
+          child: ListTile(
+            leading: badgeIcon(Icons.support_agent, unreadSupportCount),
+            title: const Text('پشتیبانی'),
+            subtitle: Text(unreadSupportCount > 0 ? 'پاسخ جدید از پشتیبانی دارید.' : 'ارسال پیام و پیگیری درخواست‌های شما'),
+            onTap: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportPage()));
+              await loadBadgeCounts();
+            },
           ),
         ),
         Card(
@@ -2378,7 +2391,13 @@ class _AdminPageState extends State<AdminPage>{
     final fu=users.where((x){final full=((x['first_name']??'').toString()+' '+(x['last_name']??'').toString()).trim();return uq.isEmpty||full.toLowerCase().contains(uq)||x['name'].toString().toLowerCase().contains(uq)||x['cphone'].toString().contains(uq);}).toList();
     final fa=ads.where((x)=>aq.isEmpty||x['title'].toString().toLowerCase().contains(aq)||x['city'].toString().toLowerCase().contains(aq)).toList();
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:const Text('پنل مدیریت'),actions:[IconButton(onPressed:load,icon:const Icon(Icons.refresh))]),body:ListView(padding:const EdgeInsets.all(12),children:[
-      const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),Row(children:[stat('کاربران',stats?['users'],Icons.people),stat('آگهی‌ها',stats?['ads'],Icons.list_alt)]),Row(children:[stat('در انتظار پرداخت',stats?['pending_payments'],Icons.hourglass_top),stat('پرداخت موفق',stats?['paid_payments'],Icons.payments)]),Row(children:[stat('درآمد',stats?['revenue'],Icons.account_balance_wallet),const Spacer()]),
+      const Text('داشبورد',style:TextStyle(fontSize:22,fontWeight:FontWeight.bold)),
+      Card(child:ListTile(
+        leading:const Icon(Icons.support_agent),
+        title:const Text('پشتیبانی کاربران'),
+        subtitle:const Text('مشاهده درخواست‌ها و پاسخ به کاربران'),
+        onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>const SupportAdminPage())),
+      )),Row(children:[stat('کاربران',stats?['users'],Icons.people),stat('آگهی‌ها',stats?['ads'],Icons.list_alt)]),Row(children:[stat('در انتظار پرداخت',stats?['pending_payments'],Icons.hourglass_top),stat('پرداخت موفق',stats?['paid_payments'],Icons.payments)]),Row(children:[stat('درآمد',stats?['revenue'],Icons.account_balance_wallet),const Spacer()]),
       ExpansionTile(
         title:const Text('مدیریت تبلیغات'),
         children:[Padding(padding:const EdgeInsets.all(12),child:Column(crossAxisAlignment:CrossAxisAlignment.stretch,children:[
@@ -3235,4 +3254,152 @@ class _ConversationPageState extends State<ConversationPage> {
       ),
     );
   }
+}
+
+class SupportPage extends StatefulWidget {
+  const SupportPage({super.key});
+  @override State<SupportPage> createState()=>_SupportPageState();
+}
+class _SupportPageState extends State<SupportPage> {
+  bool loading=true, sending=false;
+  List<Map<String,dynamic>> tickets=[];
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {
+    final uid=supabase.auth.currentUser?.id;
+    if(uid==null){if(mounted)setState(()=>loading=false);return;}
+    try {
+      final r=await supabase.from('support_tickets').select('*').eq('user_id',uid).order('updated_at',ascending:false);
+      if(mounted)setState((){tickets=List<Map<String,dynamic>>.from(r);loading=false;});
+      await supabase.from('support_messages').update({'read_at':DateTime.now().toIso8601String()}).eq('is_admin',true).isFilter('read_at',null);
+    } catch (_) { if(mounted)setState(()=>loading=false); }
+  }
+  Future<void> newTicket() async {
+    final subject=TextEditingController();
+    final body=TextEditingController();
+    final ok=await showDialog<bool>(context:context,builder:(_)=>AlertDialog(
+      title:const Text('درخواست جدید'),
+      content:Column(mainAxisSize:MainAxisSize.min,children:[
+        TextField(controller:subject,decoration:const InputDecoration(labelText:'موضوع')),
+        const SizedBox(height:8),
+        TextField(controller:body,maxLines:4,decoration:const InputDecoration(labelText:'متن پیام')),
+      ]),
+      actions:[
+        TextButton(onPressed:()=>Navigator.pop(context,false),child:const Text('انصراف')),
+        FilledButton(onPressed:()=>Navigator.pop(context,true),child:const Text('ارسال')),
+      ],
+    ));
+    if(ok!=true||subject.text.trim().isEmpty||body.text.trim().isEmpty)return;
+    final uid=supabase.auth.currentUser?.id;if(uid==null)return;
+    try {
+      final t=await supabase.from('support_tickets').insert({'user_id':uid,'subject':subject.text.trim(),'status':'open'}).select('id').single();
+      await supabase.from('support_messages').insert({'ticket_id':t['id'],'sender_id':uid,'body':body.text.trim(),'is_admin':false});
+      await load();
+    } catch (_) {
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ارسال درخواست انجام نشد. لطفاً دوباره تلاش کنید.')));
+    } finally {subject.dispose();body.dispose();}
+  }
+  @override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+    appBar:AppBar(title:const Text('پشتیبانی')),
+    floatingActionButton:FloatingActionButton.extended(onPressed:newTicket,icon:const Icon(Icons.add_comment),label:const Text('درخواست جدید')),
+    body:loading?const Center(child:CircularProgressIndicator()):tickets.isEmpty
+      ? const Center(child:Text('هنوز درخواستی برای پشتیبانی ندارید.'))
+      : ListView.builder(padding:const EdgeInsets.all(12),itemCount:tickets.length,itemBuilder:(_,i){
+          final t=tickets[i];
+          final status=t['status']?.toString()??'open';
+          final label=status=='closed'?'بسته شده':status=='pending'?'در انتظار پاسخ':'باز';
+          return Card(child:ListTile(
+            leading:const Icon(Icons.support_agent),
+            title:Text(t['subject']?.toString()??'درخواست پشتیبانی'),
+            subtitle:Text('وضعیت: $label'),
+            trailing:const Icon(Icons.chevron_left),
+            onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>SupportTicketPage(ticketId:t['id'].toString(),subject:t['subject']?.toString()??'پشتیبانی'))).then((_){load();}),
+          ));
+        }),
+  ));
+}
+
+class SupportTicketPage extends StatefulWidget {
+  final String ticketId, subject;
+  const SupportTicketPage({super.key,required this.ticketId,required this.subject});
+  @override State<SupportTicketPage> createState()=>_SupportTicketPageState();
+}
+class _SupportTicketPageState extends State<SupportTicketPage>{
+  final input=TextEditingController();
+  bool loading=true,sending=false;
+  List<Map<String,dynamic>> rows=[];
+  @override void initState(){super.initState();load();}
+  @override void dispose(){input.dispose();super.dispose();}
+  Future<void> load() async {
+    try {
+      final r=await supabase.from('support_messages').select('*').eq('ticket_id',widget.ticketId).order('created_at');
+      await supabase.from('support_messages').update({'read_at':DateTime.now().toIso8601String()}).eq('ticket_id',widget.ticketId).eq('is_admin',true).isFilter('read_at',null);
+      if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
+    } catch(_){if(mounted)setState(()=>loading=false);}
+  }
+  Future<void> send() async {
+    final body=input.text.trim();final uid=supabase.auth.currentUser?.id;if(body.isEmpty||uid==null)return;
+    setState(()=>sending=true);
+    try{
+      await supabase.from('support_messages').insert({'ticket_id':widget.ticketId,'sender_id':uid,'body':body,'is_admin':false});
+      await supabase.from('support_tickets').update({'status':'open','updated_at':DateTime.now().toUtc().toIso8601String()}).eq('id',widget.ticketId);
+      input.clear();await load();
+    }catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ارسال پیام انجام نشد. لطفاً دوباره تلاش کنید.')));}
+    finally{if(mounted)setState(()=>sending=false);}
+  }
+  @override Widget build(BuildContext context){
+    final uid=supabase.auth.currentUser?.id;
+    return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+      appBar:AppBar(title:Text(widget.subject)),
+      body:Column(children:[
+        Expanded(child:loading?const Center(child:CircularProgressIndicator()):ListView(padding:const EdgeInsets.all(12),children:rows.map((r){
+          final admin=r['is_admin']==true;
+          return Align(alignment:admin?Alignment.centerRight:Alignment.centerLeft,child:Card(child:Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
+            Text(admin?'پشتیبانی آگهینو':'شما',style:const TextStyle(fontWeight:FontWeight.bold)),
+            const SizedBox(height:4),Text(r['body']?.toString()??'')
+          ]))));
+        }).toList())),
+        SafeArea(child:Row(children:[
+          Expanded(child:TextField(controller:input,decoration:const InputDecoration(hintText:'پیام خود را بنویسید'))),
+          IconButton(onPressed:sending?null:send,icon:const Icon(Icons.send))
+        ]))
+      ])
+    ));
+  }
+}
+
+class SupportAdminPage extends StatefulWidget {
+  const SupportAdminPage({super.key});
+  @override State<SupportAdminPage> createState()=>_SupportAdminPageState();
+}
+class _SupportAdminPageState extends State<SupportAdminPage>{
+  bool loading=true;
+  List<Map<String,dynamic>> tickets=[];
+  @override void initState(){super.initState();load();}
+  Future<void> load() async {
+    try{final r=await supabase.from('support_tickets').select('*').order('updated_at',ascending:false);if(mounted)setState((){tickets=List<Map<String,dynamic>>.from(r);loading=false;});}catch(_){if(mounted)setState(()=>loading=false);}
+  }
+  @override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(
+    appBar:AppBar(title:const Text('پشتیبانی کاربران')),
+    body:loading?const Center(child:CircularProgressIndicator()):ListView.builder(padding:const EdgeInsets.all(12),itemCount:tickets.length,itemBuilder:(_,i){
+      final t=tickets[i];final status=t['status']?.toString()??'open';final label=status=='closed'?'بسته':status=='pending'?'در انتظار':'باز';
+      return Card(child:ListTile(leading:const Icon(Icons.support_agent),title:Text(t['subject']?.toString()??'درخواست'),subtitle:Text('وضعیت: $label'),onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>SupportAdminTicketPage(ticketId:t['id'].toString(),subject:t['subject']?.toString()??'پشتیبانی'))).then((_){load();})));
+    }),
+  ));
+}
+class SupportAdminTicketPage extends StatefulWidget {
+  final String ticketId,subject;
+  const SupportAdminTicketPage({super.key,required this.ticketId,required this.subject});
+  @override State<SupportAdminTicketPage> createState()=>_SupportAdminTicketPageState();
+}
+class _SupportAdminTicketPageState extends State<SupportAdminTicketPage>{
+  final input=TextEditingController();bool loading=true,sending=false;List<Map<String,dynamic>> rows=[];
+  @override void initState(){super.initState();load();}
+  @override void dispose(){input.dispose();super.dispose();}
+  Future<void> load() async {try{final r=await supabase.from('support_messages').select('*').eq('ticket_id',widget.ticketId).order('created_at');await supabase.from('support_messages').update({'read_at':DateTime.now().toIso8601String()}).eq('ticket_id',widget.ticketId).eq('is_admin',false).isFilter('read_at',null);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}catch(_){if(mounted)setState(()=>loading=false);}}
+  Future<void> send() async {final body=input.text.trim();final uid=supabase.auth.currentUser?.id;if(body.isEmpty||uid==null)return;setState(()=>sending=true);try{await supabase.from('support_messages').insert({'ticket_id':widget.ticketId,'sender_id':uid,'body':body,'is_admin':true});await supabase.from('support_tickets').update({'status':'pending','updated_at':DateTime.now().toUtc().toIso8601String()}).eq('id',widget.ticketId);input.clear();await load();}catch(_){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ارسال پاسخ انجام نشد. لطفاً دوباره تلاش کنید.')));}finally{if(mounted)setState(()=>sending=false);}}
+  Future<void> closeTicket() async {try{await supabase.from('support_tickets').update({'status':'closed','updated_at':DateTime.now().toUtc().toIso8601String()}).eq('id',widget.ticketId);if(mounted)Navigator.pop(context,true);}catch(_){}}
+  @override Widget build(BuildContext context)=>Directionality(textDirection:TextDirection.rtl,child:Scaffold(appBar:AppBar(title:Text(widget.subject),actions:[IconButton(onPressed:closeTicket,icon:const Icon(Icons.check_circle_outline),tooltip:'بستن درخواست')]),body:Column(children:[
+    Expanded(child:loading?const Center(child:CircularProgressIndicator()):ListView(padding:const EdgeInsets.all(12),children:rows.map((r){final admin=r['is_admin']==true;return Align(alignment:admin?Alignment.centerLeft:Alignment.centerRight,child:Card(child:Padding(padding:const EdgeInsets.all(10),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[Text(admin?'پشتیبانی آگهینو':'کاربر',style:const TextStyle(fontWeight:FontWeight.bold)),const SizedBox(height:4),Text(r['body']?.toString()??'')]))));}).toList())),
+    SafeArea(child:Row(children:[Expanded(child:TextField(controller:input,decoration:const InputDecoration(hintText:'پاسخ خود را بنویسید'))),IconButton(onPressed:sending?null:send,icon:const Icon(Icons.send))]))
+  ])));
 }
