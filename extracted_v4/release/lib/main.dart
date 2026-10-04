@@ -642,11 +642,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           pending = payments.length;
         }
       } catch (_) {}
+      try {
+        final supportRows = await supabase
+            .from('support_messages')
+            .select('id')
+            .eq('is_admin', true)
+            .isFilter('read_at', null);
+        support = supportRows.length;
+      } catch (_) {}
+
       if (!mounted) return;
       setState(() {
         unreadMessageCount = messages.length;
         unreadNotificationCount = notifications.length;
         pendingPaymentCount = pending;
+        unreadSupportCount = support;
       });
     } catch (_) {}
   }
@@ -970,7 +980,10 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: tab,
-          onDestinationSelected: (v) => setState(() => tab = v),
+          onDestinationSelected: (v) async {
+            setState(() => tab = v);
+            if (v == 2 || v == 3) await loadBadgeCounts();
+          },
           backgroundColor: const Color(0xFFF7FBFB),
           indicatorColor: const Color(0xFFD7F0F1),
           destinations: [
@@ -2548,8 +2561,14 @@ class NotificationsPage extends StatefulWidget {
 class _NotificationsPageState extends State<NotificationsPage> {
   bool loading=true; List<Map<String,dynamic>> rows=[];
   @override void initState(){super.initState();load();}
+  Future<void> markAllReadOnOpen(String uid) async {
+    try {
+      await supabase.from('notifications').update({'read_at':DateTime.now().toUtc().toIso8601String()}).eq('user_id',uid).isFilter('read_at',null);
+    } catch (_) {}
+  }
   Future<void> load() async {
     final uid=supabase.auth.currentUser?.id;if(uid==null){if(mounted)setState(()=>loading=false);return;}
+    await markAllReadOnOpen(uid);
     try{final r=await supabase.from('notifications').select('id,title,body,type,read_at,created_at').eq('user_id',uid).order('created_at',ascending:false).limit(100);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}
     catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت اعلان‌ها انجام نشد. لطفاً دوباره تلاش کنید.')));}}
   }
@@ -3200,9 +3219,15 @@ class MessagesPage extends StatefulWidget {
 class _MessagesPageState extends State<MessagesPage>{
   bool loading=true; List<Map<String,dynamic>> rows=[];
   @override void initState(){super.initState();load();}
+  Future<void> markAllReadOnOpen(String uid) async {
+    try {
+      await supabase.from('messages').update({'read_at':DateTime.now().toUtc().toIso8601String()}).neq('sender_id',uid).isFilter('read_at',null);
+    } catch (_) {}
+  }
   Future<void> load() async {
     final u=supabase.auth.currentUser;
     if(u==null){if(mounted)setState(()=>loading=false);return;}
+    await markAllReadOnOpen(u.id);
     try{
       final r=await supabase.from('conversations').select('*').or('buyer_id.eq.${u.id},seller_id.eq.${u.id}').order('created_at',ascending:false);
       if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
