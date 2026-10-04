@@ -2796,10 +2796,10 @@ class _AdDetailPageState extends State<AdDetailPage>{
         }).select('id').single();
         cid=created['id']?.toString();
       }
-      if(cid==null||cid.isEmpty)throw Exception('conversation id missing');
+      if(cid==null||cid.isEmpty)throw Exception('شناسه گفت‌وگو پیدا نشد');
       if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:cid!,title:widget.ad['title']?.toString()??'گفت‌وگو')));
     }catch(e){
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('شروع گفت‌وگو انجام نشد: $e')));
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('باز کردن گفت‌وگو انجام نشد. لطفاً دوباره تلاش کنید.')));
     }
   }
 
@@ -3077,6 +3077,7 @@ class ConversationPage extends StatefulWidget {
 class _ConversationPageState extends State<ConversationPage> {
   final input=TextEditingController();
   bool loading=true, sending=false;
+  String? loadError;
   List<Map<String,dynamic>> rows=[];
   @override void initState(){super.initState();load();}
   @override void dispose(){input.dispose();super.dispose();}
@@ -3091,7 +3092,7 @@ class _ConversationPageState extends State<ConversationPage> {
         }catch(_){}
       }
       if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
-    } catch(e) { if(mounted)setState(()=>loading=false); }
+    } catch(e) { if(mounted)setState((){loading=false;loadError='بارگذاری پیام‌ها انجام نشد. لطفاً دوباره تلاش کنید.';}); }
   }
   Future<void> deleteConversation() async {
     final ok=await showDialog<bool>(
@@ -3122,7 +3123,7 @@ class _ConversationPageState extends State<ConversationPage> {
     try {
       await supabase.from('messages').insert({'conversation_id':widget.conversationId,'sender_id':u,'body':body});
       input.clear(); await load();
-    } catch(e) { if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ارسال پیام: '+e.toString()))); }
+    } catch(e) { if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ارسال پیام انجام نشد. لطفاً دوباره تلاش کنید.'))); }
     finally { if(mounted)setState(()=>sending=false); }
   }
   @override Widget build(BuildContext c) {
@@ -3145,7 +3146,9 @@ class _ConversationPageState extends State<ConversationPage> {
             Expanded(
               child:loading
                 ? const Center(child:CircularProgressIndicator())
-                : ListView(
+                : loadError!=null
+                  ? Center(child:Padding(padding:const EdgeInsets.all(24),child:Column(mainAxisSize:MainAxisSize.min,children:[const Icon(Icons.error_outline,size:48),const SizedBox(height:12),Text('بارگذاری پیام‌ها انجام نشد. لطفاً دوباره تلاش کنید.',textAlign:TextAlign.center),const SizedBox(height:12),FilledButton(onPressed:load,child:const Text('تلاش دوباره'))])))
+                  : ListView(
                     padding:const EdgeInsets.all(12),
                     children:rows.map((r){
                       final mine=r['sender_id']==u;
