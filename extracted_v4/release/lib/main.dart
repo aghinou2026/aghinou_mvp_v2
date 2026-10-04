@@ -479,6 +479,24 @@ class HomeCategoryData {
   };
   static List<String> subsFor(String category)=>categorySubs[category]??const [];
 }
+class _BadgeNavigationIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final int count;
+  const _BadgeNavigationIcon({required this.icon, required this.color, required this.count});
+  @override
+  Widget build(BuildContext context) => Stack(clipBehavior: Clip.none, children: [
+    Icon(icon, color: color),
+    if (count > 0) Positioned(right: -9, top: -8, child: Container(
+      constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(12)),
+      alignment: Alignment.center,
+      child: Text(count > 99 ? '۹۹+' : count.toString(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+    )),
+  ]);
+}
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -521,6 +539,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   RealtimeChannel? _notificationChannel;
   DateTime? _lastNotificationAt;
+  int unreadMessageCount = 0;
+  int unreadNotificationCount = 0;
+  int pendingPaymentCount = 0;
 
   @override
   void initState() {
@@ -529,9 +550,50 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     loadAds();
     loadCategories();
     loadSubscription();
-    loadAdmin(); loadProfile();
+    loadAdmin();
+    loadProfile();
+    loadBadgeCounts();
     _listenForNotifications();
   }
+
+  Future<void> loadBadgeCounts() async {
+    final uid = supabase.auth.currentUser?.id;
+    if (uid == null) return;
+    try {
+      final messages = await supabase.from('messages').select('id').neq('sender_id', uid).isFilter('read_at', null);
+      final notifications = await supabase.from('notifications').select('id').eq('user_id', uid).isFilter('read_at', null);
+      var pending = 0;
+      try {
+        if (await supabase.rpc('is_current_user_admin') == true) {
+          final payments = await supabase.from('payments').select('id').eq('status', 'pending');
+          pending = payments.length;
+        }
+      } catch (_) {}
+      if (!mounted) return;
+      setState(() {
+        unreadMessageCount = messages.length;
+        unreadNotificationCount = notifications.length;
+        pendingPaymentCount = pending;
+      });
+    } catch (_) {}
+  }
+
+  Widget badgeIcon(IconData icon, int count) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      Icon(icon),
+      if (count > 0) Positioned(
+        right: -8, top: -8,
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(12)),
+          alignment: Alignment.center,
+          child: Text(count > 99 ? '۹۹+' : count.toString(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+        ),
+      ),
+    ],
+  );
 
   void _listenForNotifications() {
     final uid = supabase.auth.currentUser?.id;
@@ -546,9 +608,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           final row = payload.newRecord;
           final title = row['title']?.toString() ?? 'اعلان آگهینو';
           _lastNotificationAt = DateTime.now();
+          SystemSound.play(SystemSoundType.alert);
+          loadBadgeCounts();
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(title)),
+            SnackBar(content: Text(title), duration: const Duration(seconds: 4)),
           );
         },
       )
@@ -560,6 +624,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       loadSubscription();
       loadAds();
+      loadBadgeCounts();
     }
   }
 
@@ -810,8 +875,11 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
               icon: const Icon(Icons.refresh),
             ),
             IconButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
-              icon: const Icon(Icons.notifications_none),
+              onPressed: () async {
+                await Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage()));
+                await loadBadgeCounts();
+              },
+              icon: badgeIcon(Icons.notifications_none, unreadNotificationCount),
             ),
           ],
         ),
@@ -844,13 +912,13 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
               label: 'علاقه‌مندی',
             ),
             NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline, color: Color(0xFF7B2CBF)),
-              selectedIcon: Icon(Icons.chat_bubble, color: Color(0xFF7B2CBF)),
+              icon: _BadgeNavigationIcon(icon: Icons.chat_bubble_outline, color: Color(0xFF7B2CBF), count: unreadMessageCount),
+              selectedIcon: _BadgeNavigationIcon(icon: Icons.chat_bubble, color: Color(0xFF7B2CBF), count: unreadMessageCount),
               label: 'پیام‌ها',
             ),
             NavigationDestination(
-              icon: Icon(Icons.person_outline, color: Color(0xFF2A9D8F)),
-              selectedIcon: Icon(Icons.person, color: Color(0xFF2A9D8F)),
+              icon: _BadgeNavigationIcon(icon: Icons.person_outline, color: Color(0xFF2A9D8F), count: unreadNotificationCount + pendingPaymentCount),
+              selectedIcon: _BadgeNavigationIcon(icon: Icons.person, color: Color(0xFF2A9D8F), count: unreadNotificationCount + pendingPaymentCount),
               label: 'حساب',
             ),
           ],
@@ -1357,7 +1425,7 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
         ),
         Card(
           child: ListTile(
-            leading: const Icon(Icons.notifications_none),
+            leading: badgeIcon(Icons.notifications_none, unreadNotificationCount),
             title: const Text('اعلان‌ها'),
             subtitle: const Text('مشاهده و مدیریت اعلان‌های حساب'),
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationsPage())),
