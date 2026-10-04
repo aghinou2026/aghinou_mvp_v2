@@ -41,37 +41,48 @@ class AghinouApp extends StatefulWidget {
 }
 
 class _AghinouAppState extends State<AghinouApp> with WidgetsBindingObserver {
-  RealtimeChannel? _adminNotificationChannel;
-  bool _adminListenerStarted = false;
+  RealtimeChannel? _notificationChannel;
+  bool _notificationListenerStarted = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _setupAdminPaymentNotifications();
+    _setupNotificationListener();
   }
 
-  void _setupAdminPaymentNotifications() {
-    if (_adminListenerStarted) return;
+  void _setupNotificationListener() {
+    if (_notificationListenerStarted) return;
     final uid = supabase.auth.currentUser?.id;
     if (uid == null) return;
-    supabase.from('admin_users').select('user_id').eq('user_id', uid).maybeSingle().then((row) {
-      if (!mounted || row == null) return;
-      _adminListenerStarted = true;
-      _adminNotificationChannel = supabase.channel('admin-payment-notifications-${uid}');
-      _adminNotificationChannel!.onPostgresChanges(
-        event: PostgresChangeEvent.insert,
-        schema: 'public',
-        table: 'notifications',
-        filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'user_id', value: uid),
-        callback: (payload) {
-          final n = payload.newRecord;
-          final title = n['title']?.toString() ?? 'اعلان جدید';
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(title)));
-          }
-        },
-      ).subscribe();
-    });
+
+    _notificationListenerStarted = true;
+    _notificationChannel = supabase.channel('user-notifications-${uid}');
+    _notificationChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'notifications',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'user_id',
+        value: uid,
+      ),
+      callback: (payload) {
+        final n = payload.newRecord;
+        final title = n['title']?.toString() ?? 'اعلان جدید';
+        final body = n['body']?.toString();
+        if (!mounted) return;
+
+        // فقط وقتی برنامه باز و در حال استفاده است: صدای سیستم + اعلان داخل برنامه.
+        SystemSound.play(SystemSoundType.alert);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(body == null || body.isEmpty ? title : '$title\n$body'),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      },
+    ).subscribe();
   }
 
   @override
