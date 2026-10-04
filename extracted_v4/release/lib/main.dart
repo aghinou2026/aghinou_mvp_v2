@@ -2780,25 +2780,20 @@ class _AdDetailPageState extends State<AdDetailPage>{
       return;
     }
     if(sellerId==u){
-      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('برای تست پیام، باید با یک حساب دیگر وارد شوید.')));
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('امکان پیام دادن به آگهی خودتان وجود ندارد.')));
       return;
     }
-    if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('در حال باز کردن گفت‌وگو...')));
     try{
-      final found=await supabase.from('conversations').select('id')
-        .eq('ad_id',adId).eq('buyer_id',u).eq('seller_id',sellerId).limit(1);
-      String? cid=found.isNotEmpty?found.first['id']?.toString():null;
-      if(cid==null){
-        final created=await supabase.from('conversations').insert({
-          'buyer_id':u,'seller_id':sellerId,'ad_id':adId,
-          'title':widget.ad['title']?.toString()??'گفت‌وگو',
-          'updated_at':DateTime.now().toUtc().toIso8601String(),
-        }).select('id').single();
-        cid=created['id']?.toString();
-      }
-      if(cid==null||cid.isEmpty)throw Exception('شناسه گفت‌وگو پیدا نشد');
-      if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:cid!,title:widget.ad['title']?.toString()??'گفت‌وگو')));
-    }catch(e){
+      if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('در حال باز کردن گفت‌وگو...')));
+      final result=await supabase.rpc('create_conversation',params:{
+        'p_ad_id':adId,
+        'p_seller_id':sellerId,
+        'p_title':widget.ad['title']?.toString()??'گفت‌وگو',
+      });
+      final conversationId=result?.toString();
+      if(conversationId==null||conversationId.isEmpty)throw Exception('conversation id missing');
+      if(mounted)Navigator.push(context,MaterialPageRoute(builder:(_)=>ConversationPage(conversationId:conversationId,title:widget.ad['title']?.toString()??'گفت‌وگو')));
+    }catch(_){
       if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('باز کردن گفت‌وگو انجام نشد. لطفاً دوباره تلاش کنید.')));
     }
   }
