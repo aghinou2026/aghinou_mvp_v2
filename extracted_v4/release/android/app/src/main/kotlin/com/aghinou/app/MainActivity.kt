@@ -18,7 +18,7 @@ class MainActivity : FlutterActivity() {
                     "playMessageSound" -> {
                         try {
                             val tone = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
-                            tone.startTone(ToneGenerator.TONE_PROP_BEEP2, 180)
+                            tone.startTone(ToneGenerator.TONE_PROP_ACK, 280)
                             android.os.Handler(mainLooper).postDelayed({ tone.release() }, 250)
                             result.success(null)
                         } catch (e: Exception) {
