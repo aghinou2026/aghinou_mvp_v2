@@ -776,6 +776,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     Future.wait([
       loadAds(),
       loadCategories(),
+      loadRecentSearches(),
       loadSubscription(),
       loadAdmin(),
       loadProfile(),
@@ -846,6 +847,35 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  Future<void> loadRecentSearches() async {
+    final uid = supabase.auth.currentUser?.id;
+    if (uid == null) return;
+    try {
+      final rows = await supabase.from('search_history').select('query').eq('user_id', uid).order('created_at', ascending: false).limit(8);
+      if (!mounted) return;
+      final seen = <String>{};
+      final values = <String>[];
+      for (final row in rows) {
+        final q = row['query']?.toString().trim() ?? '';
+        if (q.isNotEmpty && seen.add(q)) values.add(q);
+      }
+      setState(() => recentSearches = values);
+    } catch (_) {}
+  }
+
+  Future<void> saveRecentSearch(String value) async {
+    final uid = supabase.auth.currentUser?.id;
+    final q = value.trim();
+    if (uid == null || q.isEmpty) return;
+    try {
+      await supabase.from('search_history').insert({'user_id': uid, 'query': q});
+      final old = await supabase.from('search_history').select('id').eq('user_id', uid).order('created_at', ascending: false);
+      final ids = List<Map<String, dynamic>>.from(old).skip(8).map((row) => row['id']).where((id) => id != null).toList();
+      if (ids.isNotEmpty) await supabase.from('search_history').delete().inFilter('id', ids);
+      await loadRecentSearches();
+    } catch (_) {}
   }
 
   Future<void> loadProfile() async{final uid=supabase.auth.currentUser?.id;if(uid==null)return;try{final p=await supabase.from('profiles').select('first_name,last_name,cphone,name').eq('iidd',uid).maybeSingle();if(!mounted||p==null)return;setState((){profileFirstName=p['first_name']?.toString()??'';profileLastName=p['last_name']?.toString()??'';profilePhone=p['cphone']?.toString()??'';});}catch(_){}}
@@ -1199,7 +1229,7 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
         children: [
           Row(children:[
             Expanded(child:TextField(
-            onSubmitted:(value){if(value.trim().isNotEmpty&&!recentSearches.contains(value.trim()))setState(()=>recentSearches=[value.trim(),...recentSearches].take(8).toList());},
+            onSubmitted:(value){final q=value.trim();if(q.isNotEmpty){setState(()=>recentSearches=[q,...recentSearches.where((x)=>x!=q)].take(8).toList());saveRecentSearch(q);}},
             onChanged: (value) => setState(() => searchQuery = value),
             decoration: InputDecoration(
               hintText: 'چی می‌خوای پیدا کنی؟',
