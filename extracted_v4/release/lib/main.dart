@@ -3410,7 +3410,10 @@ class _MessagesPageState extends State<MessagesPage>{
     await markAllReadOnOpen(u.id);
     try{
       final r=await supabase.from('conversations').select('*').or('buyer_id.eq.${u.id},seller_id.eq.${u.id}').order('created_at',ascending:false);
-      if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
+      if(mounted){
+        setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
+        WidgetsBinding.instance.addPostFrameCallback((_)=>_scrollToBottom());
+      }
     }catch(_){if(mounted)setState(()=>loading=false);}
   }
   @override Widget build(BuildContext c){
@@ -3438,6 +3441,7 @@ class _ConversationPageState extends State<ConversationPage> {
   String? loadError;
   List<Map<String,dynamic>> rows=[];
   RealtimeChannel? _messageChannel;
+  final ScrollController _scrollController=ScrollController();
 
   @override void initState(){
     super.initState();
@@ -3460,22 +3464,30 @@ class _ConversationPageState extends State<ConversationPage> {
         final n=Map<String,dynamic>.from(payload.newRecord);
         if(n['conversation_id']?.toString()!=widget.conversationId)return;
         final uid=supabase.auth.currentUser?.id;
-        if(uid!=null && n['sender_id']?.toString()==uid)return;
         if(!mounted)return;
         if(!rows.any((x)=>x['id']?.toString()==n['id']?.toString())){
           setState(()=>rows.add(n));
+          WidgetsBinding.instance.addPostFrameCallback((_)=>_scrollToBottom());
         }
-        try {
-          const MethodChannel('com.aghinou.app/notifications').invokeMethod('playMessageSound');
-        } catch (_) {
-          SystemSound.play(SystemSoundType.alert);
+        if(uid==null || n['sender_id']?.toString()!=uid){
+          try {
+            const MethodChannel('com.aghinou.app/notifications').invokeMethod('playMessageSound');
+          } catch (_) {
+            SystemSound.play(SystemSoundType.alert);
+          }
         }
       },
     ).subscribe();
   }
 
+  void _scrollToBottom(){
+    if(!_scrollController.hasClients)return;
+    _scrollController.animateTo(_scrollController.position.maxScrollExtent,duration:const Duration(milliseconds:220),curve:Curves.easeOut);
+  }
+
   @override void dispose(){
     if(_messageChannel!=null) supabase.removeChannel(_messageChannel!);
+    _scrollController.dispose();
     input.dispose();
     super.dispose();
   }
@@ -3519,7 +3531,11 @@ class _ConversationPageState extends State<ConversationPage> {
     if(body.isEmpty||u==null)return;
     setState(()=>sending=true);
     try {
-      await supabase.from('messages').insert({'conversation_id':widget.conversationId,'sender_id':u,'body':body});
+      final inserted=await supabase.from('messages').insert({'conversation_id':widget.conversationId,'sender_id':u,'body':body}).select('*').single();
+      if(mounted && !rows.any((x)=>x['id']?.toString()==inserted['id']?.toString())){
+        setState(()=>rows.add(Map<String,dynamic>.from(inserted)));
+        WidgetsBinding.instance.addPostFrameCallback((_)=>_scrollToBottom());
+      }
       input.clear();
     } catch(e) { if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ارسال پیام انجام نشد. لطفاً دوباره تلاش کنید.'))); }
     finally { if(mounted)setState(()=>sending=false); }
@@ -3547,6 +3563,7 @@ class _ConversationPageState extends State<ConversationPage> {
                 : loadError!=null
                   ? Center(child:Padding(padding:const EdgeInsets.all(24),child:Column(mainAxisSize:MainAxisSize.min,children:[const Icon(Icons.error_outline,size:48),const SizedBox(height:12),Text('بارگذاری پیام‌ها انجام نشد. لطفاً دوباره تلاش کنید.',textAlign:TextAlign.center),const SizedBox(height:12),FilledButton(onPressed:load,child:const Text('تلاش دوباره'))])))
                   : ListView(
+                    controller:_scrollController,
                     padding:const EdgeInsets.all(12),
                     children:rows.map((r){
                       final mine=r['sender_id']==u;
