@@ -3430,7 +3430,6 @@ class _MessagesPageState extends State<MessagesPage>{
       final r=await supabase.from('conversations').select('*').or('buyer_id.eq.${u.id},seller_id.eq.${u.id}').order('created_at',ascending:false);
       if(mounted){
         setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});
-        WidgetsBinding.instance.addPostFrameCallback((_)=>_scrollToBottom());
       }
     }catch(_){if(mounted)setState(()=>loading=false);}
   }
