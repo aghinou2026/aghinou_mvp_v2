@@ -922,9 +922,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }catch(_){}
   }
   Future<void> callForAdvertising() async {
-    final phone=commercialContactPhone.trim();
-    if(phone.isEmpty){if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('شماره تماس تبلیغات هنوز تنظیم نشده است.')));return;}
-    await launchUrl(Uri.parse('tel:$phone'));
+    var phone = commercialContactPhone.trim()
+        .replaceAll(' ', '')
+        .replaceAll('-', '')
+        .replaceAll('(', '')
+        .replaceAll(')', '');
+    const fa = '۰۱۲۳۴۵۶۷۸۹';
+    const ar = '٠١٢٣٤٥٦٧٨٩';
+    for (var i = 0; i < 10; i++) {
+      phone = phone.replaceAll(fa[i], '$i').replaceAll(ar[i], '$i');
+    }
+    if (phone.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('شماره تماس تبلیغات هنوز تنظیم نشده است.')),
+        );
+      }
+      return;
+    }
+    if (phone.startsWith('0098')) {
+      phone = '+98' + phone.substring(4);
+    } else if (phone.startsWith('09')) {
+      phone = '+98' + phone.substring(1);
+    } else if (phone.startsWith('98')) {
+      phone = '+$phone';
+    }
+    final uri = Uri(scheme: 'tel', path: phone);
+    if (!await launchUrl(uri)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('برقراری تماس امکان‌پذیر نشد.')),
+        );
+      }
+    }
   }
   Widget commercialAdCard(Map<String,dynamic> ad){
     final image=ad['image_url']?.toString()??'',title=ad['title']?.toString()??'تبلیغ ویژه',desc=ad['description']?.toString()??'',target=ad['target_url']?.toString()??'';
