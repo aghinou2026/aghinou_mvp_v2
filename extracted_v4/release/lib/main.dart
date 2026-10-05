@@ -749,6 +749,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String commercialContactText = 'برای تبلیغات با ما تماس بگیرید.';
   bool loadingSubscription = true;
   bool hasActiveSubscription = false;
+  bool hasSubscriptionHistory = false;
   bool isAdmin = false;
   int adsUsed = 0;
   int adLimit = 9;
@@ -845,31 +846,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     ],
   );
 
-  /* removed duplicate notification listener */
-  void _listenForNotifications_DISABLED() {
-    final uid = supabase.auth.currentUser?.id;
-    if (uid == null) return;
-    _notificationChannel = supabase.channel('user-notifications-$uid')
-      .onPostgresChanges(
-        event: PostgresChangeEvent.insert,
-        schema: 'public',
-        table: 'notifications',
-        filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'user_id', value: uid),
-        callback: (payload) {
-          final row = payload.newRecord;
-          final title = row['title']?.toString() ?? 'اعلان آگهینو';
-          _lastNotificationAt = DateTime.now();
-          SystemSound.play(SystemSoundType.alert);
-          loadBadgeCounts();
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(title), duration: const Duration(seconds: 4)),
-          );
-        },
-      )
-      .subscribe();
-  }
-
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
@@ -882,8 +858,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    final ch = _notificationChannel;
-    if (ch != null) supabase.removeChannel(ch);
     super.dispose();
   }
 
