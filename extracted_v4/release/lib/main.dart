@@ -3132,7 +3132,20 @@ class _AdDetailPageState extends State<AdDetailPage>{
     );
     if(ok!=true)return;
     try{
-      await supabase.from('ad_images').delete().eq('ad_id',id);
+      final imageRows=await supabase.from('ad_images').select('image_url').eq('ad_id',id);
+      final storagePaths=<String>[];
+      for(final row in imageRows){
+        final raw=row['image_url']?.toString()??'';
+        const marker='/storage/v1/object/public/ad-images/';
+        final at=raw.indexOf(marker);
+        if(at>=0){
+          final path=raw.substring(at+marker.length);
+          if(path.isNotEmpty)storagePaths.add(path);
+        }
+      }
+      if(storagePaths.isNotEmpty){
+        try{await supabase.storage.from('ad-images').remove(storagePaths);}catch(_){}
+      }
       await supabase.from('ads').delete().eq('idd',id).eq('seller_id',u);
       if(!mounted)return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('آگهی و عکس‌های آن حذف شد.')));
