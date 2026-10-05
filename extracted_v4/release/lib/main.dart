@@ -74,6 +74,9 @@ class _AghinouAppState extends State<AghinouApp> with WidgetsBindingObserver {
       ),
       callback: (payload) {
         final n = payload.newRecord;
+        final type = n['type']?.toString() ?? '';
+        // پیام‌های چت فقط در بخش «پیام‌ها» نمایش داده می‌شوند، نه اعلان‌ها.
+        if (type == 'message') return;
         final title = n['title']?.toString() ?? 'اعلان جدید';
         final body = n['body']?.toString();
         if (!mounted) return;
@@ -801,7 +804,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (uid == null) return;
     try {
       final messages = await supabase.from('messages').select('id').neq('sender_id', uid).isFilter('read_at', null);
-      final notifications = await supabase.from('notifications').select('id').eq('user_id', uid).isFilter('read_at', null);
+      final notifications = await supabase.from('notifications').select('id').eq('user_id', uid).neq('type', 'message').isFilter('read_at', null);
       var pending = 0;
     var support = 0;
       try {
@@ -2743,7 +2746,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
   @override void initState(){super.initState();load();}
   Future<void> load() async {
     final uid=supabase.auth.currentUser?.id;if(uid==null){if(mounted)setState(()=>loading=false);return;}
-    try{final r=await supabase.from('notifications').select('id,title,body,type,read_at,created_at').eq('user_id',uid).order('created_at',ascending:false).limit(100);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}
+    try{final r=await supabase.from('notifications').select('id,title,body,type,read_at,created_at').eq('user_id',uid).neq('type','message').order('created_at',ascending:false).limit(100);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}
     catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت اعلان‌ها انجام نشد. لطفاً دوباره تلاش کنید.')));}}
   }
   Future<void> markRead(String id) async {try{await supabase.from('notifications').update({'read_at':DateTime.now().toIso8601String()}).eq('id',id).eq('user_id',supabase.auth.currentUser!.id);if(mounted)setState((){final i=rows.indexWhere((x)=>x['id'].toString()==id);if(i>=0)rows[i]['read_at']=DateTime.now().toIso8601String();});}catch(_){ }}
