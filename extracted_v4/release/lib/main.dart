@@ -2049,7 +2049,11 @@ class _EditAdPageState extends State<EditAdPage>{
     if((categoryDetailFields[category]??const <String>[]).isNotEmpty) ...[
       const SizedBox(height:14),const Text('جزئیات آگهی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),
       if(category=='خودرو') vehicleInsuranceSection(),
-      ...(categoryDetailFields[category]??const <String>[]).where((f)=>category!='خودرو'||!vehicleInsuranceFields.contains(f)).map((f)=>aghinouDetailField(category,f,detailControllers[f]!)),
+      ...(categoryDetailFields[category]??const <String>[]).where((f){
+              if(category!='خودرو') return true;
+              const vehicleAlreadySelected={'برند','مدل','سال ساخت','کارکرد (کیلومتر)','رنگ','گیربکس','وضعیت بدنه','سوخت','معاوضه'};
+              return !vehicleInsuranceFields.contains(f) && !vehicleAlreadySelected.contains(f);
+            }).map((f)=>aghinouDetailField(category,f,detailControllers[f]!)),
     ],
     const SizedBox(height:18),FilledButton(onPressed:saving?null:save,child:Text(saving?'در حال ذخیره...':'ذخیره تغییرات')),
   ])));
@@ -2322,7 +2326,11 @@ class _AddAdPageState extends State<AddAdPage>{
           if((categoryDetailFields[category]??const <String>[]).isNotEmpty) ...[
             const SizedBox(height:14),const Text('جزئیات آگهی',style:TextStyle(fontSize:18,fontWeight:FontWeight.bold)),const SizedBox(height:8),
             if(category=='خودرو') vehicleInsuranceSection(),
-            ...(categoryDetailFields[category]??const <String>[]).where((f)=>category!='خودرو'||!vehicleInsuranceFields.contains(f)).map((f)=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:detailControllers[f],decoration:InputDecoration(labelText:f,border:const OutlineInputBorder())))),
+            ...(categoryDetailFields[category]??const <String>[]).where((f){
+              if(category!='خودرو') return true;
+              const vehicleAlreadySelected={'برند','مدل','سال ساخت','کارکرد (کیلومتر)','رنگ','گیربکس','وضعیت بدنه','سوخت','معاوضه'};
+              return !vehicleInsuranceFields.contains(f) && !vehicleAlreadySelected.contains(f);
+            }).map((f)=>Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:detailControllers[f],decoration:InputDecoration(labelText:f,border:const OutlineInputBorder())))),
           ],
           const SizedBox(height:14),
           OutlinedButton.icon(onPressed:publishing?null:pickImages,icon:const Icon(Icons.add_a_photo_outlined),label:Text('افزودن عکس '+selectedImages.length.toString()+'/حداکثر')),
