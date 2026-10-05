@@ -774,8 +774,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     'خودرو','املاک','موبایل و تبلت','لوازم دیجیتال','لوازم خانگی','مبلمان و دکوراسیون','پوشاک و کیف و کفش','وسایل نقلیه','خدمات','استخدام و کاریابی','لوازم شخصی','سرگرمی و ورزش','کشاورزی و دامداری','ابزار و تجهیزات','حیوانات','سایر',
   ];
 
-  RealtimeChannel? _notificationChannel;
-  DateTime? _lastNotificationAt;
+
   int unreadMessageCount = 0;
   int unreadNotificationCount = 0;
   int pendingPaymentCount = 0;
@@ -794,7 +793,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       loadProfile(),
       loadBadgeCounts(),
     ]);
-    _listenForNotifications();
   }
 
   Future<void> loadBadgeCounts() async {
@@ -847,7 +845,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     ],
   );
 
-  void _listenForNotifications() {
+  /* removed duplicate notification listener */
+  void _listenForNotifications_DISABLED() {
     final uid = supabase.auth.currentUser?.id;
     if (uid == null) return;
     _notificationChannel = supabase.channel('user-notifications-$uid')
@@ -945,11 +944,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final uid=supabase.auth.currentUser?.id;
     if(uid==null){if(mounted)setState(()=>loadingSubscription=false);return;}
     try{
-      final row=await supabase.from('subscriptions').select('expires_at,ads_used,ad_limit,status').eq('user_id',uid).eq('status','active').gt('expires_at',DateTime.now().toIso8601String()).order('expires_at',ascending:false).limit(1).maybeSingle();
+      final row=await supabase.from('subscriptions').select('expires_at,ads_used,ad_limit,status').eq('user_id',uid).eq('status','active').gt('expires_at',DateTime.now().toUtc().toIso8601String()).order('expires_at',ascending:false).limit(1).maybeSingle();
+      final history=await supabase.from('subscriptions').select('id').eq('user_id',uid).limit(1).maybeSingle();
       final expiresRaw=row?['expires_at']?.toString();
       final expires=expiresRaw==null?null:DateTime.tryParse(expiresRaw);
       if(!mounted)return;
-      setState((){subscriptionExpiresAt=expires;hasActiveSubscription=expires!=null&&expires.isAfter(DateTime.now());adsUsed=(row?['ads_used'] as num?)?.toInt()??0;adLimit=(row?['ad_limit'] as num?)?.toInt()??9;loadingSubscription=false;});
+      setState((){subscriptionExpiresAt=expires;hasActiveSubscription=expires!=null&&expires.isAfter(DateTime.now());hasSubscriptionHistory=history!=null;adsUsed=(row?['ads_used'] as num?)?.toInt()??0;adLimit=(row?['ad_limit'] as num?)?.toInt()??9;loadingSubscription=false;});
     }catch(e){if(mounted){setState(()=>loadingSubscription=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('بررسی اشتراک انجام نشد. لطفاً دوباره تلاش کنید.')));}}
   }
   Future<void> loadCommercialAds() async {
@@ -1647,6 +1647,32 @@ const SizedBox(height:14),Row(children:[Expanded(child:OutlinedButton.icon(onPre
             ),
           ),
         ),
+        if (hasSubscriptionHistory && !hasActiveSubscription)
+          Card(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE76F51), width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('⏰ دوره ثبت آگهی شما تمام شده است', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 7),
+                  const Text('مشاهده آگهی‌ها همچنان رایگان است. برای ادامه ثبت آگهی، اشتراک ماهانه ۳۹٬۰۰۰ تومان را فعال کنید.', style: TextStyle(height: 1.5)),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SubscriptionPage())),
+                    icon: const Icon(Icons.workspace_premium),
+                    label: const Text('فعال‌سازی اشتراک ۳۹٬۰۰۰ تومانی'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (hasSubscriptionHistory && !hasActiveSubscription) const SizedBox(height: 8),
         Card(
           child: ListTile(
             leading: const Icon(Icons.workspace_premium),
