@@ -220,7 +220,7 @@ class _LoginPageState extends State<LoginPage> {
         // RLS/profile sync must never block a successful login.
       }
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+        await _finishLoginAndOpen(context, u.id);
       }
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -244,10 +244,29 @@ class _LoginPageState extends State<LoginPage> {
       final r=await supabase.auth.signUp(email:authEmailForPhone(v),password:p); final u=r.user;
       if(u==null)throw Exception('ساخت حساب انجام نشد.'); if(r.session==null)throw Exception('حساب ساخته شد، اما تأیید ایمیل فعال است.');
       await supabase.from('profiles').upsert({'iidd':u.id,'cphone':v,'first_name':fn,'last_name':ln,'name':'$fn $ln','accepted_terms_version':currentTermsVersion,'accepted_terms_at':DateTime.now().toUtc().toIso8601String()},onConflict:'iidd');
-      if(mounted)Navigator.pushReplacement(context,MaterialPageRoute(builder:(_)=>const HomePage()));
+      if(mounted) await _finishLoginAndOpen(context, u.id);
     }on AuthException catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(authErrorMessage(e,registerMode:true))));}
     catch(e){if(mounted)ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.')));}
     finally{if(mounted)setState(()=>loading=false);}
+  }
+
+  Future<void> _finishLoginAndOpen(BuildContext context, String uid) async {
+    var showWelcome = false;
+    try {
+      final profile = await supabase.from('profiles').select('welcome_shown_at').eq('iidd', uid).maybeSingle();
+      if (profile?['welcome_shown_at'] == null) {
+        await supabase.rpc('start_free_trial');
+        await supabase.from('profiles').update({'welcome_shown_at': DateTime.now().toUtc().toIso8601String()}).eq('iidd', uid);
+        showWelcome = true;
+      }
+    } catch (_) {
+      // ورود نباید به خاطر صفحه خوشامدگویی یا شروع آزمایشی شکست بخورد.
+    }
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => showWelcome ? const WelcomePage() : const HomePage()),
+    );
   }
 
   @override
@@ -337,6 +356,103 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+}
+
+class WelcomePage extends StatelessWidget {
+  const WelcomePage({super.key});
+
+  Future<void> openHome(BuildContext context) async {
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage()));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Scaffold(
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(22, 28, 22, 24),
+            child: Column(
+              children: [
+                Container(
+                  width: 86,
+                  height: 86,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFF006D77), Color(0xFF0A9396)]),
+                    borderRadius: BorderRadius.circular(26),
+                  ),
+                  child: const Icon(Icons.storefront_rounded, size: 48, color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                const Text('🎉 به آگهینو خوش آمدید!', textAlign: TextAlign.center, style: TextStyle(fontSize: 27, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 10),
+                const Text('اینجا فقط آگهی نمی‌بینید؛ فرصت‌های خوب را پیدا می‌کنید.', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, height: 1.6)),
+                const SizedBox(height: 20),
+                Card(
+                  elevation: 1,
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      children: [
+                        const ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.search_rounded, size: 30, color: Color(0xFF006D77)),
+                          title: Text('مشاهده آگهی‌ها کاملاً رایگان است', style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('آگهی‌ها را جست‌وجو کنید، جزئیات را ببینید و با فروشندگان گفتگو کنید.'),
+                        ),
+                        const Divider(),
+                        const ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.card_giftcard_rounded, size: 30, color: Color(0xFF0A9396)),
+                          title: Text('🎁 اولین ماه ثبت آگهی رایگان!', style: TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('برای شروع، ۳۰ روز امکان ثبت آگهی بدون پرداخت برای شما فعال شده است.'),
+                        ),
+                        const Divider(),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Color(0xFF0A9396)),
+                          ),
+                          child: const Column(
+                            children: [
+                              Text('بعد از ماه اول', style: TextStyle(fontWeight: FontWeight.bold)),
+                              SizedBox(height: 6),
+                              Text('💳 اشتراک ماهانه', style: TextStyle(fontSize: 16)),
+                              SizedBox(height: 4),
+                              Text('۳۹٬۰۰۰ تومان', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+                              SizedBox(height: 4),
+                              Text('برای ادامه ثبت آگهی', style: TextStyle(color: Color(0xFF60727A))),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        const Text('❤️ اول امتحان کنید، بعد تصمیم بگیرید.', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton.icon(
+                    onPressed: () => openHome(context),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    label: const Text('شروع رایگان'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text('هیچ پرداخت خودکاری انجام نمی‌شود.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: Color(0xFF60727A))),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class TermsPage extends StatelessWidget {
