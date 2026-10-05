@@ -78,8 +78,12 @@ class _AghinouAppState extends State<AghinouApp> with WidgetsBindingObserver {
         final body = n['body']?.toString();
         if (!mounted) return;
 
-        // فقط وقتی برنامه باز و در حال استفاده است: صدای سیستم + اعلان داخل برنامه.
-        SystemSound.play(SystemSoundType.alert);
+        // فقط وقتی برنامه باز است: صدای واقعی اندروید + اعلان داخل برنامه.
+        try {
+          const MethodChannel('com.aghinou.app/notifications').invokeMethod('playMessageSound');
+        } catch (_) {
+          SystemSound.play(SystemSoundType.alert);
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(body == null || body.isEmpty ? title : '$title\n$body'),
@@ -491,6 +495,23 @@ List<String> aghinouOptions(String category,String field){
   if(field=='مناسب برای'||field=='قابل استفاده برای') return ['زنانه','مردانه','بچگانه','کودک','نوجوان','بزرگسال','همه'];
   if(field=='فصل') return ['بهار','تابستان','پاییز','زمستان','همه فصل‌ها'];
   if(field=='نوع معامله') return ['فروش','رهن و اجاره','اجاره','پیش‌فروش','معاوضه'];
+  if(field=='برند'||field=='برند/سازنده') return categoryBrandOptions[category] ?? const <String>[];
+  if(field=='کشور سازنده') return ['ایران','چین','کره جنوبی','ژاپن','آلمان','فرانسه','ایتالیا','انگلیس','آمریکا','سایر'];
+  if(field=='سیستم‌عامل') return ['Android','Windows','macOS','iOS','Linux','سایر'];
+  if(field=='شبکه') return ['4G','5G','4G/5G','3G','سایر'];
+  if(field=='نوع کاربری') return ['مسکونی','تجاری','اداری','کشاورزی','صنعتی','سایر'];
+  if(field=='سند') return ['تک‌برگ','شش‌دانگ','قولنامه‌ای','اوقافی','سایر'];
+  if(field=='نوع همکاری') return ['تمام‌وقت','پاره‌وقت','پروژه‌ای','کارآموزی','قراردادی','موقت','فریلنسری'];
+  if(field=='نوع حقوق') return ['ماهانه','ساعتی','روزانه','پروژه‌ای','پورسانتی'];
+  if(field=='بیمه'||field=='دورکاری') return yesNo;
+  if(field=='مدرک تحصیلی') return ['بدون مدرک','دیپلم','کاردانی','کارشناسی','کارشناسی ارشد','دکتری'];
+  if(field=='فوری'||field=='ضمانت خدمت') return yesNo;
+  if(field=='حضوری/غیرحضوری') return ['حضوری','غیرحضوری','هر دو'];
+  if(field=='سطح استفاده') return ['مبتدی','متوسط','حرفه‌ای'];
+  if(field=='نوع نگهداری') return ['خانگی','پرورشی','صنعتی'];
+  if(field=='وضعیت سلامت') return ['سالم','نیازمند درمان'];
+  if(field=='واکسیناسیون') return ['کامل','ناقص','ندارد'];
+  if(field=='نوع قیمت') return ['توافقی','ثابت','از قیمت پایه'];
   if(field=='پارکینگ'||field=='انباری'||field=='آسانسور'||field=='بالکن'||field=='بازسازی شده'||field=='مبله') return yesNo;
   if(field=='سند') return ['تک‌برگ','شش‌دانگ','قولنامه‌ای','اوقافی','سایر'];
   if(field=='نوع کاربری') return ['مسکونی','تجاری','اداری','کشاورزی','صنعتی'];
@@ -538,12 +559,24 @@ const Map<String,List<String>> categoryRangeFields = {
 Widget aghinouDetailField(String category,String field,TextEditingController controller){
   final opts=aghinouOptions(category,field);
   final items=opts.isNotEmpty?opts:(field=='سال ساخت'||field=='سال تولید'?aghinouYears():const <String>[]);
-  if(items.isEmpty) return Padding(padding:const EdgeInsets.only(bottom:10),child:TextField(controller:controller,keyboardType:field.contains('متر')||field.contains('سال')||field.contains('تعداد')||field.contains('سن')||field.contains('حقوق')||field.contains('قیمت')?TextInputType.number:null,decoration:InputDecoration(labelText:field,border:const OutlineInputBorder())));
+  if(items.isEmpty) return Padding(
+    padding:const EdgeInsets.only(bottom:10),
+    child:TextField(
+      controller:controller,
+      keyboardType:field.contains('متر')||field.contains('سال')||field.contains('تعداد')||field.contains('سن')||field.contains('حقوق')||field.contains('قیمت')||field.contains('کارکرد')||field.contains('وزن')||field.contains('مقدار')||field.contains('ظرفیت')||field.contains('توان')?TextInputType.number:null,
+      decoration:InputDecoration(labelText:field,border:const OutlineInputBorder()),
+    ),
+  );
   final value=items.contains(controller.text)?controller.text:null;
-  return Padding(padding:const EdgeInsets.only(bottom:10),child:DropdownButtonFormField<String>(
-    value:value,items:items.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
-    onChanged:(v){if(v!=null)controller.text=v;},decoration:InputDecoration(labelText:field,border:const OutlineInputBorder()),
-  ));
+  return Padding(
+    padding:const EdgeInsets.only(bottom:10),
+    child:DropdownButtonFormField<String>(
+      value:value,
+      items:items.map((x)=>DropdownMenuItem(value:x,child:Text(x))).toList(),
+      onChanged:(v){if(v!=null)controller.text=v;},
+      decoration:InputDecoration(labelText:field,border:const OutlineInputBorder()),
+    ),
+  );
 }
 
 class HomeCategoryData {
@@ -3280,8 +3313,49 @@ class _ConversationPageState extends State<ConversationPage> {
   bool loading=true, sending=false;
   String? loadError;
   List<Map<String,dynamic>> rows=[];
-  @override void initState(){super.initState();load();}
-  @override void dispose(){input.dispose();super.dispose();}
+  RealtimeChannel? _messageChannel;
+
+  @override void initState(){
+    super.initState();
+    load();
+    _subscribeToMessages();
+  }
+
+  void _subscribeToMessages(){
+    _messageChannel=supabase.channel('conversation-${widget.conversationId}');
+    _messageChannel!.onPostgresChanges(
+      event: PostgresChangeEvent.insert,
+      schema: 'public',
+      table: 'messages',
+      filter: PostgresChangeFilter(
+        type: PostgresChangeFilterType.eq,
+        column: 'conversation_id',
+        value: widget.conversationId,
+      ),
+      callback: (payload){
+        final n=Map<String,dynamic>.from(payload.newRecord);
+        if(n['conversation_id']?.toString()!=widget.conversationId)return;
+        final uid=supabase.auth.currentUser?.id;
+        if(uid!=null && n['sender_id']?.toString()==uid)return;
+        if(!mounted)return;
+        if(!rows.any((x)=>x['id']?.toString()==n['id']?.toString())){
+          setState(()=>rows.add(n));
+        }
+        try {
+          const MethodChannel('com.aghinou.app/notifications').invokeMethod('playMessageSound');
+        } catch (_) {
+          SystemSound.play(SystemSoundType.alert);
+        }
+      },
+    ).subscribe();
+  }
+
+  @override void dispose(){
+    if(_messageChannel!=null) supabase.removeChannel(_messageChannel!);
+    input.dispose();
+    super.dispose();
+  }
+
   Future<void> load() async {
     try {
       final r=await supabase.from('messages').select('*').eq('conversation_id',widget.conversationId).order('created_at');
@@ -3322,7 +3396,7 @@ class _ConversationPageState extends State<ConversationPage> {
     setState(()=>sending=true);
     try {
       await supabase.from('messages').insert({'conversation_id':widget.conversationId,'sender_id':u,'body':body});
-      input.clear(); await load();
+      input.clear();
     } catch(e) { if(mounted)ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content:Text('ارسال پیام انجام نشد. لطفاً دوباره تلاش کنید.'))); }
     finally { if(mounted)setState(()=>sending=false); }
   }
