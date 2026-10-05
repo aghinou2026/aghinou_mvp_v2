@@ -616,7 +616,7 @@ List<String> aghinouOptions(String category,String field){
   if(field=='فصل') return ['بهار','تابستان','پاییز','زمستان','همه فصل‌ها'];
   if(field=='نوع معامله') return ['فروش','رهن و اجاره','اجاره','پیش‌فروش','معاوضه'];
   if(field=='برند'||field=='برند/سازنده') return categoryBrandOptions[category] ?? const <String>[];
-  if(field=='مدل') return categoryBrandOptions[category]?.expand((b)=>categoryModelOptions[category]?[b]??const <String>[]).toSet().toList() ?? const <String>[];
+  // مدل را فعلاً به‌صورت ورود آزاد نگه می‌داریم تا مدل‌های نادرست به کاربر تحمیل نشود.
   if(field=='کشور سازنده') return ['ایران','چین','کره جنوبی','ژاپن','آلمان','فرانسه','ایتالیا','انگلیس','آمریکا','سایر'];
   if(field=='سیستم‌عامل') return ['Android','Windows','macOS','iOS','Linux','سایر'];
   if(field=='شبکه') return ['3G','4G','5G','4G/5G','سایر'];
@@ -3485,7 +3485,7 @@ class _ConversationPageState extends State<ConversationPage> {
         if(!mounted)return;
         if(!rows.any((x)=>x['id']?.toString()==n['id']?.toString())){
           setState(()=>rows.add(n));
-          WidgetsBinding.instance.addPostFrameCallback((_)=>_scrollToBottom());
+ 
         }
         if(uid==null || n['sender_id']?.toString()!=uid){
           try {
