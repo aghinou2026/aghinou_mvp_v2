@@ -30,11 +30,24 @@ jobs:
           AGHINOU_KEY_ALIAS: ${{ secrets.AGHINOU_KEY_ALIAS }}
           AGHINOU_KEY_PASSWORD: ${{ secrets.AGHINOU_KEY_PASSWORD }}
         run: cd extracted_v4/release && flutter build apk --release --android-skip-build-dependency-validation
-      - name: Verify APK
-        run: test -f extracted_v4/release/build/app/outputs/flutter-apk/app-release.apk
+      - name: Build release AAB
+        env:
+          AGHINOU_KEY_ALIAS: ${{ secrets.AGHINOU_KEY_ALIAS }}
+          AGHINOU_KEY_PASSWORD: ${{ secrets.AGHINOU_KEY_PASSWORD }}
+        run: cd extracted_v4/release && flutter build appbundle --release --android-skip-build-dependency-validation
+      - name: Verify release artifacts
+        run: |
+          test -f extracted_v4/release/build/app/outputs/flutter-apk/app-release.apk
+          test -f extracted_v4/release/build/app/outputs/bundle/release/app-release.aab
       - uses: actions/upload-artifact@v4
         with:
           name: aghinou-complete-release-apk
           path: extracted_v4/release/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aghinou-complete-release-aab
+          path: extracted_v4/release/build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
           retention-days: 14
