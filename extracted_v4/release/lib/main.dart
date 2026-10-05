@@ -2741,14 +2741,8 @@ class NotificationsPage extends StatefulWidget {
 class _NotificationsPageState extends State<NotificationsPage> {
   bool loading=true; List<Map<String,dynamic>> rows=[];
   @override void initState(){super.initState();load();}
-  Future<void> markAllReadOnOpen(String uid) async {
-    try {
-      await supabase.rpc('mark_my_notifications_read');
-    } catch (_) {}
-  }
   Future<void> load() async {
     final uid=supabase.auth.currentUser?.id;if(uid==null){if(mounted)setState(()=>loading=false);return;}
-    await markAllReadOnOpen(uid);
     try{final r=await supabase.from('notifications').select('id,title,body,type,read_at,created_at').eq('user_id',uid).order('created_at',ascending:false).limit(100);if(mounted)setState((){rows=List<Map<String,dynamic>>.from(r);loading=false;});}
     catch(e){if(mounted){setState(()=>loading=false);ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text('دریافت اعلان‌ها انجام نشد. لطفاً دوباره تلاش کنید.')));}}
   }
@@ -2759,12 +2753,47 @@ class _NotificationsPageState extends State<NotificationsPage> {
     return Directionality(textDirection:TextDirection.rtl,child:Scaffold(
       appBar:AppBar(title:Text('اعلان‌ها${unread>0?' ($unread)':''}'),actions:[if(unread>0)TextButton(onPressed:markAllRead,child:const Text('همه خوانده شد'))]),
       body:loading?const Center(child:CircularProgressIndicator()):rows.isEmpty?const Center(child:Text('اعلانی ندارید.')):ListView.builder(
-        padding:const EdgeInsets.all(12),itemCount:rows.length,itemBuilder:(_,i){final n=rows[i];final unreadItem=n['read_at']==null;return Card(child:ListTile(
-          leading:Icon(unreadItem?Icons.notifications_active:Icons.notifications_none),
-          title:Text(n['title']?.toString()??'اعلان آگهینو',style:TextStyle(fontWeight:unreadItem?FontWeight.bold:FontWeight.normal)),
-          subtitle:Text('${n['body']??''}\\n${n['created_at']??''}'),
-          onTap:()=>markRead(n['id'].toString()),
-        ));},
+        padding:const EdgeInsets.all(12),itemCount:rows.length,itemBuilder:(_,i){final n=rows[i];final unreadItem=n['read_at']==null;return Card(
+          margin: const EdgeInsets.only(bottom: 10),
+          color: unreadItem ? const Color(0xFFE0F2F1) : null,
+          elevation: unreadItem ? 2 : 1,
+          child: ListTile(
+            leading: Icon(
+              unreadItem ? Icons.notifications_active : Icons.notifications_none,
+              color: unreadItem ? const Color(0xFF006D77) : Colors.grey,
+            ),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    n['title']?.toString() ?? 'اعلان آگهینو',
+                    style: TextStyle(
+                      fontWeight: unreadItem ? FontWeight.bold : FontWeight.normal,
+                      color: unreadItem ? const Color(0xFF004F56) : null,
+                    ),
+                  ),
+                ),
+                if (unreadItem)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF006D77),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Text(
+                      'خوانده نشده',
+                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+              ],
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('${n['body'] ?? ''}\\n${n['created_at'] ?? ''}'),
+            ),
+            onTap: () => markRead(n['id'].toString()),
+          ),
+        );},
       ),
     ));
   }
